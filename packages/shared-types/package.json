@@ -1,5 +1,16 @@
 {
   "name": "@commit-analyzer/shared-types",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@commit-analyzer/eslint-config": "workspace:*",
+    "@commit-analyzer/typescript-config": "workspace:*",
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.3"
+  }
 }

@@ -1,5 +1,32 @@
 {
   "name": "@commit-analyzer/eslint-config",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "main": "./base.js",
+  "files": ["base.js", "node.js", "next.js"],
+  "exports": {
+    "./base": "./base.js",
+    "./node": "./node.js",
+    "./next": "./next.js"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.14.0",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^15.12.0",
+    "typescript-eslint": "^8.15.0"
+  },
+  "devDependencies": {
+    "@commit-analyzer/typescript-config": "workspace:*",
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.0"
+  }
 }
