@@ -15,7 +15,6 @@ const optionalString = z
   .optional()
   .or(z.literal("").transform(() => undefined));
 
-// 32 raw bytes, base64-encoded → 44 chars with one '=' pad.
 const base64Key32 = z
   .string({ required_error: "ENCRYPTION_KEY_BASE64 is required" })
   .refine(

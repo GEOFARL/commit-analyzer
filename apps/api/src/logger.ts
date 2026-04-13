@@ -1,7 +1,5 @@
 import { pino, type Logger, type LoggerOptions } from "pino";
 
-// Paths that must never appear in logs. See docs/09-security.md §5.
-// Matches both top-level and nested occurrences (e.g. `req.headers.authorization`).
 export const REDACT_PATHS: readonly string[] = [
   "*.authorization",
   "authorization",
@@ -14,8 +12,6 @@ export const REDACT_PATHS: readonly string[] = [
   "req.body.diff",
   "req.body.password",
   "res.headers['set-cookie']",
-  // Catch-all for anything that smells like a token or key, at any depth.
-  '*[/.*(_TOKEN|_KEY|_SECRET).*/i]',
   "*.accessToken",
   "*.refreshToken",
   "*.apiKey",
