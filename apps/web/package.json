@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "test": "echo \"no tests yet\" && exit 0",
+    "clean": "rm -rf .next .turbo *.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

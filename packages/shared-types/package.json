@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc",
+    "test": "echo \"no tests yet\" && exit 0",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
