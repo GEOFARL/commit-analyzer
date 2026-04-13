@@ -6,6 +6,16 @@ AI-assisted commit message generator with git analytics, policy validation, and 
 
 Turborepo monorepo · NestJS API · Next.js web · ts-rest contracts · BullMQ · Supabase (Postgres + Auth + RLS) · Vercel AI SDK · Playwright.
 
+## Quickstart
+
+Requires Node 20, pnpm 9.12+, and Docker.
+
+```bash
+pnpm install
+docker compose up -d
+pnpm dev
+```
+
 ## Development
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions, branch naming, and workflow.
