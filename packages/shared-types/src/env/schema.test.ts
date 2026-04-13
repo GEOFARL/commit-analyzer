@@ -82,6 +82,24 @@ describe("loadServerEnv", () => {
     ).toThrow(/ENCRYPTION_KEY_BASE64/);
   });
 
+  it("parses CSP_CONNECT_SRC as an empty list when unset", () => {
+    const env = loadServerEnv({ ...validServer });
+    expect(env.CSP_CONNECT_SRC).toEqual([]);
+  });
+
+  it("splits CSP_CONNECT_SRC on commas and whitespace", () => {
+    const env = loadServerEnv({
+      ...validServer,
+      CSP_CONNECT_SRC:
+        "https://api.example.com, wss://api.example.com  https://obs.example.com",
+    });
+    expect(env.CSP_CONNECT_SRC).toEqual([
+      "https://api.example.com",
+      "wss://api.example.com",
+      "https://obs.example.com",
+    ]);
+  });
+
   it("rejects an invalid NODE_ENV value", () => {
     expect(() =>
       loadServerEnv({ ...validServer, NODE_ENV: "staging" }),
