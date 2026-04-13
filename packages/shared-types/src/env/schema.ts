@@ -55,6 +55,19 @@ export const serverEnvSchema = z.object({
   ANTHROPIC_API_KEY: optionalString,
 
   ENCRYPTION_KEY_BASE64: base64Key32,
+
+  CSP_CONNECT_SRC: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(/[\s,]+/u)
+            .map((token) => token.trim())
+            .filter((token) => token.length > 0)
+        : [],
+    ),
 });
 
 export const clientEnvSchema = z.object({
