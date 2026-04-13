@@ -3,7 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "//": "TODO(T-0.8): replace tsc-based build/dev with `next build`/`next dev` when Next.js lands.",
   "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "test": "echo \"no tests yet\" && exit 0",
+    "clean": "rm -rf .next .turbo *.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
