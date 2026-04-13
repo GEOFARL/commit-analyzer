@@ -3,24 +3,38 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "//": "TODO: `dev` only runs tsc --watch today; wire up a server runtime (e.g. tsx watch src/index.ts) when the api runtime lands.",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch --preserveWatchOutput",
-    "test": "echo \"no tests yet\" && exit 0",
+    "start": "node --enable-source-maps dist/bootstrap.js",
+    "dev": "tsx watch src/bootstrap.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@commit-analyzer/shared-types": "workspace:*",
-    "pino": "^9.5.0"
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
+    "helmet": "^8",
+    "pino": "^9.5.0",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
+    "@nestjs/testing": "^11",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.9.0",
+    "@types/supertest": "^6",
     "eslint": "^9.14.0",
-    "typescript": "^5.6.3"
+    "supertest": "^7",
+    "tsx": "^4",
+    "typescript": "^5.6.3",
+    "vitest": "^2"
   }
 }
