@@ -1,0 +1,26 @@
+{
+  "common": {
+    "appName": "Commit Analyzer",
+    "loading": "Loading…"
+  },
+  "nav": {
+    "language": "Language",
+    "switchTo": {
+      "en": "English",
+      "uk": "Ukrainian"
+    }
+  },
+  "landing": {
+    "title": "Commit Analyzer",
+    "tagline": "AI-assisted commit message generation and repository analytics.",
+    "cta": "Get started"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "Page not found"
+  }
+}
