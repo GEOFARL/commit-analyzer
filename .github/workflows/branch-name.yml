@@ -1,0 +1,27 @@
+name: branch-name
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  branch-name:
+    name: branch-name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          pattern='^(feat|fix|chore|docs|refactor|test|perf|build|ci|style|revert)/T-[0-9]+\.[0-9]+-[a-z0-9-]+$'
+          echo "Branch: $BRANCH"
+          if [[ ! "$BRANCH" =~ $pattern ]]; then
+            echo "::error::Branch '$BRANCH' does not match required pattern: $pattern"
+            echo "Expected e.g. feat/T-1.3-crypto-service"
+            exit 1
+          fi
+          echo "OK"
