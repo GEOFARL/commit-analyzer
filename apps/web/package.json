@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "//": "TODO(T-0.8): replace tsc-based build/dev with `next build`/`next dev` when Next.js lands.",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch --preserveWatchOutput",
-    "test": "echo \"no tests yet\" && exit 0",
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "test": "node scripts/check-messages.mjs",
     "clean": "rm -rf .next .turbo *.tsbuildinfo",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
@@ -15,7 +15,17 @@
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9.14.0",
+    "eslint-plugin-i18next": "^6.1.3",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "next": "^16.2.3",
+    "next-intl": "^4.9.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   }
 }
