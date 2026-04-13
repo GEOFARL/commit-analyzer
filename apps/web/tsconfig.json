@@ -1,0 +1,4 @@
+{
+  "extends": "@commit-analyzer/typescript-config/nextjs.json",
+  "include": ["src/**/*"]
+}

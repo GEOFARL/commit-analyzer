@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node",
+  "extends": "./base.json",
+  // Consumers should add `@types/node` and set `"types": ["node"]` in their
+  // own tsconfig when they touch Node APIs. Kept out of the base preset so
+  // empty/scaffold workspaces don't require the types package.
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  }
+}

@@ -1,5 +1,17 @@
 {
   "name": "@commit-analyzer/cli",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@commit-analyzer/eslint-config": "workspace:*",
+    "@commit-analyzer/typescript-config": "workspace:*",
+    "@types/node": "^22.9.0",
+    "eslint": "^9.14.0",
+    "typescript": "^5.6.3"
+  }
 }
