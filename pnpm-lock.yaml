@@ -114,9 +114,6 @@ importers:
         specifier: ^8.15.0
         version: 8.58.1(eslint@9.39.4)(typescript@5.9.3)
     devDependencies:
-      '@commit-analyzer/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
       eslint:
         specifier: ^9.14.0
         version: 9.39.4

@@ -1,4 +1,12 @@
 {
-  "extends": "@commit-analyzer/typescript-config/node.json",
-  "include": ["src/**/*"]
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["*.js"]
 }
