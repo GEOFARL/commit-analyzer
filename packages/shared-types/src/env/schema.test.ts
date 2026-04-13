@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { EnvValidationError, loadClientEnv, loadServerEnv } from "./index.js";
+import { EnvValidationError, loadClientEnv, loadEnv, loadServerEnv } from "./index.js";
 
 const validKey = Buffer.alloc(32, 1).toString("base64");
 
@@ -33,6 +33,16 @@ describe("loadServerEnv", () => {
     expect(env.DATABASE_URL).toBe(validServer.DATABASE_URL);
     expect(env.NODE_ENV).toBe("test");
     expect(env.OPENAI_API_KEY).toBeUndefined();
+  });
+
+  it("treats an empty optional string as undefined", () => {
+    const env = loadServerEnv({
+      ...validServer,
+      OPENAI_API_KEY: "",
+      ANTHROPIC_API_KEY: "sk-real",
+    });
+    expect(env.OPENAI_API_KEY).toBeUndefined();
+    expect(env.ANTHROPIC_API_KEY).toBe("sk-real");
   });
 
   it("applies defaults for NODE_ENV and LOG_LEVEL", () => {
@@ -94,5 +104,24 @@ describe("loadClientEnv", () => {
     expect(() =>
       loadClientEnv({ ...validClient, NEXT_PUBLIC_API_URL: "nope" }),
     ).toThrow(/NEXT_PUBLIC_API_URL/);
+  });
+});
+
+describe("loadEnv", () => {
+  it("returns both server and client envs from a combined source", () => {
+    const { server, client } = loadEnv({ ...validServer, ...validClient });
+    expect(server.DATABASE_URL).toBe(validServer.DATABASE_URL);
+    expect(client.NEXT_PUBLIC_SUPABASE_URL).toBe(validClient.NEXT_PUBLIC_SUPABASE_URL);
+  });
+
+  it("surfaces server-side errors with scope=server", () => {
+    const { DATABASE_URL: _d, ...rest } = validServer;
+    try {
+      loadEnv({ ...rest, ...validClient });
+      throw new Error("expected EnvValidationError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(EnvValidationError);
+      expect((error as EnvValidationError).scope).toBe("server");
+    }
   });
 });
