@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "//": "TODO: `dev` only runs tsc --watch today; wire up a server runtime (e.g. tsx watch src/index.ts) when the api runtime lands.",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch --preserveWatchOutput",
