@@ -1,8 +1,10 @@
 // Module boundary preset for apps/cli.
 //
-// Layered architecture per docs/03-modules/E-cli.md and the cross-app ban
-// in docs/02-architecture-global.md §7 rule 4: commands may not call
-// sibling commands and CLI code may not reach into apps/api.
+// Layered architecture per docs/03-modules/E-cli.md and the golden rules
+// in docs/02-architecture-global.md §7 (notably rule 4, the cross-app
+// ban). Bounded contexts per docs/13-adrs/0002-cqrs-bounded-contexts.md:
+// commands may not call sibling commands and CLI code may not reach
+// into apps/api.
 
 import boundaries from "eslint-plugin-boundaries";
 import globals from "globals";
