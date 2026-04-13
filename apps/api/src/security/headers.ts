@@ -1,4 +1,5 @@
 import type { ServerEnv } from "@commit-analyzer/shared-types/env";
+import type { RequestHandler } from "express";
 import helmet from "helmet";
 
 export const DEFAULT_CONNECT_SRC = [
@@ -21,7 +22,16 @@ export const buildCspDirectives = ({
   "style-src": ["'self'", "'unsafe-inline'"],
 });
 
-export const buildHelmetMiddleware = (env: Pick<ServerEnv, "CSP_CONNECT_SRC">) =>
+export const serializeCsp = (
+  directives: Record<string, readonly string[]>,
+): string =>
+  Object.entries(directives)
+    .map(([name, values]) => `${name} ${values.join(" ")}`)
+    .join(";");
+
+export const buildHelmetMiddleware = (
+  env: Pick<ServerEnv, "CSP_CONNECT_SRC">,
+): RequestHandler =>
   helmet({
     contentSecurityPolicy: {
       useDefaults: false,

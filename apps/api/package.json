@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node --enable-source-maps dist/main.js",
-    "dev": "tsx watch src/main.ts",
+    "start": "node --enable-source-maps dist/bootstrap.js",
+    "dev": "tsx watch src/bootstrap.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
@@ -28,6 +28,7 @@
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
     "@nestjs/testing": "^11",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.9.0",
     "@types/supertest": "^6",
     "eslint": "^9.14.0",

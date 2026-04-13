@@ -49,19 +49,38 @@ describe("security headers on /health", () => {
     expect(res.body).toEqual({ status: "ok" });
   });
 
-  it("sets Content-Security-Policy exactly per §7", async () => {
+  it("sets Content-Security-Policy exactly per §7 with no leaked directives", async () => {
     const res = await request(server()).get("/health");
     const csp = res.headers["content-security-policy"];
     expect(csp).toBeDefined();
-    expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain(
-      "img-src 'self' https://avatars.githubusercontent.com data:",
+
+    const directives = new Map(
+      (csp as string)
+        .split(";")
+        .map((chunk) => chunk.trim())
+        .filter((chunk) => chunk.length > 0)
+        .map((chunk) => {
+          const [name, ...tokens] = chunk.split(/\s+/u);
+          return [name, tokens.join(" ")] as const;
+        }),
     );
-    expect(csp).toContain(
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.example.com wss://api.example.com",
+
+    expect([...directives.keys()].sort()).toEqual([
+      "connect-src",
+      "default-src",
+      "img-src",
+      "script-src",
+      "style-src",
+    ]);
+    expect(directives.get("default-src")).toBe("'self'");
+    expect(directives.get("img-src")).toBe(
+      "'self' https://avatars.githubusercontent.com data:",
     );
-    expect(csp).toContain("script-src 'self' 'unsafe-inline'");
-    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    expect(directives.get("connect-src")).toBe(
+      "'self' https://*.supabase.co wss://*.supabase.co https://api.example.com wss://api.example.com",
+    );
+    expect(directives.get("script-src")).toBe("'self' 'unsafe-inline'");
+    expect(directives.get("style-src")).toBe("'self' 'unsafe-inline'");
   });
 
   it("sets Strict-Transport-Security to 2 years, includeSubDomains, preload", async () => {
@@ -100,5 +119,26 @@ describe("security headers on /health", () => {
     expect(res.headers["access-control-allow-origin"]).not.toBe(
       "https://evil.example.com",
     );
+  });
+
+  it("does not echo a non-allowlisted origin on CORS preflight", async () => {
+    const res = await request(server())
+      .options("/health")
+      .set("Origin", "https://evil.example.com")
+      .set("Access-Control-Request-Method", "POST");
+    expect(res.headers["access-control-allow-origin"]).not.toBe(
+      "https://evil.example.com",
+    );
+  });
+
+  it("allows a preflight from WEB_ORIGIN", async () => {
+    const res = await request(server())
+      .options("/health")
+      .set("Origin", "http://localhost:3000")
+      .set("Access-Control-Request-Method", "POST");
+    expect(res.headers["access-control-allow-origin"]).toBe(
+      "http://localhost:3000",
+    );
+    expect(res.headers["access-control-allow-credentials"]).toBe("true");
   });
 });
