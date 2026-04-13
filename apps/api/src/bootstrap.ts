@@ -1,4 +1,4 @@
-import { createLogger } from "./logger.js";
+import { createLogger } from "./common/logger.js";
 import { createApp } from "./main.js";
 
 const DEFAULT_PORT = 4000;

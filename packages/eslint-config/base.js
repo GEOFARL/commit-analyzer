@@ -17,6 +17,12 @@ export default tseslint.config(
       },
     },
     plugins: { import: importPlugin },
+    settings: {
+      "import/resolver": {
+        typescript: { alwaysTryTypes: true },
+        node: { extensions: [".js", ".jsx", ".ts", ".tsx"] },
+      },
+    },
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [

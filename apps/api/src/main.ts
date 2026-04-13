@@ -4,8 +4,8 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 
 import { AppModule } from "./app.module.js";
-import { getServerEnv } from "./config.js";
-import { buildHelmetMiddleware } from "./security/headers.js";
+import { getServerEnv } from "./common/config.js";
+import { buildHelmetMiddleware } from "./common/security/headers.js";
 
 export const createApp = async (): Promise<NestExpressApplication> => {
   const env = getServerEnv();

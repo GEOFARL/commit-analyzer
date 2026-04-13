@@ -34,7 +34,7 @@ describe("security headers on /health", () => {
 
   beforeAll(async () => {
     applyEnv({ CSP_CONNECT_SRC: "https://api.example.com wss://api.example.com" });
-    const { createApp } = await import("../main.js");
+    const { createApp } = await import("../../main.js");
     app = await createApp();
     await app.init();
   });
