@@ -12,6 +12,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@commit-analyzer/shared-types": "workspace:*",
+    "pino": "^9.5.0"
+  },
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
