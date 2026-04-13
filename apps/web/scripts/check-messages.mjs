@@ -35,14 +35,14 @@ if (!catalogs.includes(BASE_LOCALE)) {
   process.exit(1);
 }
 
-const baseKeys = collectKeys(load(BASE_LOCALE));
+const baseKeys = new Set(collectKeys(load(BASE_LOCALE)));
 let failed = false;
 
 for (const locale of catalogs) {
   if (locale === BASE_LOCALE) continue;
-  const keys = collectKeys(load(locale));
-  const missing = baseKeys.filter((k) => !keys.includes(k));
-  const extra = keys.filter((k) => !baseKeys.includes(k));
+  const keys = new Set(collectKeys(load(locale)));
+  const missing = [...baseKeys].filter((k) => !keys.has(k));
+  const extra = [...keys].filter((k) => !baseKeys.has(k));
   if (missing.length || extra.length) {
     failed = true;
     console.error(`Catalog ${locale}.json drift:`);
