@@ -1,7 +1,7 @@
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { LanguageToggle } from "@/components/language-toggle";
+import { LanguageToggle } from "@/components/layout/language-toggle";
 
 export default async function LandingPage({
   params,
