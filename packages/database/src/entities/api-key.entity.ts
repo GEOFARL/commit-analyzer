@@ -35,6 +35,9 @@ export class ApiKey {
   @Column("timestamptz", { nullable: true })
   lastUsedAt!: Date | null;
 
+  @Column("timestamptz", { nullable: true })
+  revokedAt!: Date | null;
+
   @CreateDateColumn({ type: "timestamptz" })
   createdAt!: Date;
 }

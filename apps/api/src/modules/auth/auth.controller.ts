@@ -5,18 +5,15 @@ import {
   HttpCode,
   Inject,
   Post,
-  Req,
   UseGuards,
 } from "@nestjs/common";
 import { EventBus } from "@nestjs/cqrs";
 import { z } from "zod";
 
+import { CurrentUser } from "./current-user.decorator.js";
 import { AuthLoggedInEvent } from "./events/auth-logged-in.event.js";
 import { AuthLoggedOutEvent } from "./events/auth-logged-out.event.js";
-import {
-  SupabaseAuthGuard,
-  type AuthenticatedRequest,
-} from "./supabase-auth.guard.js";
+import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
 const signInEventSchema = z.object({ provider: z.literal("github") });
 
@@ -28,7 +25,7 @@ export class AuthController {
   @Post("sign-in-event")
   @HttpCode(200)
   signInEvent(
-    @Req() req: AuthenticatedRequest,
+    @CurrentUser() userId: string,
     @Body() body: unknown,
   ): { ok: true } {
     const parsed = signInEventSchema.safeParse(body);
@@ -39,15 +36,15 @@ export class AuthController {
       });
     }
     this.eventBus.publish(
-      new AuthLoggedInEvent(req.authUserId!, parsed.data.provider),
+      new AuthLoggedInEvent(userId, parsed.data.provider),
     );
     return { ok: true };
   }
 
   @Post("sign-out")
   @HttpCode(200)
-  signOut(@Req() req: AuthenticatedRequest): { ok: true } {
-    this.eventBus.publish(new AuthLoggedOutEvent(req.authUserId!));
+  signOut(@CurrentUser() userId: string): { ok: true } {
+    this.eventBus.publish(new AuthLoggedOutEvent(userId));
     return { ok: true };
   }
 }

@@ -1,51 +1,69 @@
 import {
-  CanActivate,
-  ExecutionContext,
+  type CanActivate,
+  type ExecutionContext,
+  Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Request } from "express";
+import { ClsService } from "nestjs-cls";
 
 import { getServerEnv } from "../../common/config.js";
+import {
+  CLS_AUTH_KIND,
+  CLS_USER_ID,
+} from "../../common/request-context.js";
 
-export interface AuthenticatedRequest extends Request {
-  authUserId?: string;
-}
+const INVALID_CREDENTIALS = "invalid credentials";
+
+export const SUPABASE_CLIENT = Symbol("SUPABASE_CLIENT");
+
+export const supabaseClientProvider = {
+  provide: SUPABASE_CLIENT,
+  useFactory: () => {
+    const env = getServerEnv();
+    return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  },
+};
 
 /**
- * Minimal token verifier for T-1.1. Supersedes by T-1.5 SupabaseAuthGuard (JWKS + CLS).
- * Calls `supabase.auth.getUser(token)` server-side so the token is verified against
- * the Supabase backend before the controller runs.
+ * Verifies `Authorization: Bearer <jwt>` via Supabase and writes the resolved
+ * user id into the CLS request store for `@CurrentUser()` to read.
  */
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
-  private client: SupabaseClient | undefined;
+  private readonly logger = new Logger(SupabaseAuthGuard.name);
 
-  private getClient(): SupabaseClient {
-    if (!this.client) {
-      const env = getServerEnv();
-      this.client = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-    }
-    return this.client;
-  }
+  constructor(
+    @Inject(ClsService) private readonly cls: ClsService,
+    @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const req = context.switchToHttp().getRequest<Request>();
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {
-      throw new UnauthorizedException("missing bearer token");
+      this.logger.debug("auth.session.invalid reason=missing_bearer");
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
     const token = header.slice("Bearer ".length).trim();
-    if (!token) throw new UnauthorizedException("empty bearer token");
-
-    const { data, error } = await this.getClient().auth.getUser(token);
-    if (error || !data?.user) {
-      throw new UnauthorizedException("invalid token");
+    if (!token) {
+      this.logger.debug("auth.session.invalid reason=empty_bearer");
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
-    req.authUserId = data.user.id;
+
+    const { data, error } = await this.supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      this.logger.debug("auth.session.invalid reason=token_rejected");
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
+
+    this.cls.set(CLS_USER_ID, data.user.id);
+    this.cls.set(CLS_AUTH_KIND, "session");
     return true;
   }
 }
