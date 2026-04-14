@@ -17,8 +17,12 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 COPY packages/typescript-config packages/typescript-config
 COPY packages/shared-types packages/shared-types
+COPY packages/contracts packages/contracts
+COPY packages/database packages/database
 COPY apps/api apps/api
 RUN pnpm --filter @commit-analyzer/shared-types build \
+ && pnpm --filter @commit-analyzer/contracts build \
+ && pnpm --filter @commit-analyzer/database build \
  && pnpm --filter @commit-analyzer/api build
 
 FROM base AS runner
@@ -36,6 +40,8 @@ COPY --chown=app:app packages/typescript-config/package.json packages/typescript
 RUN pnpm install --frozen-lockfile --prod --filter "@commit-analyzer/api..." \
  && pnpm store prune
 COPY --from=build --chown=app:app /app/packages/shared-types/dist packages/shared-types/dist
+COPY --from=build --chown=app:app /app/packages/contracts/dist packages/contracts/dist
+COPY --from=build --chown=app:app /app/packages/database/dist packages/database/dist
 COPY --from=build --chown=app:app /app/apps/api/dist apps/api/dist
 USER app
 EXPOSE 3000
