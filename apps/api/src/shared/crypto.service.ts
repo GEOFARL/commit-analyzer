@@ -1,0 +1,70 @@
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+
+import { Injectable } from "@nestjs/common";
+
+import { getServerEnv } from "../common/config.js";
+
+const VERSION = "v1";
+const ALGO = "aes-256-gcm";
+const IV_LENGTH = 12;
+const TAG_LENGTH = 16;
+const KEY_LENGTH = 32;
+
+export class DecryptionError extends Error {
+  constructor(message = "decryption failed") {
+    super(message);
+    this.name = "DecryptionError";
+  }
+}
+
+@Injectable()
+export class CryptoService {
+  private readonly key: Buffer;
+
+  constructor(key?: Buffer) {
+    const resolved = key ?? Buffer.from(getServerEnv().ENCRYPTION_KEY_BASE64, "base64");
+    if (resolved.length !== KEY_LENGTH) {
+      throw new Error(`encryption key must be ${KEY_LENGTH} bytes`);
+    }
+    this.key = resolved;
+  }
+
+  encrypt(plaintext: string): string {
+    const iv = randomBytes(IV_LENGTH);
+    const cipher = createCipheriv(ALGO, this.key, iv);
+    const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return [VERSION, iv.toString("base64"), ciphertext.toString("base64"), tag.toString("base64")].join(":");
+  }
+
+  decrypt(cipher: string): string {
+    const parts = cipher.split(":");
+    if (parts.length !== 4 || parts[0] !== VERSION) {
+      throw new DecryptionError("unsupported ciphertext format");
+    }
+    const ivB64 = parts[1]!;
+    const dataB64 = parts[2]!;
+    const tagB64 = parts[3]!;
+    let iv: Buffer;
+    let data: Buffer;
+    let tag: Buffer;
+    try {
+      iv = Buffer.from(ivB64, "base64");
+      data = Buffer.from(dataB64, "base64");
+      tag = Buffer.from(tagB64, "base64");
+    } catch {
+      throw new DecryptionError("invalid base64 segment");
+    }
+    if (iv.length !== IV_LENGTH || tag.length !== TAG_LENGTH) {
+      throw new DecryptionError("invalid iv or tag length");
+    }
+    try {
+      const decipher = createDecipheriv(ALGO, this.key, iv);
+      decipher.setAuthTag(tag);
+      const plaintext = Buffer.concat([decipher.update(data), decipher.final()]);
+      return plaintext.toString("utf8");
+    } catch {
+      throw new DecryptionError();
+    }
+  }
+}
