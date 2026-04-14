@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./data-source": {
-      "types": "./dist/data-source.d.ts",
-      "default": "./dist/data-source.js"
     }
   },
   "scripts": {
