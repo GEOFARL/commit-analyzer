@@ -43,8 +43,10 @@ describe("AuthController", () => {
     expect(event.userId).toBe("user-123");
   });
 
-  it("rejects unknown provider", () => {
-    expect(() => controller.signInEvent(fakeReq, { provider: "google" })).toThrow();
+  it("rejects unknown provider with 400", () => {
+    expect(() => controller.signInEvent(fakeReq, { provider: "google" })).toThrow(
+      /invalid sign-in-event payload|Bad Request/,
+    );
     expect(publish).not.toHaveBeenCalled();
   });
 

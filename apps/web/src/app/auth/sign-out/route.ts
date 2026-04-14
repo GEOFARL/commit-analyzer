@@ -1,6 +1,6 @@
-import { loadServerEnv } from "@commit-analyzer/shared-types/env";
 import { NextResponse } from "next/server";
 
+import { getClientEnv } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +13,8 @@ export const POST = async (request: Request) => {
 
   if (session?.access_token) {
     try {
-      const { API_URL } = loadServerEnv();
-      const response = await fetch(`${API_URL}/auth/sign-out`, {
+      const { NEXT_PUBLIC_API_URL } = getClientEnv();
+      const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/sign-out`, {
         method: "POST",
         headers: { authorization: `Bearer ${session.access_token}` },
       });
