@@ -9,6 +9,7 @@ on:
       - "railway.json"
       - "turbo.json"
       - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
       - ".github/workflows/deploy-api.yml"
 
 concurrency:
