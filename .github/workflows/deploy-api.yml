@@ -1,0 +1,45 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/**"
+      - ".github/workflows/deploy-api.yml"
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy api to Railway
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE_ID_API: ${{ secrets.RAILWAY_SERVICE_ID_API }}
+    steps:
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID_API" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped: Railway secrets not configured (RAILWAY_TOKEN / RAILWAY_SERVICE_ID_API)."
+          else
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.skipped == 'false'
+      - uses: ./.github/actions/setup
+        if: steps.gate.outputs.skipped == 'false'
+      - name: Build api
+        if: steps.gate.outputs.skipped == 'false'
+        run: pnpm --filter @commit-analyzer/api build
+      - name: Install Railway CLI
+        if: steps.gate.outputs.skipped == 'false'
+        run: pnpm add -g @railway/cli
+      - name: Deploy to Railway
+        if: steps.gate.outputs.skipped == 'false'
+        run: railway up --service "$RAILWAY_SERVICE_ID_API" --ci
+        working-directory: apps/api

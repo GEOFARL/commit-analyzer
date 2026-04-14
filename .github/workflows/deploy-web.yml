@@ -1,0 +1,54 @@
+name: Deploy Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - ".github/workflows/deploy-web.yml"
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy web to Vercel
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped: Vercel secrets not configured (VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID)."
+          else
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.skipped == 'false'
+      - uses: ./.github/actions/setup
+        if: steps.gate.outputs.skipped == 'false'
+      - name: Build web
+        if: steps.gate.outputs.skipped == 'false'
+        run: pnpm --filter @commit-analyzer/web build
+      - name: Install Vercel CLI
+        if: steps.gate.outputs.skipped == 'false'
+        run: pnpm add -g vercel@latest
+      - name: Pull Vercel environment
+        if: steps.gate.outputs.skipped == 'false'
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        working-directory: apps/web
+      - name: Build Vercel artifact
+        if: steps.gate.outputs.skipped == 'false'
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+        working-directory: apps/web
+      - name: Deploy to Vercel
+        if: steps.gate.outputs.skipped == 'false'
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        working-directory: apps/web
