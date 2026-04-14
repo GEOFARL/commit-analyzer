@@ -1,1 +1,3 @@
-export const name = "@commit-analyzer/database";
+export { AppDataSource, default } from "./data-source.js";
+export * from "./entities/index.js";
+export * from "./repositories/index.js";

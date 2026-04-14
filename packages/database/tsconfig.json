@@ -2,7 +2,11 @@
   "extends": "@commit-analyzer/typescript-config/node.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "types": ["node"]
   },
   "include": ["src/**/*"]
 }
