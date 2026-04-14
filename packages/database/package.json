@@ -3,16 +3,36 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "test": "echo \"no tests yet\" && exit 0",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migration:run": "pnpm build && typeorm migration:run -d dist/cli-data-source.js",
+    "migration:revert": "pnpm build && typeorm migration:revert -d dist/cli-data-source.js",
+    "migration:show": "pnpm build && typeorm migration:show -d dist/cli-data-source.js",
+    "migration:generate": "pnpm build && typeorm migration:generate -d dist/cli-data-source.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20",
+    "typeorm-naming-strategies": "^4.1.0"
   },
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
+    "@types/node": "^22.9.0",
+    "@types/pg": "^8.11.10",
     "eslint": "^9.14.0",
     "typescript": "^5.6.3"
   }
