@@ -74,6 +74,21 @@ Refs #31
 - Squash-merge by default; the squash commit message must itself be a valid Conventional Commit.
 - Keep PRs ≤400 lines of diff where possible. Split by sub-task if larger.
 
+## Branch protection on `main`
+
+`main` is protected. Merge is blocked until the following required status checks pass on the PR head commit:
+
+- `Lint`, `Typecheck`, `Unit tests` (from `ci.yml`)
+- `branch-name`, `commitlint`, `pr-lint` (from `pr-hygiene.yml`)
+
+Additional rules:
+
+- Branches must be up to date with `main` before merging (`strict: true`).
+- Force pushes and branch deletion are blocked.
+- Linear history is required; resolve conversations before merge.
+
+This is what gates the production deploys in `deploy-web.yml` / `deploy-api.yml` — those workflows trigger on `push: main`, so the CI gate must be enforced *before* code reaches `main`.
+
 ## Before pushing
 
 - `pnpm lint && pnpm typecheck && pnpm test` must pass.
