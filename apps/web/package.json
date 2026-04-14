@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "pnpm --filter @commit-analyzer/shared-types build",
     "build": "next build",
+    "predev": "pnpm --filter @commit-analyzer/shared-types build",
     "dev": "next dev",
     "start": "next start",
     "test": "node scripts/check-messages.mjs",
