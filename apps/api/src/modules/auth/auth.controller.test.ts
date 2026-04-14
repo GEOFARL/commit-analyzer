@@ -14,19 +14,12 @@ describe("AuthController", () => {
   const canActivate = vi.fn().mockResolvedValue(true);
   let controller: AuthController;
 
-  const fakeReq = { authUserId: "user-123" } as Parameters<
-    AuthController["signInEvent"]
-  >[0];
-
   beforeEach(async () => {
     publish.mockReset();
     canActivate.mockClear();
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        { provide: EventBus, useValue: { publish } },
-        { provide: SupabaseAuthGuard, useValue: { canActivate } },
-      ],
+      providers: [{ provide: EventBus, useValue: { publish } }],
     })
       .overrideGuard(SupabaseAuthGuard)
       .useValue({ canActivate })
@@ -35,7 +28,9 @@ describe("AuthController", () => {
   });
 
   it("publishes auth.login with userId + provider", () => {
-    expect(controller.signInEvent(fakeReq, { provider: "github" })).toEqual({ ok: true });
+    expect(controller.signInEvent("user-123", { provider: "github" })).toEqual({
+      ok: true,
+    });
     expect(publish).toHaveBeenCalledTimes(1);
     const [event] = publish.mock.calls[0] as [AuthLoggedInEvent];
     expect(event).toBeInstanceOf(AuthLoggedInEvent);
@@ -44,14 +39,14 @@ describe("AuthController", () => {
   });
 
   it("rejects unknown provider with 400", () => {
-    expect(() => controller.signInEvent(fakeReq, { provider: "google" })).toThrow(
-      /invalid sign-in-event payload|Bad Request/,
-    );
+    expect(() =>
+      controller.signInEvent("user-123", { provider: "google" }),
+    ).toThrow(/invalid sign-in-event payload|Bad Request/);
     expect(publish).not.toHaveBeenCalled();
   });
 
   it("publishes auth.logout with userId", () => {
-    expect(controller.signOut(fakeReq)).toEqual({ ok: true });
+    expect(controller.signOut("user-123")).toEqual({ ok: true });
     expect(publish).toHaveBeenCalledTimes(1);
     const [event] = publish.mock.calls[0] as [AuthLoggedOutEvent];
     expect(event).toBeInstanceOf(AuthLoggedOutEvent);

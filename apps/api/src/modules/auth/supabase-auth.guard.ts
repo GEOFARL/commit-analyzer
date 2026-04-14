@@ -1,22 +1,22 @@
 import {
-  CanActivate,
-  ExecutionContext,
+  type CanActivate,
+  type ExecutionContext,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Request } from "express";
+import { ClsServiceManager } from "nestjs-cls";
 
 import { getServerEnv } from "../../common/config.js";
-
-export interface AuthenticatedRequest extends Request {
-  authUserId?: string;
-}
+import {
+  CLS_AUTH_KIND,
+  CLS_USER_ID,
+} from "../../common/request-context.js";
 
 /**
- * Minimal token verifier for T-1.1. Supersedes by T-1.5 SupabaseAuthGuard (JWKS + CLS).
- * Calls `supabase.auth.getUser(token)` server-side so the token is verified against
- * the Supabase backend before the controller runs.
+ * Verifies `Authorization: Bearer <jwt>` via Supabase and writes the resolved
+ * user id into the CLS request store for `@CurrentUser()` to read.
  */
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
@@ -33,7 +33,7 @@ export class SupabaseAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const req = context.switchToHttp().getRequest<Request>();
     const header = req.headers.authorization;
     if (!header?.startsWith("Bearer ")) {
       throw new UnauthorizedException("missing bearer token");
@@ -45,7 +45,10 @@ export class SupabaseAuthGuard implements CanActivate {
     if (error || !data?.user) {
       throw new UnauthorizedException("invalid token");
     }
-    req.authUserId = data.user.id;
+
+    const cls = ClsServiceManager.getClsService();
+    cls.set(CLS_USER_ID, data.user.id);
+    cls.set(CLS_AUTH_KIND, "session");
     return true;
   }
 }
