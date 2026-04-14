@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "pnpm --filter @commit-analyzer/shared-types build",
+    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
     "build": "tsc",
     "start": "node --enable-source-maps dist/bootstrap.js",
-    "predev": "pnpm --filter @commit-analyzer/shared-types build",
+    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
     "dev": "tsx watch src/bootstrap.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@commit-analyzer/contracts": "workspace:*",
     "@commit-analyzer/shared-types": "workspace:*",
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
