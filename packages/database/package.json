@@ -18,6 +18,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "migration:run": "pnpm build && typeorm migration:run -d dist/cli-data-source.js",
+    "migration:run:prod": "typeorm migration:run -d dist/cli-data-source.js",
     "migration:revert": "pnpm build && typeorm migration:revert -d dist/cli-data-source.js",
     "migration:show": "pnpm build && typeorm migration:show -d dist/cli-data-source.js",
     "migration:generate": "pnpm build && typeorm migration:generate -d dist/cli-data-source.js"
