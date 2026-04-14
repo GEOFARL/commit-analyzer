@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 WORKDIR /app
@@ -13,8 +12,7 @@ COPY packages/database/package.json packages/database/package.json
 COPY packages/eslint-config/package.json packages/eslint-config/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
-RUN --mount=type=cache,id=pnpm,sharing=locked,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY packages/typescript-config packages/typescript-config
@@ -35,8 +33,8 @@ COPY --chown=app:app packages/database/package.json packages/database/package.js
 COPY --chown=app:app packages/eslint-config/package.json packages/eslint-config/package.json
 COPY --chown=app:app packages/shared-types/package.json packages/shared-types/package.json
 COPY --chown=app:app packages/typescript-config/package.json packages/typescript-config/package.json
-RUN --mount=type=cache,id=pnpm,sharing=locked,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod --filter "@commit-analyzer/api..."
+RUN pnpm install --frozen-lockfile --prod --filter "@commit-analyzer/api..." \
+ && pnpm store prune
 COPY --from=build --chown=app:app /app/packages/shared-types/dist packages/shared-types/dist
 COPY --from=build --chown=app:app /app/apps/api/dist apps/api/dist
 USER app
