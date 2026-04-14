@@ -10,7 +10,7 @@ export const POST = async (request: Request) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      redirectTo: `${origin}/auth/callback`,
+      redirectTo: `${origin}/auth/callback?next=%2Fdashboard`,
       scopes: "read:user user:email repo",
     },
   });

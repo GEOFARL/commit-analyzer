@@ -2,6 +2,7 @@ import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { LanguageToggle } from "@/components/layout/language-toggle";
+import { Link } from "@/i18n/navigation";
 
 export default async function LandingPage({
   params,
@@ -16,7 +17,7 @@ export default async function LandingPage({
     <main>
       <h1>{t("title")}</h1>
       <p>{t("tagline")}</p>
-      <button type="button">{t("cta")}</button>
+      <Link href="/login">{t("cta")}</Link>
       <LanguageToggle />
     </main>
   );
