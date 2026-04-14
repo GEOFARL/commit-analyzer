@@ -6,6 +6,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@commit-analyzer/shared-types"],
   turbopack: {
     root: fileURLToPath(new URL("../..", import.meta.url)),
   },

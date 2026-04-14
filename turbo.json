@@ -3,7 +3,29 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": [
+        "NODE_ENV",
+        "LOG_LEVEL",
+        "APP_URL",
+        "API_URL",
+        "WEB_ORIGIN",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "ENCRYPTION_KEY_BASE64",
+        "CSP_CONNECT_SRC",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ]
     },
     "dev": {
       "cache": false,
@@ -14,6 +36,8 @@
       "outputs": ["coverage/**"]
     },
     "lint": {},
-    "typecheck": {}
+    "typecheck": {
+      "dependsOn": ["^build"]
+    }
   }
 }

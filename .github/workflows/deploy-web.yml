@@ -6,6 +6,8 @@ on:
     paths:
       - "apps/web/**"
       - "packages/**"
+      - "turbo.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/deploy-web.yml"
 
 concurrency:
@@ -20,35 +22,36 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      WEB_HEALTH_URL: ${{ vars.WEB_HEALTH_URL }}
     steps:
       - name: Check secrets
         id: gate
         run: |
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "skipped=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipped: Vercel secrets not configured (VERCEL_TOKEN / VERCEL_ORG_ID / VERCEL_PROJECT_ID)."
+            echo "::notice::Skipped: Vercel secrets not configured."
           else
             echo "skipped=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/checkout@v4
         if: steps.gate.outputs.skipped == 'false'
-      - uses: ./.github/actions/setup
-        if: steps.gate.outputs.skipped == 'false'
-      - name: Build web
-        if: steps.gate.outputs.skipped == 'false'
-        run: pnpm --filter @commit-analyzer/web build
       - name: Install Vercel CLI
         if: steps.gate.outputs.skipped == 'false'
-        run: pnpm add -g vercel@latest
-      - name: Pull Vercel environment
-        if: steps.gate.outputs.skipped == 'false'
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-        working-directory: apps/web
-      - name: Build Vercel artifact
-        if: steps.gate.outputs.skipped == 'false'
-        run: vercel build --prod --token="$VERCEL_TOKEN"
-        working-directory: apps/web
+        run: npm i -g vercel@latest
       - name: Deploy to Vercel
         if: steps.gate.outputs.skipped == 'false'
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
-        working-directory: apps/web
+        run: vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+      - name: Health check
+        if: steps.gate.outputs.skipped == 'false' && env.WEB_HEALTH_URL != ''
+        run: |
+          echo "Probing $WEB_HEALTH_URL"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$WEB_HEALTH_URL" || echo "000")
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ] || [ "$code" = "307" ] || [ "$code" = "308" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check failed for $WEB_HEALTH_URL"
+          exit 1

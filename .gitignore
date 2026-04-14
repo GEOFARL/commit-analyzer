@@ -46,3 +46,6 @@ coverage/
 # Misc
 *.tgz
 .cache/
+
+# Vercel
+.vercel

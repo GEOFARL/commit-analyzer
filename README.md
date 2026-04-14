@@ -38,6 +38,18 @@ Required repository secrets:
 | `deploy-web` | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`  |
 | `deploy-api` | `RAILWAY_TOKEN`, `RAILWAY_SERVICE_ID_API`             |
 
+Health checks are driven by repository variables (not secrets):
+
+| Variable          | Example                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `WEB_HEALTH_URL`  | `https://commit-analyzer.vercel.app/`                   |
+| `API_HEALTH_URL`  | `https://poetic-luck-production.up.railway.app/health`  |
+
+Live environments:
+
+- Web → <https://commit-analyzer.vercel.app>
+- API → <https://poetic-luck-production.up.railway.app/health>
+
 ## Status
 
 In development. See [issues](../../issues) and [milestones](../../milestones) for current phase progress.
