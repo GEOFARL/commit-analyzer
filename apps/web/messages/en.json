@@ -15,6 +15,15 @@
     "tagline": "AI-assisted commit message generation and repository analytics.",
     "cta": "Get started"
   },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Continue with your GitHub account to access your dashboard.",
+    "continueWithGithub": "Continue with GitHub"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "placeholder": "Your connected repositories will appear here."
+  },
   "auth": {
     "signIn": "Sign in",
     "signOut": "Sign out"
