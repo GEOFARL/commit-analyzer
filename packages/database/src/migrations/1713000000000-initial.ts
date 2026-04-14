@@ -4,6 +4,8 @@ export class Initial1713000000000 implements MigrationInterface {
   name = "Initial1713000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // pgcrypto powers gen_random_uuid(); intentionally not dropped in down()
+    // because it is shared infrastructure that other migrations may rely on.
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
 
     await queryRunner.query(`
@@ -66,7 +68,9 @@ export class Initial1713000000000 implements MigrationInterface {
         "key_tag" bytea NOT NULL,
         "status" text NOT NULL DEFAULT 'unknown',
         "created_at" timestamptz NOT NULL DEFAULT now(),
-        CONSTRAINT "llm_api_keys_user_provider_uk" UNIQUE ("user_id", "provider")
+        CONSTRAINT "llm_api_keys_user_provider_uk" UNIQUE ("user_id", "provider"),
+        CONSTRAINT "llm_api_keys_provider_chk" CHECK ("provider" IN ('openai', 'anthropic')),
+        CONSTRAINT "llm_api_keys_status_chk" CHECK ("status" IN ('ok', 'invalid', 'unknown'))
       )
     `);
     await queryRunner.query(
