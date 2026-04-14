@@ -1,3 +1,6 @@
 export class AuthLoggedInEvent {
-  constructor(public readonly provider: "github") {}
+  constructor(
+    public readonly userId: string,
+    public readonly provider: "github",
+  ) {}
 }

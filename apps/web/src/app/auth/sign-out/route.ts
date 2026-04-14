@@ -1,3 +1,4 @@
+import { loadServerEnv } from "@commit-analyzer/shared-types/env";
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -12,12 +13,16 @@ export const POST = async (request: Request) => {
 
   if (session?.access_token) {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/sign-out`, {
+      const { API_URL } = loadServerEnv();
+      const response = await fetch(`${API_URL}/auth/sign-out`, {
         method: "POST",
         headers: { authorization: `Bearer ${session.access_token}` },
       });
-    } catch {
-      // Non-fatal.
+      if (!response.ok) {
+        console.warn("auth.logout event dispatch failed", response.status);
+      }
+    } catch (err) {
+      console.warn("auth.logout event dispatch threw", err);
     }
   }
 
