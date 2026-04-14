@@ -25,9 +25,7 @@ const clsModuleOptions: ClsModuleOptions = {
     setup: (cls, _req, res: ServerResponse) => {
       const id = cls.getId();
       cls.set(REQUEST_ID_KEY, id);
-      if (typeof res.setHeader === "function") {
-        res.setHeader(REQUEST_ID_HEADER, id);
-      }
+      res.setHeader(REQUEST_ID_HEADER, id);
     },
   },
 };

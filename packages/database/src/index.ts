@@ -1,3 +1,4 @@
+export type { DataSource } from "typeorm";
 export {
   buildDataSourceOptions,
   createDataSource,

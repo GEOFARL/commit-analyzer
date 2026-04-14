@@ -3,12 +3,15 @@ import { CqrsModule } from "@nestjs/cqrs";
 
 import { ApiKeyGuard } from "./api-key.guard.js";
 import { AuthController } from "./auth.controller.js";
-import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
+import {
+  SupabaseAuthGuard,
+  supabaseClientProvider,
+} from "./supabase-auth.guard.js";
 
 @Module({
   imports: [CqrsModule],
   controllers: [AuthController],
-  providers: [SupabaseAuthGuard, ApiKeyGuard],
+  providers: [supabaseClientProvider, SupabaseAuthGuard, ApiKeyGuard],
   exports: [SupabaseAuthGuard, ApiKeyGuard],
 })
 export class AuthModule {}

@@ -25,15 +25,17 @@ class ProbeController {
 }
 
 describe("ApiKeyGuard", () => {
-  const findByPrefix = vi.fn();
+  const findActiveByPrefix = vi.fn();
   const touchLastUsed = vi.fn().mockResolvedValue(undefined);
   let app: INestApplication;
+  // Full key: "git_abcd" (8-char prefix) + random secret suffix.
+  const validKey = "git_abcdSECRETTAIL1234";
   let validHash: string;
   const server = (): Server => app.getHttpServer() as Server;
 
   beforeEach(async () => {
-    validHash = await argon2.hash("s3cret");
-    findByPrefix.mockReset();
+    validHash = await argon2.hash(validKey);
+    findActiveByPrefix.mockReset();
     touchLastUsed.mockClear();
 
     const moduleRef = await Test.createTestingModule({
@@ -48,7 +50,7 @@ describe("ApiKeyGuard", () => {
         ApiKeyGuard,
         {
           provide: API_KEY_REPOSITORY,
-          useValue: { findByPrefix, touchLastUsed },
+          useValue: { findActiveByPrefix, touchLastUsed },
         },
       ],
     }).compile();
@@ -62,55 +64,58 @@ describe("ApiKeyGuard", () => {
   });
 
   it("401 when header missing", async () => {
-    await request(server()).get("/probe").expect(401);
-    expect(findByPrefix).not.toHaveBeenCalled();
+    const res = await request(server()).get("/probe").expect(401);
+    expect((res.body as { message: string }).message).toBe("invalid credentials");
+    expect(findActiveByPrefix).not.toHaveBeenCalled();
   });
 
-  it("401 when prefix not found (revoked/unknown)", async () => {
-    findByPrefix.mockResolvedValueOnce(null);
-    await request(server())
+  it("401 when key too short to contain a prefix", async () => {
+    const res = await request(server())
       .get("/probe")
-      .set("x-api-key", "pfx.s3cret")
+      .set("x-api-key", "short")
       .expect(401);
-    expect(findByPrefix).toHaveBeenCalledWith("pfx");
+    expect((res.body as { message: string }).message).toBe("invalid credentials");
+    expect(findActiveByPrefix).not.toHaveBeenCalled();
+  });
+
+  it("401 when prefix not found (revoked/unknown) — message identical", async () => {
+    findActiveByPrefix.mockResolvedValueOnce(null);
+    const res = await request(server())
+      .get("/probe")
+      .set("x-api-key", validKey)
+      .expect(401);
+    expect((res.body as { message: string }).message).toBe("invalid credentials");
+    expect(findActiveByPrefix).toHaveBeenCalledWith("git_abcd");
+    expect(touchLastUsed).not.toHaveBeenCalled();
   });
 
   it("401 when secret does not verify against stored hash", async () => {
-    findByPrefix.mockResolvedValueOnce({
+    findActiveByPrefix.mockResolvedValueOnce({
       id: "k-1",
       userId: "u-1",
-      keyPrefix: "pfx",
+      keyPrefix: "git_abcd",
       keyHash: validHash,
     });
     await request(server())
       .get("/probe")
-      .set("x-api-key", "pfx.wrong")
+      .set("x-api-key", "git_abcdWRONGTAIL0000")
       .expect(401);
     expect(touchLastUsed).not.toHaveBeenCalled();
   });
 
   it("200 with valid key: handler sees user id, last_used_at updated", async () => {
-    findByPrefix.mockResolvedValueOnce({
+    findActiveByPrefix.mockResolvedValueOnce({
       id: "k-1",
       userId: "u-1",
-      keyPrefix: "pfx",
+      keyPrefix: "git_abcd",
       keyHash: validHash,
     });
     const res = await request(server())
       .get("/probe")
-      .set("x-api-key", "pfx.s3cret")
+      .set("x-api-key", validKey)
       .expect(200);
     expect(res.body).toEqual({ userId: "u-1", kind: "api-key" });
-    // fire-and-forget — wait a tick
     await new Promise((r) => setImmediate(r));
     expect(touchLastUsed).toHaveBeenCalledWith("k-1");
-  });
-
-  it("401 on malformed key (no delimiter)", async () => {
-    await request(server())
-      .get("/probe")
-      .set("x-api-key", "nodelimiter")
-      .expect(401);
-    expect(findByPrefix).not.toHaveBeenCalled();
   });
 });
