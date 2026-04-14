@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "pnpm --filter @commit-analyzer/shared-types build",
+    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
     "build": "next build",
-    "predev": "pnpm --filter @commit-analyzer/shared-types build",
+    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
     "dev": "next dev",
     "start": "next start",
     "test": "node scripts/check-messages.mjs",
@@ -25,6 +25,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@commit-analyzer/contracts": "workspace:*",
     "@commit-analyzer/shared-types": "workspace:^",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
