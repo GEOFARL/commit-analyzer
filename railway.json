@@ -6,6 +6,7 @@
   },
   "deploy": {
     "startCommand": "node --enable-source-maps apps/api/dist/bootstrap.js",
+    "preDeployCommand": "pnpm --filter @commit-analyzer/database migration:run:prod",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
