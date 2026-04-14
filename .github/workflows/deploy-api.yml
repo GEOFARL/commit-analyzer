@@ -1,0 +1,58 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/**"
+      - "railway.json"
+      - "turbo.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy-api.yml"
+
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy api to Railway
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE_ID_API: ${{ secrets.RAILWAY_SERVICE_ID_API }}
+      API_HEALTH_URL: ${{ vars.API_HEALTH_URL }}
+    steps:
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID_API" ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipped: Railway secrets not configured."
+          else
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.skipped == 'false'
+      - name: Install Railway CLI
+        if: steps.gate.outputs.skipped == 'false'
+        run: npm i -g @railway/cli
+      - name: Deploy to Railway
+        if: steps.gate.outputs.skipped == 'false'
+        run: railway up --service "$RAILWAY_SERVICE_ID_API" --ci
+      - name: Health check
+        if: steps.gate.outputs.skipped == 'false' && env.API_HEALTH_URL != ''
+        run: |
+          echo "Probing $API_HEALTH_URL"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$API_HEALTH_URL" || echo "000")
+            echo "attempt $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check failed for $API_HEALTH_URL"
+          exit 1
