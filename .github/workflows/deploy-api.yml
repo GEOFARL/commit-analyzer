@@ -21,14 +21,14 @@ jobs:
     name: Deploy api to Railway
     runs-on: ubuntu-latest
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
       RAILWAY_SERVICE_ID_API: ${{ secrets.RAILWAY_SERVICE_ID_API }}
       API_HEALTH_URL: ${{ vars.API_HEALTH_URL }}
     steps:
       - name: Check secrets
         id: gate
         run: |
-          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID_API" ]; then
+          if [ -z "$RAILWAY_API_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID_API" ]; then
             echo "skipped=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Skipped: Railway secrets not configured."
           else

@@ -36,7 +36,7 @@ Required repository secrets:
 | Workflow     | Secrets                                               |
 | ------------ | ----------------------------------------------------- |
 | `deploy-web` | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`  |
-| `deploy-api` | `RAILWAY_TOKEN`, `RAILWAY_SERVICE_ID_API`             |
+| `deploy-api` | `RAILWAY_API_TOKEN`, `RAILWAY_SERVICE_ID_API`         |
 
 Health checks are driven by repository variables (not secrets):
 
