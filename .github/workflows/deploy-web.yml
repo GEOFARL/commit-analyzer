@@ -36,6 +36,8 @@ jobs:
           fi
       - uses: actions/checkout@v4
         if: steps.gate.outputs.skipped == 'false'
+      - uses: ./.github/actions/setup
+        if: steps.gate.outputs.skipped == 'false'
       - name: Install Vercel CLI
         if: steps.gate.outputs.skipped == 'false'
         run: npm i -g vercel@latest
