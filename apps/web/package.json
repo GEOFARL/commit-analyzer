@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "@commit-analyzer/shared-types": "workspace:^",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.0",
     "next": "^16.2.3",
     "next-intl": "^4.9.1",
     "react": "^19.2.5",
