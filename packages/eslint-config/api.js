@@ -17,6 +17,7 @@ const elements = [
     pattern: "{index,main,bootstrap,app.module}.ts",
   },
   { type: "common", pattern: "src/common" },
+  { type: "shared", pattern: "src/shared" },
   {
     type: "module",
     pattern: "src/modules/*",
@@ -44,10 +45,14 @@ export default [
           rules: [
             {
               from: { type: "app" },
-              allow: { to: { type: ["app", "common", "module"] } },
+              allow: { to: { type: ["app", "common", "shared", "module"] } },
             },
             {
               from: { type: "module" },
+              allow: { to: { type: ["common", "shared"] } },
+            },
+            {
+              from: { type: "shared" },
               allow: { to: { type: "common" } },
             },
           ],
