@@ -23,6 +23,7 @@
     "@nestjs/core": "^11",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/platform-express": "^11",
+    "@octokit/plugin-retry": "^8.1.0",
     "@octokit/plugin-throttling": "^11.0.3",
     "@octokit/rest": "^22.0.1",
     "@supabase/supabase-js": "^2.103.0",

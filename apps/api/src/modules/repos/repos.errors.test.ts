@@ -26,6 +26,26 @@ describe("mapOctokitError", () => {
     expect(err.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
   });
 
+  it("maps 403 with x-ratelimit-remaining: 0 to 429", () => {
+    const err = mapOctokitError({
+      status: 403,
+      message: "forbidden",
+      response: { headers: { "x-ratelimit-remaining": "0" } },
+    });
+    expect(err.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+  });
+
+  it("maps 403 with retry-after (secondary limit) to 429", () => {
+    const err = mapOctokitError({
+      status: 403,
+      message: "forbidden",
+      response: { headers: { "retry-after": "17" } },
+    });
+    expect(err.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    const body = err.getResponse() as { retryAfter?: number };
+    expect(body.retryAfter).toBe(17);
+  });
+
   it("maps raw 429 to 429", () => {
     const err = mapOctokitError({ status: 429, message: "too many" });
     expect(err.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);

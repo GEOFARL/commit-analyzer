@@ -19,12 +19,14 @@ export const toGithubRepoDto = (
 });
 
 export const toConnectedRepoDto = (entity: Repository): ConnectedRepo => {
-  const [owner, name] = entity.fullName.split("/", 2);
+  // GitHub's `full_name` is always `<owner>/<repo>`; we rely on that invariant
+  // when splitting here instead of carrying nullable fallbacks forward.
+  const [owner = "", name = ""] = entity.fullName.split("/", 2);
   return {
     id: entity.id,
     githubRepoId: Number(entity.githubRepoId),
-    owner: owner ?? "",
-    name: name ?? entity.fullName,
+    owner,
+    name,
     fullName: entity.fullName,
     defaultBranch: entity.defaultBranch ?? "main",
     lastSyncedAt: entity.lastSyncedAt ? entity.lastSyncedAt.toISOString() : null,

@@ -11,15 +11,22 @@ const logger = new Logger("CacheModule");
 // In test, the full app is bootstrapped without a live Redis; returning a
 // noop stub lets unit/integration tests that hit /health boot cleanly without
 // the ioredis client trying to reach localhost.
-const createNoopRedis = (): Redis =>
-  ({
-    get: () => Promise.resolve(null),
-    set: () => Promise.resolve("OK"),
-    del: () => Promise.resolve(0),
-    on: () => undefined,
-    quit: () => Promise.resolve("OK"),
-    disconnect: () => undefined,
-  }) as unknown as Redis;
+class NoopRedis {
+  get(): Promise<string | null> {
+    return Promise.resolve(null);
+  }
+  set(): Promise<"OK"> {
+    return Promise.resolve("OK");
+  }
+  del(): Promise<number> {
+    return Promise.resolve(0);
+  }
+  on(): void {}
+  quit(): Promise<"OK"> {
+    return Promise.resolve("OK");
+  }
+  disconnect(): void {}
+}
 
 @Global()
 @Module({
@@ -29,7 +36,7 @@ const createNoopRedis = (): Redis =>
       useFactory: (): Redis => {
         const env = getServerEnv();
         if (env.NODE_ENV === "test") {
-          return createNoopRedis();
+          return new NoopRedis() as unknown as Redis;
         }
         const client = new Redis(env.REDIS_URL, {
           maxRetriesPerRequest: 3,

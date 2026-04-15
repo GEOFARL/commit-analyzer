@@ -118,10 +118,12 @@ export class ReposService {
     existing: RepoEntity,
     raw: GithubRepoRaw,
   ): Promise<RepoEntity> {
-    existing.isConnected = true;
-    existing.fullName = raw.full_name;
-    existing.description = raw.description;
-    existing.defaultBranch = raw.default_branch;
-    return this.repos.save(existing);
+    return this.repos.save({
+      ...existing,
+      fullName: raw.full_name,
+      description: raw.description,
+      defaultBranch: raw.default_branch,
+      isConnected: true,
+    });
   }
 }

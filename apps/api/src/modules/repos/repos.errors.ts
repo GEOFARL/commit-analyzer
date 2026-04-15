@@ -47,6 +47,25 @@ const readRetryAfter = (err: OctokitLike): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+// GitHub signals rate limiting in three different ways depending on the
+// endpoint and whether it's a primary or secondary limit:
+//   - HTTP 429 (straightforward)
+//   - HTTP 403 with a `rate limit` / `secondary rate limit` message
+//   - HTTP 403 with `x-ratelimit-remaining: 0` (primary limit exhausted)
+//   - HTTP 403 with a `retry-after` header (secondary limit)
+// We collapse all of these to 429 so clients get consistent back-pressure.
+const looksRateLimited = (err: OctokitLike): boolean => {
+  if (err.status === 429) return true;
+  if (err.status !== 403) return false;
+  const headers = err.response?.headers ?? {};
+  if (headers["x-ratelimit-remaining"] === "0") return true;
+  if (typeof headers["retry-after"] === "string") return true;
+  if (typeof err.message === "string" && /rate limit/i.test(err.message)) {
+    return true;
+  }
+  return false;
+};
+
 const makeRateLimited = (err: OctokitLike): GithubUpstreamError =>
   new GithubUpstreamError(
     HttpStatus.TOO_MANY_REQUESTS,
@@ -58,20 +77,14 @@ export const mapOctokitError = (err: unknown): GithubUpstreamError => {
   const maybe: OctokitLike = (err ?? {}) as OctokitLike;
   const status = typeof maybe.status === "number" ? maybe.status : 0;
 
-  if (status === 401 || status === 403) {
-    const isRateLimit =
-      status === 403 &&
-      typeof maybe.message === "string" &&
-      /rate limit/i.test(maybe.message);
-    return isRateLimit
-      ? makeRateLimited(maybe)
-      : new GithubUpstreamError(
-          HttpStatus.BAD_GATEWAY,
-          "github authorization rejected",
-        );
-  }
-  if (status === 429) {
+  if (looksRateLimited(maybe)) {
     return makeRateLimited(maybe);
+  }
+  if (status === 401 || status === 403) {
+    return new GithubUpstreamError(
+      HttpStatus.BAD_GATEWAY,
+      "github authorization rejected",
+    );
   }
   return new GithubUpstreamError(
     HttpStatus.BAD_GATEWAY,
