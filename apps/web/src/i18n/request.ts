@@ -1,46 +1,59 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { hasLocale, type Messages } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
 
+import en_auth from "../../messages/en/auth.json";
+import en_common from "../../messages/en/common.json";
+import en_dashboard from "../../messages/en/dashboard.json";
+import en_errors from "../../messages/en/errors.json";
+import en_landing from "../../messages/en/landing.json";
+import en_login from "../../messages/en/login.json";
+import en_metadata from "../../messages/en/metadata.json";
+import en_nav from "../../messages/en/nav.json";
+import en_placeholders from "../../messages/en/placeholders.json";
+import en_repositories from "../../messages/en/repositories.json";
+import en_userMenu from "../../messages/en/userMenu.json";
+import uk_auth from "../../messages/uk/auth.json";
+import uk_common from "../../messages/uk/common.json";
+import uk_dashboard from "../../messages/uk/dashboard.json";
+import uk_errors from "../../messages/uk/errors.json";
+import uk_landing from "../../messages/uk/landing.json";
+import uk_login from "../../messages/uk/login.json";
+import uk_metadata from "../../messages/uk/metadata.json";
+import uk_nav from "../../messages/uk/nav.json";
+import uk_placeholders from "../../messages/uk/placeholders.json";
+import uk_repositories from "../../messages/uk/repositories.json";
+import uk_userMenu from "../../messages/uk/userMenu.json";
+
 import { routing } from "./routing";
 
-const messagesRoot = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "messages",
-);
-
-const cache = new Map<string, Messages>();
-
-function loadMessages(locale: (typeof routing.locales)[number]): Messages {
-  const cached = cache.get(locale);
-  if (cached) return cached;
-
-  const localeDir = join(messagesRoot, locale);
-  const files = readdirSync(localeDir).filter((f) => f.endsWith(".json"));
-
-  const merged: Partial<Messages> = {};
-  const seen = new Set<string>();
-  for (const file of files) {
-    const namespace = file.replace(/\.json$/, "");
-    if (seen.has(namespace)) {
-      throw new Error(
-        `[i18n] Duplicate namespace "${namespace}" in messages/${locale}/`,
-      );
-    }
-    seen.add(namespace);
-    const raw = readFileSync(join(localeDir, file), "utf8");
-    (merged as Record<string, unknown>)[namespace] = JSON.parse(raw);
-  }
-
-  const messages = merged as Messages;
-  cache.set(locale, messages);
-  return messages;
-}
+const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
+  en: {
+    auth: en_auth,
+    common: en_common,
+    dashboard: en_dashboard,
+    errors: en_errors,
+    landing: en_landing,
+    login: en_login,
+    metadata: en_metadata,
+    nav: en_nav,
+    placeholders: en_placeholders,
+    repositories: en_repositories,
+    userMenu: en_userMenu,
+  },
+  uk: {
+    auth: uk_auth,
+    common: uk_common,
+    dashboard: uk_dashboard,
+    errors: uk_errors,
+    landing: uk_landing,
+    login: uk_login,
+    metadata: uk_metadata,
+    nav: uk_nav,
+    placeholders: uk_placeholders,
+    repositories: uk_repositories,
+    userMenu: uk_userMenu,
+  },
+};
 
 export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;
@@ -50,6 +63,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    messages: loadMessages(locale),
+    messages: messagesByLocale[locale],
   };
 });
