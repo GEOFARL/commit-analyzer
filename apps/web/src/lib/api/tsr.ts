@@ -10,9 +10,17 @@ import {
   createSupabaseBrowserClient,
   type AppSupabaseClient,
 } from "@/lib/supabase/browser";
-import { getClientEnv } from "@/lib/supabase/env";
 
-const getBaseUrl = (): string => getClientEnv().NEXT_PUBLIC_API_URL;
+/**
+ * Read NEXT_PUBLIC_API_URL directly from process.env instead of going through
+ * the zod-validated `getClientEnv()` loader. The loader throws synchronously
+ * on any missing NEXT_PUBLIC_* var, which would crash the React tree on every
+ * page render (this module is imported by the root QueryProvider). Here we
+ * tolerate an unset value at module eval — requests will simply fail at call
+ * time, which is recoverable, and the auth pages can still render so the user
+ * can sign in and report the misconfiguration.
+ */
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 let browserSupabase: AppSupabaseClient | null = null;
 const getBrowserSupabase = (): AppSupabaseClient => {
@@ -44,7 +52,7 @@ const browserApi: ApiFetcher = async (args) => {
  * `browserApi` so each call picks up the freshest Supabase access token.
  */
 export const tsr = initTsrReactQuery(contracts, {
-  baseUrl: getBaseUrl(),
+  baseUrl: API_BASE_URL,
   baseHeaders: {},
   api: browserApi,
 });
@@ -56,6 +64,6 @@ export const tsr = initTsrReactQuery(contracts, {
  */
 export const createServerTsRestClient = (accessToken: string | null) =>
   initClient(contracts, {
-    baseUrl: getBaseUrl(),
+    baseUrl: API_BASE_URL,
     baseHeaders: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
   });
