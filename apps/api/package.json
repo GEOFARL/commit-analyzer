@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node --enable-source-maps dist/bootstrap.js",
     "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
-    "dev": "tsx watch src/bootstrap.ts",
+    "dev": "tsx watch --env-file=.env src/bootstrap.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
