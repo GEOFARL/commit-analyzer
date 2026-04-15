@@ -7,7 +7,7 @@ import type {
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Github, Loader2, Plug, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -91,6 +91,19 @@ export const RepositoriesView = ({
 
   const githubHasError = githubQuery.isError;
   const connectedHasError = connectedQuery.isError;
+
+  useEffect(() => {
+    if (githubQuery.error) {
+      // eslint-disable-next-line no-console
+      console.error("[repos] listGithub error", githubQuery.error);
+    }
+  }, [githubQuery.error]);
+  useEffect(() => {
+    if (connectedQuery.error) {
+      // eslint-disable-next-line no-console
+      console.error("[repos] listConnected error", connectedQuery.error);
+    }
+  }, [connectedQuery.error]);
 
   const githubItems: GithubRepo[] =
     githubQuery.data?.body.items ?? initialGithub;
