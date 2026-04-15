@@ -9,11 +9,15 @@ import {
 } from "@nestjs/common";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
-import { ClsModule } from "nestjs-cls";
+import { ClsModule, type ClsService } from "nestjs-cls";
 import request from "supertest";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CLS_USER_ID, getTxEntityManager } from "../request-context.js";
+import {
+  CLS_JWT_CLAIMS,
+  CLS_USER_ID,
+  getTxEntityManager,
+} from "../request-context.js";
 
 import { DATA_SOURCE } from "./tokens.js";
 import { Transactional } from "./transactional.decorator.js";
@@ -21,15 +25,24 @@ import { TransactionalInterceptor } from "./transactional.interceptor.js";
 
 type QueryCall = [sql: string, params?: unknown[]];
 
+interface Recorder {
+  queries: QueryCall[];
+  startTx: number;
+  commit: number;
+  rollback: number;
+  release: number;
+}
+
+const emptyRecorder = (): Recorder => ({
+  queries: [],
+  startTx: 0,
+  commit: 0,
+  rollback: 0,
+  release: 0,
+});
+
 const makeFakeDataSource = (
-  recorder: {
-    queries: QueryCall[];
-    startTx: number;
-    commit: number;
-    rollback: number;
-    release: number;
-    captureManager?: (m: unknown) => void;
-  },
+  recorder: Recorder,
 ): { createQueryRunner: () => unknown } => ({
   createQueryRunner() {
     const manager = {
@@ -38,7 +51,6 @@ const makeFakeDataSource = (
         return Promise.resolve([]);
       },
     };
-    recorder.captureManager?.(manager);
     return {
       manager,
       connect: (): Promise<void> => Promise.resolve(),
@@ -86,36 +98,46 @@ class ProbeController {
   }
 }
 
+type ClsSetup = ((cls: ClsService) => void) | undefined;
+
+const buildApp = async (
+  clsSetup: ClsSetup,
+): Promise<{ app: INestApplication; recorder: Recorder }> => {
+  const recorder = emptyRecorder();
+  const moduleRef = await Test.createTestingModule({
+    imports: [
+      ClsModule.forRoot({
+        global: true,
+        middleware: {
+          mount: true,
+          generateId: true,
+          setup: clsSetup,
+        },
+      }),
+    ],
+    controllers: [ProbeController],
+    providers: [
+      Reflector,
+      { provide: DATA_SOURCE, useValue: makeFakeDataSource(recorder) },
+      { provide: APP_INTERCEPTOR, useClass: TransactionalInterceptor },
+    ],
+  }).compile();
+  const app = moduleRef.createNestApplication();
+  await app.init();
+  return { app, recorder };
+};
+
+const findSetConfig = (recorder: Recorder): QueryCall | undefined =>
+  recorder.queries.find(([sql]) => sql.includes("set_config"));
+
 describe("TransactionalInterceptor", () => {
   let app: INestApplication;
-  let recorder: Parameters<typeof makeFakeDataSource>[0];
+  let recorder: Recorder;
   const server = (): Server => app.getHttpServer() as Server;
 
-  beforeEach(async () => {
-    recorder = { queries: [], startTx: 0, commit: 0, rollback: 0, release: 0 };
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        ClsModule.forRoot({
-          global: true,
-          middleware: {
-            mount: true,
-            generateId: true,
-            setup: (cls) => {
-              cls.set(CLS_USER_ID, "user-123");
-            },
-          },
-        }),
-      ],
-      controllers: [ProbeController],
-      providers: [
-        Reflector,
-        { provide: DATA_SOURCE, useValue: makeFakeDataSource(recorder) },
-        { provide: APP_INTERCEPTOR, useClass: TransactionalInterceptor },
-      ],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    await app.init();
-  });
+  const setupUserOnly: ClsSetup = (cls) => {
+    cls.set(CLS_USER_ID, "user-123");
+  };
 
   afterEach(async () => {
     await app.close();
@@ -123,22 +145,42 @@ describe("TransactionalInterceptor", () => {
   });
 
   it("opens tx, sets jwt claims, commits, releases on @Transactional() handler", async () => {
+    ({ app, recorder } = await buildApp(setupUserOnly));
     const res = await request(server()).get(ownedEndpoint).expect(200);
     expect(res.body).toEqual({ sawManager: true });
     expect(recorder.startTx).toBe(1);
     expect(recorder.commit).toBe(1);
     expect(recorder.rollback).toBe(0);
     expect(recorder.release).toBe(1);
-    const setConfig = recorder.queries.find(([sql]) =>
-      sql.includes("set_config"),
-    );
+    const setConfig = findSetConfig(recorder);
     expect(setConfig).toBeDefined();
     expect(setConfig?.[0]).toContain("request.jwt.claims");
     expect(setConfig?.[0]).toContain("true"); // is_local=true
     expect(setConfig?.[1]).toEqual([JSON.stringify({ sub: "user-123" })]);
   });
 
+  it("passes full stored JWT claims when the guard populated them", async () => {
+    ({ app, recorder } = await buildApp((cls) => {
+      cls.set(CLS_USER_ID, "user-123");
+      cls.set(CLS_JWT_CLAIMS, {
+        sub: "user-123",
+        role: "authenticated",
+        email: "u@example.com",
+      });
+    }));
+    await request(server()).get(ownedEndpoint).expect(200);
+    const setConfig = findSetConfig(recorder);
+    expect(setConfig?.[1]).toEqual([
+      JSON.stringify({
+        sub: "user-123",
+        role: "authenticated",
+        email: "u@example.com",
+      }),
+    ]);
+  });
+
   it("skips tx for handlers without @Transactional()", async () => {
+    ({ app, recorder } = await buildApp(setupUserOnly));
     const res = await request(server()).get(plainEndpoint).expect(200);
     expect(res.body).toEqual({ sawManager: false });
     expect(recorder.startTx).toBe(0);
@@ -147,49 +189,17 @@ describe("TransactionalInterceptor", () => {
   });
 
   it("rolls back and releases when handler throws", async () => {
+    ({ app, recorder } = await buildApp(setupUserOnly));
     await request(server()).get(boomEndpoint).expect(500);
     expect(recorder.startTx).toBe(1);
     expect(recorder.commit).toBe(0);
     expect(recorder.rollback).toBe(1);
     expect(recorder.release).toBe(1);
   });
-});
-
-describe("TransactionalInterceptor without user in CLS", () => {
-  let app: INestApplication;
-  let recorder: Parameters<typeof makeFakeDataSource>[0];
-
-  beforeEach(async () => {
-    recorder = { queries: [], startTx: 0, commit: 0, rollback: 0, release: 0 };
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        ClsModule.forRoot({
-          global: true,
-          middleware: { mount: true, generateId: true },
-        }),
-      ],
-      controllers: [ProbeController],
-      providers: [
-        Reflector,
-        { provide: DATA_SOURCE, useValue: makeFakeDataSource(recorder) },
-        { provide: APP_INTERCEPTOR, useClass: TransactionalInterceptor },
-      ],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    await app.init();
-  });
-
-  afterEach(async () => {
-    await app.close();
-  });
 
   it("passes empty claims object when no user is bound", async () => {
-    await request(app.getHttpServer() as Server)
-      .get(ownedEndpoint)
-      .expect(200);
-    const setConfig = recorder.queries.find(([sql]) =>
-      sql.includes("set_config"),
-    );
-    expect(setConfig?.[1]).toEqual([JSON.stringify({})]);
+    ({ app, recorder } = await buildApp(undefined));
+    await request(server()).get(ownedEndpoint).expect(200);
+    expect(findSetConfig(recorder)?.[1]).toEqual([JSON.stringify({})]);
   });
 });

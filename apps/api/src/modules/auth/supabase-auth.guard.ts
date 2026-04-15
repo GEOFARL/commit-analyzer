@@ -13,7 +13,9 @@ import { ClsService } from "nestjs-cls";
 import { getServerEnv } from "../../common/config.js";
 import {
   CLS_AUTH_KIND,
+  CLS_JWT_CLAIMS,
   CLS_USER_ID,
+  type JwtClaims,
 } from "../../common/request-context.js";
 
 const INVALID_CREDENTIALS = "invalid credentials";
@@ -64,6 +66,26 @@ export class SupabaseAuthGuard implements CanActivate {
 
     this.cls.set(CLS_USER_ID, data.user.id);
     this.cls.set(CLS_AUTH_KIND, "session");
+    // Supabase already verified the JWT; decode (no re-verify) to surface the
+    // full claim set to RLS. Falls back to a minimal `{sub}` on decode errors
+    // so auth still works even if the token format changes unexpectedly.
+    this.cls.set(
+      CLS_JWT_CLAIMS,
+      decodeJwtClaims(token) ?? ({ sub: data.user.id } satisfies JwtClaims),
+    );
     return true;
   }
 }
+
+const decodeJwtClaims = (token: string): JwtClaims | undefined => {
+  const [, payload] = token.split(".");
+  if (!payload) return undefined;
+  try {
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    const parsed = JSON.parse(json) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return undefined;
+    return parsed as JwtClaims;
+  } catch {
+    return undefined;
+  }
+};

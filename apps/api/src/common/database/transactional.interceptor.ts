@@ -12,8 +12,10 @@ import { ClsService } from "nestjs-cls";
 import { from, lastValueFrom, type Observable } from "rxjs";
 
 import {
+  CLS_JWT_CLAIMS,
   CLS_TX_MANAGER,
   CLS_USER_ID,
+  type JwtClaims,
 } from "../request-context.js";
 
 import { DATA_SOURCE } from "./tokens.js";
@@ -57,13 +59,10 @@ export class TransactionalInterceptor implements NestInterceptor {
     await qr.connect();
     await qr.startTransaction();
     try {
-      const userId = this.cls.isActive()
-        ? this.cls.get<string>(CLS_USER_ID)
-        : undefined;
-      const claims = JSON.stringify(userId ? { sub: userId } : {});
+      const claims = this.resolveClaims();
       await qr.manager.query(
         `SELECT set_config('request.jwt.claims', $1, true)`,
-        [claims],
+        [JSON.stringify(claims)],
       );
       this.cls.set(CLS_TX_MANAGER, qr.manager);
       const result: unknown = await lastValueFrom(next.handle());
@@ -77,8 +76,15 @@ export class TransactionalInterceptor implements NestInterceptor {
       }
       throw err;
     } finally {
-      this.cls.set(CLS_TX_MANAGER, undefined);
       await qr.release();
     }
+  }
+
+  private resolveClaims(): JwtClaims {
+    if (!this.cls.isActive()) return {};
+    const stored = this.cls.get<JwtClaims>(CLS_JWT_CLAIMS);
+    if (stored) return stored;
+    const userId = this.cls.get<string>(CLS_USER_ID);
+    return userId ? { sub: userId } : {};
   }
 }
