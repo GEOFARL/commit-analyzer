@@ -24,11 +24,11 @@ export default async function LandingPage({
           <div className="flex items-center gap-3">
             <LogoMark className="h-10 w-10" />
             <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-              Commit Analyzer
+              {t("appName")}
             </span>
           </div>
           <Badge variant="default" className="gap-1.5">
-            <Sparkles className="h-3 w-3" /> Phase 1 · beta
+            <Sparkles className="h-3 w-3" /> {t("phaseBadge")}
           </Badge>
           <h1 className="max-w-3xl bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
             {t("title")}

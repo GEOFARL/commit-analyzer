@@ -1,0 +1,41 @@
+{
+  "title": "Repositories",
+  "subtitle": "Connect GitHub repositories to analyze commits and generate messages.",
+  "connected": {
+    "title": "Connected",
+    "subtitle": "Repositories available to the commit analyzer.",
+    "empty": "No repositories connected yet",
+    "emptyHelper": "Connect one from the list below to get started."
+  },
+  "github": {
+    "title": "Your GitHub repositories",
+    "subtitle": "Pick a repository to connect.",
+    "empty": "No repositories found on your GitHub account"
+  },
+  "actions": {
+    "connect": "Connect",
+    "connecting": "Connecting…",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting…"
+  },
+  "badge": {
+    "private": "Private",
+    "public": "Public",
+    "connected": "Connected"
+  },
+  "disconnectDialog": {
+    "title": "Disconnect repository?",
+    "description": "This will remove {name} from Commit Analyzer. You can reconnect it at any time.",
+    "confirm": "Disconnect",
+    "cancel": "Cancel"
+  },
+  "toast": {
+    "connected": "Repository connected",
+    "disconnected": "Repository disconnected",
+    "connectError": "Could not connect repository",
+    "disconnectError": "Could not disconnect repository"
+  },
+  "error": {
+    "load": "We couldn't load your repositories. Please try again."
+  }
+}

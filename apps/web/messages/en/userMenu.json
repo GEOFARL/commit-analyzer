@@ -1,0 +1,9 @@
+{
+  "theme": "Theme",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "System",
+  "profile": "Profile",
+  "signOut": "Sign out",
+  "unknown": "Account"
+}
