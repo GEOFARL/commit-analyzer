@@ -10,6 +10,7 @@ import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
 
 import { RepoConnectedEvent } from "./events/repo-connected.event.js";
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
+import { GithubTokenService } from "./github-token.service.js";
 import { GithubService } from "./github.service.js";
 import {
   GITHUB_LIST_TTL_SECONDS,
@@ -29,18 +30,20 @@ export class ReposService {
     @Inject(REPOSITORY_REPOSITORY)
     private readonly repos: RepositoryRepository,
     private readonly github: GithubService,
+    private readonly githubToken: GithubTokenService,
     private readonly cache: CacheService,
     private readonly eventBus: EventBus,
   ) {}
 
   async listGithubRepos(
     userId: string,
-    token: string,
   ): Promise<{ raws: GithubRepoRaw[]; connectedIds: Set<string> }> {
     const key = githubListCacheKey(userId);
     const cached = await this.cache.getJson<GithubRepoRaw[]>(key);
-    const raws = cached ?? (await this.github.listMyRepos(token));
-    if (!cached) {
+    let raws = cached;
+    if (!raws) {
+      const token = await this.githubToken.getForUser(userId);
+      raws = await this.github.listMyRepos(token);
       await this.cache.setJson(key, raws, GITHUB_LIST_TTL_SECONDS);
     }
 
@@ -55,11 +58,7 @@ export class ReposService {
     return this.repos.listConnectedByUser(userId);
   }
 
-  async connect(
-    userId: string,
-    githubRepoId: number,
-    token: string,
-  ): Promise<RepoEntity> {
+  async connect(userId: string, githubRepoId: number): Promise<RepoEntity> {
     const githubRepoIdStr = String(githubRepoId);
     const existing = await this.repos.findByUserAndGithubId(
       userId,
@@ -70,6 +69,7 @@ export class ReposService {
       throw new RepoAlreadyConnectedError();
     }
 
+    const token = await this.githubToken.getForUser(userId);
     const raw = await this.github.getRepo(token, githubRepoId);
 
     const saved = existing

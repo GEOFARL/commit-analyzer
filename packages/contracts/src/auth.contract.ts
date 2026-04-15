@@ -33,6 +33,11 @@ export const createApiKeyResponseSchema = apiKeySchema.extend({
 });
 export type CreateApiKeyResponse = z.infer<typeof createApiKeyResponseSchema>;
 
+export const authSyncRequestSchema = z.object({
+  providerToken: z.string().min(1).nullable().optional(),
+});
+export type AuthSyncRequest = z.infer<typeof authSyncRequestSchema>;
+
 export const authContract = c.router(
   {
     me: {
@@ -43,6 +48,18 @@ export const authContract = c.router(
         401: errorEnvelopeSchema,
       },
       summary: "Get the currently authenticated user",
+      metadata: { auth: "jwt" } as const,
+    },
+    sync: {
+      method: "POST",
+      path: "/auth/sync",
+      body: authSyncRequestSchema,
+      responses: {
+        200: userSchema,
+        401: errorEnvelopeSchema,
+      },
+      summary:
+        "Mirror the authenticated Supabase user into public.users and store the encrypted GitHub provider token",
       metadata: { auth: "jwt" } as const,
     },
     apiKeys: c.router(

@@ -61,6 +61,9 @@ describe("ReposService", () => {
     listMyRepos: vi.fn(),
     getRepo: vi.fn(),
   };
+  const githubToken = {
+    getForUser: vi.fn(),
+  };
   const cache = {
     getJson: vi.fn(),
     setJson: vi.fn(),
@@ -71,9 +74,11 @@ describe("ReposService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    githubToken.getForUser.mockResolvedValue(TOKEN);
     service = new ReposService(
       repos as never,
       github as never,
+      githubToken as never,
       cache as never,
       { publish } as never,
     );
@@ -85,7 +90,7 @@ describe("ReposService", () => {
       github.listMyRepos.mockResolvedValue([rawRepo()]);
       repos.listConnectedByUser.mockResolvedValue([]);
 
-      const result = await service.listGithubRepos(USER_ID, TOKEN);
+      const result = await service.listGithubRepos(USER_ID);
 
       expect(github.listMyRepos).toHaveBeenCalledWith(TOKEN);
       expect(cache.setJson).toHaveBeenCalledWith(
@@ -101,7 +106,7 @@ describe("ReposService", () => {
       cache.getJson.mockResolvedValue([rawRepo()]);
       repos.listConnectedByUser.mockResolvedValue([repoEntity()]);
 
-      const result = await service.listGithubRepos(USER_ID, TOKEN);
+      const result = await service.listGithubRepos(USER_ID);
 
       expect(github.listMyRepos).not.toHaveBeenCalled();
       expect(cache.setJson).not.toHaveBeenCalled();
@@ -114,7 +119,7 @@ describe("ReposService", () => {
         new GithubUpstreamError(HttpStatus.TOO_MANY_REQUESTS, "rate limited", 30),
       );
       await expect(
-        service.listGithubRepos(USER_ID, TOKEN),
+        service.listGithubRepos(USER_ID),
       ).rejects.toBeInstanceOf(GithubUpstreamError);
     });
   });
@@ -126,7 +131,7 @@ describe("ReposService", () => {
       const saved = repoEntity();
       repos.save.mockResolvedValue(saved);
 
-      const result = await service.connect(USER_ID, GH_ID, TOKEN);
+      const result = await service.connect(USER_ID, GH_ID);
 
       expect(github.getRepo).toHaveBeenCalledWith(TOKEN, GH_ID);
       expect(repos.create).toHaveBeenCalledWith(
@@ -150,7 +155,7 @@ describe("ReposService", () => {
       repos.findByUserAndGithubId.mockResolvedValue(repoEntity({ isConnected: true }));
 
       await expect(
-        service.connect(USER_ID, GH_ID, TOKEN),
+        service.connect(USER_ID, GH_ID),
       ).rejects.toBeInstanceOf(RepoAlreadyConnectedError);
       expect(github.getRepo).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
@@ -163,7 +168,7 @@ describe("ReposService", () => {
       github.getRepo.mockResolvedValue(rawRepo());
       repos.save.mockImplementation((v: RepoEntity) => Promise.resolve(v));
 
-      await service.connect(USER_ID, GH_ID, TOKEN);
+      await service.connect(USER_ID, GH_ID);
 
       expect(repos.create).not.toHaveBeenCalled();
       expect(repos.save).toHaveBeenCalledTimes(1);
@@ -178,7 +183,7 @@ describe("ReposService", () => {
         new GithubUpstreamError(HttpStatus.BAD_GATEWAY, "upstream"),
       );
       await expect(
-        service.connect(USER_ID, GH_ID, TOKEN),
+        service.connect(USER_ID, GH_ID),
       ).rejects.toBeInstanceOf(GithubUpstreamError);
       expect(repos.save).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();

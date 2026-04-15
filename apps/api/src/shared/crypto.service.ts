@@ -11,6 +11,9 @@ import {
   TAG_LENGTH,
   VERSION,
 } from "./crypto.constants.js";
+import type { EncryptedParts } from "./crypto.types.js";
+
+export { type EncryptedParts } from "./crypto.types.js";
 
 export class DecryptionError extends Error {
   constructor(message = "decryption failed") {
@@ -57,13 +60,31 @@ export class CryptoService {
     } catch {
       throw new DecryptionError("invalid base64 segment");
     }
+    return this.decryptParts({ ciphertext: data, iv, tag });
+  }
+
+  encryptParts(plaintext: string): EncryptedParts {
+    const iv = randomBytes(IV_LENGTH);
+    const cipher = createCipheriv(ALGO, this.key, iv);
+    const ciphertext = Buffer.concat([
+      cipher.update(plaintext, "utf8"),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    return { ciphertext, iv, tag };
+  }
+
+  decryptParts({ ciphertext, iv, tag }: EncryptedParts): string {
     if (iv.length !== IV_LENGTH || tag.length !== TAG_LENGTH) {
       throw new DecryptionError("invalid iv or tag length");
     }
     try {
       const decipher = createDecipheriv(ALGO, this.key, iv);
       decipher.setAuthTag(tag);
-      const plaintext = Buffer.concat([decipher.update(data), decipher.final()]);
+      const plaintext = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final(),
+      ]);
       return plaintext.toString("utf8");
     } catch {
       throw new DecryptionError();

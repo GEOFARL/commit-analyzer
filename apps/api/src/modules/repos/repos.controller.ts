@@ -5,7 +5,6 @@ import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { SupabaseAuthGuard } from "../auth/supabase-auth.guard.js";
 
-import { GithubToken } from "./github-token.decorator.js";
 import { toConnectedRepoDto, toGithubRepoDto } from "./repos.mappers.js";
 import { ReposService } from "./repos.service.js";
 
@@ -15,15 +14,9 @@ export class ReposController {
   constructor(private readonly repos: ReposService) {}
 
   @TsRestHandler(reposContract.listGithub)
-  listGithub(
-    @CurrentUser() userId: string,
-    @GithubToken() token: string,
-  ): unknown {
+  listGithub(@CurrentUser() userId: string): unknown {
     return tsRestHandler(reposContract.listGithub, async () => {
-      const { raws, connectedIds } = await this.repos.listGithubRepos(
-        userId,
-        token,
-      );
+      const { raws, connectedIds } = await this.repos.listGithubRepos(userId);
       return {
         status: 200,
         body: { items: raws.map((r) => toGithubRepoDto(r, connectedIds)) },
@@ -46,18 +39,11 @@ export class ReposController {
   // the current @ts-rest/nest `tsRestHandler` generic rejects; runtime shape is
   // correct, so we cast through the contract for this one route.
   @TsRestHandler(reposContract.connect as never)
-  connect(
-    @CurrentUser() userId: string,
-    @GithubToken() token: string,
-  ): unknown {
+  connect(@CurrentUser() userId: string): unknown {
     return tsRestHandler(
       reposContract.connect as never,
       (async ({ params }: { params: { githubRepoId: number } }) => {
-        const saved = await this.repos.connect(
-          userId,
-          params.githubRepoId,
-          token,
-        );
+        const saved = await this.repos.connect(userId, params.githubRepoId);
         return { status: 201, body: toConnectedRepoDto(saved) };
       }) as never,
     );

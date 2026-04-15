@@ -41,14 +41,42 @@ export const GET = async (request: Request) => {
   } = await supabase.auth.getSession();
 
   if (session?.access_token) {
+    const { NEXT_PUBLIC_API_URL } = getClientEnv();
+    const authHeader = { authorization: `Bearer ${session.access_token}` };
+
+    // Mirror the authenticated Supabase user into public.users and store the
+    // encrypted GitHub provider_token BEFORE the user can hit any authenticated
+    // API endpoint. Without this, /me and /repos/:id/connect 401/500 because
+    // public.users has no row for the new auth.users id.
+    //
+    // Failure here is terminal for the login: if we proceed to /dashboard, the
+    // encrypted provider_token is silently lost, so we bounce back to / with an
+    // error so the user can retry from a fresh Supabase session.
+    let syncOk = false;
     try {
-      const { NEXT_PUBLIC_API_URL } = getClientEnv();
+      const syncResponse = await fetch(`${NEXT_PUBLIC_API_URL}/auth/sync`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...authHeader },
+        body: JSON.stringify({ providerToken: session.provider_token ?? null }),
+      });
+      syncOk = syncResponse.ok;
+      if (!syncResponse.ok) {
+        console.warn("auth.sync failed", syncResponse.status);
+      }
+    } catch (err) {
+      console.warn("auth.sync threw", err);
+    }
+
+    if (!syncOk) {
+      return NextResponse.redirect(
+        new URL("/?auth_error=sync_failed", url.origin),
+      );
+    }
+
+    try {
       const response = await fetch(`${NEXT_PUBLIC_API_URL}/auth/sign-in-event`, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${session.access_token}`,
-        },
+        headers: { "content-type": "application/json", ...authHeader },
         body: JSON.stringify({ provider: "github" }),
       });
       if (!response.ok) {
