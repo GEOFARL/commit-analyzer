@@ -6,7 +6,6 @@ import { AuroraBackground } from "@/components/layout/aurora-background";
 import { LogoMark } from "@/components/layout/logo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
 
 export default async function LandingPage({
   params,
@@ -38,13 +37,13 @@ export default async function LandingPage({
             {t("tagline")}
           </p>
           <div className="mt-2 flex items-center gap-3">
-            <Button asChild size="lg">
-              <Link href="/login">
+            <form action="/auth/sign-in" method="post">
+              <Button type="submit" size="lg">
                 <Github />
                 {t("cta")}
                 <ArrowRight />
-              </Link>
-            </Button>
+              </Button>
+            </form>
           </div>
         </div>
       </main>
