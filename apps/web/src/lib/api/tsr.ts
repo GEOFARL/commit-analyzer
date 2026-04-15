@@ -42,20 +42,33 @@ const TOKEN_REFRESH_LEEWAY_SECONDS = 60;
  * stale, which surfaces as a transient error card on screens that gate UI on
  * `isError` / `failureReason`.
  */
-const browserApi: ApiFetcher = async (args) => {
-  const supabase = getBrowserSupabase();
-  const { data } = await supabase.auth.getSession();
-  let session = data.session;
-  const expiresAt = session?.expires_at;
-  if (
-    session &&
-    typeof expiresAt === "number" &&
-    Date.now() / 1000 > expiresAt - TOKEN_REFRESH_LEEWAY_SECONDS
-  ) {
-    const { data: refreshed } = await supabase.auth.refreshSession();
-    session = refreshed.session ?? session;
+const resolveBrowserToken = async (): Promise<string | undefined> => {
+  try {
+    const supabase = getBrowserSupabase();
+    const { data } = await supabase.auth.getSession();
+    let session = data.session;
+    const expiresAt = session?.expires_at;
+    if (
+      session &&
+      typeof expiresAt === "number" &&
+      Date.now() / 1000 > expiresAt - TOKEN_REFRESH_LEEWAY_SECONDS
+    ) {
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        session = refreshed.session ?? session;
+      } catch (refreshErr) {
+        console.warn("supabase refreshSession threw", refreshErr);
+      }
+    }
+    return session?.access_token;
+  } catch (err) {
+    console.warn("resolveBrowserToken threw", err);
+    return undefined;
   }
-  const token = session?.access_token;
+};
+
+const browserApi: ApiFetcher = async (args) => {
+  const token = await resolveBrowserToken();
   return tsRestFetchApi({
     ...args,
     headers: {
