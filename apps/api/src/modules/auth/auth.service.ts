@@ -55,7 +55,10 @@ export class AuthService {
 
     // Safety net: if the web auth callback didn't (or couldn't) POST
     // /auth/sync, materialize the mirror row on the first authenticated
-    // request so /me never 401s for a valid Supabase session.
+    // request so /me never 401s for a valid Supabase session. This path
+    // deliberately passes a null providerToken — we don't have the OAuth
+    // token here, so any GitHub call will surface 401 token_expired and
+    // force the client back through /auth/sync.
     const mirrored = await this.mirrorFromAdmin(userId, null);
     if (!mirrored) throw new UnauthorizedException("user not found");
     return mirrored;

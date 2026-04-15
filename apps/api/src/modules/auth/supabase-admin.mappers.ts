@@ -12,7 +12,9 @@ export const toSupabaseAuthIdentity = (
   return {
     id: user.id,
     email: user.email ?? null,
-    githubId: stringOrNull(meta.provider_id ?? meta.sub ?? meta.github_id),
+    // `user_metadata.sub` is Supabase's own auth id, NOT the GitHub user id —
+    // only `provider_id` / `github_id` are safe fallbacks for `users.github_id`.
+    githubId: stringOrNull(meta.provider_id ?? meta.github_id),
     username: stringOrNull(
       meta.user_name ?? meta.preferred_username ?? meta.login,
     ),

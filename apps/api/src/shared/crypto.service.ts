@@ -60,9 +60,6 @@ export class CryptoService {
     } catch {
       throw new DecryptionError("invalid base64 segment");
     }
-    if (iv.length !== IV_LENGTH || tag.length !== TAG_LENGTH) {
-      throw new DecryptionError("invalid iv or tag length");
-    }
     return this.decryptParts({ ciphertext: data, iv, tag });
   }
 
