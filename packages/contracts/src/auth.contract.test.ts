@@ -32,6 +32,10 @@ describe("userSchema", () => {
   it("rejects a bad email", () => {
     expect(() => userSchema.parse({ ...validUser, email: "not-an-email" })).toThrow();
   });
+
+  it("accepts a null email", () => {
+    expect(userSchema.parse({ ...validUser, email: null }).email).toBeNull();
+  });
 });
 
 describe("apiKeySchema", () => {

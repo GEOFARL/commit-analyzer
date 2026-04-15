@@ -4,11 +4,13 @@ import { Injectable } from "@nestjs/common";
 
 import { getServerEnv } from "../common/config.js";
 
-const VERSION = "v1";
-const ALGO = "aes-256-gcm";
-const IV_LENGTH = 12;
-const TAG_LENGTH = 16;
-const KEY_LENGTH = 32;
+import {
+  ALGO,
+  IV_LENGTH,
+  KEY_LENGTH,
+  TAG_LENGTH,
+  VERSION,
+} from "./crypto.constants.js";
 
 export class DecryptionError extends Error {
   constructor(message = "decryption failed") {

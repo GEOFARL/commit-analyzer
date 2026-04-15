@@ -1,6 +1,7 @@
 import {
   createApiKeyRepository,
   createDataSource,
+  createUserRepository,
   type DataSource,
 } from "@commit-analyzer/database";
 import { Global, Logger, Module } from "@nestjs/common";
@@ -8,7 +9,11 @@ import { APP_INTERCEPTOR } from "@nestjs/core";
 
 import { getServerEnv } from "../config.js";
 
-import { API_KEY_REPOSITORY, DATA_SOURCE } from "./tokens.js";
+import {
+  API_KEY_REPOSITORY,
+  DATA_SOURCE,
+  USER_REPOSITORY,
+} from "./tokens.js";
 import { TransactionalInterceptor } from "./transactional.interceptor.js";
 
 const dbLogger = new Logger("DatabaseModule");
@@ -41,10 +46,15 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createApiKeyRepository(ds),
     },
     {
+      provide: USER_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createUserRepository(ds),
+    },
+    {
       provide: APP_INTERCEPTOR,
       useClass: TransactionalInterceptor,
     },
   ],
-  exports: [DATA_SOURCE, API_KEY_REPOSITORY],
+  exports: [DATA_SOURCE, API_KEY_REPOSITORY, USER_REPOSITORY],
 })
 export class DatabaseModule {}

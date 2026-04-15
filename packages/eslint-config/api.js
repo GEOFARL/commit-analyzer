@@ -25,6 +25,52 @@ const elements = [
   },
 ];
 
+// Controllers and services should contain exactly one class and the imports
+// it needs — nothing else. Constants, interfaces, type aliases, mappers, and
+// helper functions belong in sibling files (`*.constants.ts`, `*.types.ts`,
+// `*.mappers.ts`) so the class stays easy to scan and the helpers are
+// independently testable/reusable.
+const noTopLevelHelpers = (kind) => ({
+  "no-restricted-syntax": [
+    "error",
+    {
+      selector: "Program > VariableDeclaration",
+      message: `${kind} must stay thin. Move constants to a sibling *.constants.ts file.`,
+    },
+    {
+      selector: "Program > ExportNamedDeclaration > VariableDeclaration",
+      message: `${kind} must stay thin. Move constants to a sibling *.constants.ts file.`,
+    },
+    {
+      selector: "Program > FunctionDeclaration",
+      message: `${kind} must stay thin. Move helpers to a sibling *.mappers.ts or dedicated helper file.`,
+    },
+    {
+      selector: "Program > ExportNamedDeclaration > FunctionDeclaration",
+      message: `${kind} must stay thin. Move helpers to a sibling *.mappers.ts or dedicated helper file.`,
+    },
+    {
+      selector: "Program > TSInterfaceDeclaration",
+      message: `${kind} must stay thin. Move interfaces to a sibling *.types.ts file.`,
+    },
+    {
+      selector: "Program > ExportNamedDeclaration > TSInterfaceDeclaration",
+      message: `${kind} must stay thin. Move interfaces to a sibling *.types.ts file.`,
+    },
+    {
+      selector: "Program > TSTypeAliasDeclaration",
+      message: `${kind} must stay thin. Move type aliases to a sibling *.types.ts file.`,
+    },
+    {
+      selector: "Program > ExportNamedDeclaration > TSTypeAliasDeclaration",
+      message: `${kind} must stay thin. Move type aliases to a sibling *.types.ts file.`,
+    },
+  ],
+});
+
+const thinControllerRules = noTopLevelHelpers("Controllers");
+const thinServiceRules = noTopLevelHelpers("Services");
+
 export default [
   ...base,
   {
@@ -59,5 +105,13 @@ export default [
         },
       ],
     },
+  },
+  {
+    files: ["**/*.controller.ts"],
+    rules: thinControllerRules,
+  },
+  {
+    files: ["**/*.service.ts"],
+    rules: thinServiceRules,
   },
 ];
