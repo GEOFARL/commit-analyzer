@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 
 import { getServerEnv } from "../common/config.js";
 
@@ -26,7 +26,11 @@ export class DecryptionError extends Error {
 export class CryptoService {
   private readonly key: Buffer;
 
-  constructor(key?: Buffer) {
+  // `@Optional()` tells Nest to skip DI for this parameter — otherwise the
+  // `emitDecoratorMetadata` type hint leaks `Buffer` as an injection token and
+  // bootstrap dies with `UnknownDependenciesException`. Tests still pass a key
+  // directly via `new CryptoService(buf)`.
+  constructor(@Optional() key?: Buffer) {
     const resolved = key ?? Buffer.from(getServerEnv().ENCRYPTION_KEY_BASE64, "base64");
     if (resolved.length !== KEY_LENGTH) {
       throw new Error(`encryption key must be ${KEY_LENGTH} bytes`);
