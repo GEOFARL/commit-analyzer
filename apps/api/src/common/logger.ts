@@ -14,9 +14,9 @@ export const REDACT_PATHS: readonly string[] = [
   "res.headers['set-cookie']",
 ];
 
-export const SECRET_KEY_PATTERN = /(_TOKEN|_KEY|_SECRET|authorization|password)/i;
+const SECRET_KEY_PATTERN = /(_TOKEN|_KEY|_SECRET|authorization|password)/i;
 
-export const REDACTED = "[REDACTED]";
+const REDACTED = "[REDACTED]";
 
 const redactSecretKeys = (
   value: unknown,
@@ -33,7 +33,7 @@ const redactSecretKeys = (
   return out;
 };
 
-export interface CreateLoggerOptions {
+interface CreateLoggerOptions {
   level?: LoggerOptions["level"];
   name?: string;
   extra?: LoggerOptions;

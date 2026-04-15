@@ -78,7 +78,7 @@ Refs #31
 
 `main` is protected. Merge is blocked until the following required status checks pass on the PR head commit:
 
-- `Lint`, `Typecheck`, `Unit tests` (from `ci.yml`)
+- `Lint`, `Typecheck`, `Unit tests`, `Knip (unused exports)` (from `ci.yml`)
 - `branch-name`, `commitlint`, `pr-lint` (from `pr-hygiene.yml`)
 
 Additional rules:
@@ -89,9 +89,19 @@ Additional rules:
 
 This is what gates the production deploys in `deploy-web.yml` / `deploy-api.yml` — those workflows trigger on `push: main`, so the CI gate must be enforced *before* code reaches `main`.
 
+## Dead code detection
+
+`knip` runs in CI and fails the build on unused files, dependencies, or exports. Run it locally before pushing:
+
+```bash
+pnpm knip
+```
+
+Shadcn/ui component files (`apps/web/src/components/ui/**`) are excluded — they are generated and export their full surface by design. Configuration lives in `knip.json`. If a new unused export is legitimately public (e.g. a package entry point), add it to the relevant workspace's `entry` list rather than suppressing the check.
+
 ## Before pushing
 
-- `pnpm lint && pnpm typecheck && pnpm test` must pass.
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm knip` must pass.
 - New business logic needs unit tests; new endpoints need integration tests; new UI flows need Playwright coverage (per `10-testing.md`).
 
 ## Secrets

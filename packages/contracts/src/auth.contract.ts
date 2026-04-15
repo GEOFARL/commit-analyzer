@@ -33,10 +33,9 @@ export const createApiKeyResponseSchema = apiKeySchema.extend({
 });
 export type CreateApiKeyResponse = z.infer<typeof createApiKeyResponseSchema>;
 
-export const authSyncRequestSchema = z.object({
+const authSyncRequestSchema = z.object({
   providerToken: z.string().min(1).nullable().optional(),
 });
-export type AuthSyncRequest = z.infer<typeof authSyncRequestSchema>;
 
 export const authContract = c.router(
   {

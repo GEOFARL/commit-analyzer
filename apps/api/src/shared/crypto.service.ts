@@ -13,8 +13,6 @@ import {
 } from "./crypto.constants.js";
 import type { EncryptedParts } from "./crypto.types.js";
 
-export { type EncryptedParts } from "./crypto.types.js";
-
 export class DecryptionError extends Error {
   constructor(message = "decryption failed") {
     super(message);

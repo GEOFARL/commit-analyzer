@@ -10,9 +10,11 @@
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules/.cache .turbo",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "knip": "knip"
   },
   "devDependencies": {
+    "knip": "^6.4.1",
     "prettier": "^3.3.3",
     "turbo": "^2.0.0",
     "typescript": "^5.6.3"
