@@ -38,6 +38,7 @@ export const reposContract = c.router(
       responses: {
         200: z.object({ items: z.array(githubRepoSchema) }),
         401: errorEnvelopeSchema,
+        429: errorEnvelopeSchema,
         502: errorEnvelopeSchema,
       },
       summary: "List the authenticated user's GitHub repositories",

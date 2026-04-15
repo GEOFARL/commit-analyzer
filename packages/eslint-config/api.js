@@ -97,6 +97,16 @@ export default [
               from: { type: "module" },
               allow: { to: { type: ["common", "shared"] } },
             },
+            // Auth primitives (guards, decorators, SUPABASE_CLIENT provider)
+            // are infrastructure-style cross-cutting concerns; allow any
+            // module to import from modules/auth/ so every JWT-protected
+            // controller can reuse the same guard + @CurrentUser().
+            {
+              from: { type: "module" },
+              allow: {
+                to: { type: "module", captured: { name: "auth" } },
+              },
+            },
             {
               from: { type: "shared" },
               allow: { to: { type: "common" } },
