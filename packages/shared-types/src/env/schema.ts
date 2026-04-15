@@ -1,11 +1,15 @@
 import { z } from "zod";
 
 const nonEmpty = (field: string) =>
-  z.string({ required_error: `${field} is required` }).min(1, `${field} must not be empty`);
+  z
+    .string({ required_error: `${field} is required` })
+    .trim()
+    .min(1, `${field} must not be empty`);
 
 const urlField = (field: string) =>
   z
     .string({ required_error: `${field} is required` })
+    .trim()
     .url(`${field} must be a valid URL`);
 
 const optionalString = z
