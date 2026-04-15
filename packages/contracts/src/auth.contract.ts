@@ -7,7 +7,7 @@ const c = initContract();
 
 export const userSchema = z.object({
   id: z.string().uuid(),
-  email: z.string().email(),
+  email: z.string().email().nullable(),
   name: z.string().nullable(),
   avatarUrl: z.string().url().nullable(),
   createdAt: z.string().datetime(),

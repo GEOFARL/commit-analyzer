@@ -8,14 +8,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { EventBus } from "@nestjs/cqrs";
-import { z } from "zod";
 
+import { signInEventSchema } from "./auth.schemas.js";
 import { CurrentUser } from "./current-user.decorator.js";
 import { AuthLoggedInEvent } from "./events/auth-logged-in.event.js";
 import { AuthLoggedOutEvent } from "./events/auth-logged-out.event.js";
 import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
-
-const signInEventSchema = z.object({ provider: z.literal("github") });
 
 @Controller("auth")
 @UseGuards(SupabaseAuthGuard)
