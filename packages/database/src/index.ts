@@ -1,4 +1,4 @@
-export type { DataSource } from "typeorm";
+export type { DataSource, EntityManager, QueryRunner } from "typeorm";
 export {
   buildDataSourceOptions,
   createDataSource,
