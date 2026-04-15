@@ -1,8 +1,16 @@
 "use client";
 
+import { Globe } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 
@@ -13,24 +21,35 @@ export function LanguageToggle() {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
-  function switchTo(next: (typeof routing.locales)[number]) {
+  const switchTo = (next: (typeof routing.locales)[number]) => {
     startTransition(() => {
       router.replace(pathname, { locale: next });
     });
-  }
+  };
 
   return (
-    <nav aria-label={t("language")}>
-      {routing.locales.map((l) => (
-        <button
-          key={l}
-          type="button"
-          disabled={l === locale || isPending}
-          onClick={() => switchTo(l)}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("language")}
+          disabled={isPending}
         >
-          {t(`switchTo.${l}`)}
-        </button>
-      ))}
-    </nav>
+          <Globe />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {routing.locales.map((l) => (
+          <DropdownMenuItem
+            key={l}
+            disabled={l === locale}
+            onClick={() => switchTo(l)}
+          >
+            {t(`switchTo.${l}`)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
