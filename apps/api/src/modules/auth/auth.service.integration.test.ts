@@ -78,6 +78,8 @@ describe.skipIf(SKIP)("AuthService (integration)", () => {
       userRepo,
       apiKeyRepo,
       { publish } as never,
+      { getUserById: () => Promise.resolve(null) } as never,
+      { encryptParts: () => ({ ciphertext: Buffer.alloc(0), iv: Buffer.alloc(12), tag: Buffer.alloc(16) }) } as never,
     );
   }, 120_000);
 

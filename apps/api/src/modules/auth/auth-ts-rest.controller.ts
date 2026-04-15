@@ -20,6 +20,17 @@ export class AuthTsRestController {
     });
   }
 
+  @TsRestHandler(authContract.sync)
+  sync(@CurrentUser() userId: string): unknown {
+    return tsRestHandler(authContract.sync, async ({ body }) => {
+      const user = await this.authService.sync(
+        userId,
+        body.providerToken ?? null,
+      );
+      return { status: 200, body: toUserDto(user) };
+    });
+  }
+
   @TsRestHandler(authContract.apiKeys.list)
   listApiKeys(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.apiKeys.list, async () => {

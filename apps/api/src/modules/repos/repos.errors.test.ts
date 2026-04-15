@@ -1,13 +1,18 @@
 import { HttpStatus } from "@nestjs/common";
 import { describe, expect, it } from "vitest";
 
-import { GithubUpstreamError, mapOctokitError } from "./repos.errors.js";
+import {
+  GithubTokenExpiredError,
+  mapOctokitError,
+} from "./repos.errors.js";
 
 describe("mapOctokitError", () => {
-  it("maps 401 to 502 upstream error", () => {
+  it("maps 401 to 401 token_expired", () => {
     const err = mapOctokitError({ status: 401, message: "Bad credentials" });
-    expect(err).toBeInstanceOf(GithubUpstreamError);
-    expect(err.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(err).toBeInstanceOf(GithubTokenExpiredError);
+    expect(err.getStatus()).toBe(HttpStatus.UNAUTHORIZED);
+    const body = err.getResponse() as { code?: string };
+    expect(body.code).toBe("token_expired");
   });
 
   it("maps 403 rate-limit to 429 with Retry-After", () => {

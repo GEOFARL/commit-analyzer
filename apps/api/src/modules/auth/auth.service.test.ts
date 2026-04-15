@@ -50,6 +50,7 @@ describe("AuthService", () => {
   const publish = vi.fn();
   const users = {
     findByAuthId: vi.fn(),
+    upsertFromAuth: vi.fn(),
   };
   const apiKeys = {
     listActiveByUser: vi.fn(),
@@ -58,29 +59,124 @@ describe("AuthService", () => {
     create: vi.fn((v: Partial<ApiKey>) => v as ApiKey),
     save: vi.fn(),
   };
+  const supabaseAdmin = {
+    getUserById: vi.fn(),
+  };
+  const crypto = {
+    encryptParts: vi.fn(() => ({
+      ciphertext: Buffer.from("ct"),
+      iv: Buffer.from("iv"),
+      tag: Buffer.from("tg"),
+    })),
+  };
 
   let service: AuthService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    crypto.encryptParts.mockReturnValue({
+      ciphertext: Buffer.from("ct"),
+      iv: Buffer.from("iv"),
+      tag: Buffer.from("tg"),
+    });
     service = new AuthService(
       users as never,
       apiKeys as never,
       { publish } as never,
+      supabaseAdmin as never,
+      crypto as never,
     );
   });
 
   describe("me", () => {
-    it("returns user", async () => {
+    it("returns user when mirror row exists", async () => {
       const user = makeUser();
       users.findByAuthId.mockResolvedValue(user);
       await expect(service.me(USER_ID)).resolves.toBe(user);
       expect(users.findByAuthId).toHaveBeenCalledWith(USER_ID);
+      expect(supabaseAdmin.getUserById).not.toHaveBeenCalled();
     });
 
-    it("throws 401 when user missing", async () => {
+    it("lazily mirrors the user via supabase admin on first login", async () => {
+      const user = makeUser();
       users.findByAuthId.mockResolvedValue(null);
+      supabaseAdmin.getUserById.mockResolvedValue({
+        id: USER_ID,
+        email: "u@example.com",
+        githubId: "42",
+        username: "u",
+        avatarUrl: null,
+      });
+      users.upsertFromAuth.mockResolvedValue(user);
+
+      await expect(service.me(USER_ID)).resolves.toBe(user);
+      expect(supabaseAdmin.getUserById).toHaveBeenCalledWith(USER_ID);
+      expect(users.upsertFromAuth).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: USER_ID,
+          githubId: "42",
+          email: "u@example.com",
+          username: "u",
+          avatarUrl: null,
+        }),
+      );
+      const arg = users.upsertFromAuth.mock.calls[0]?.[0] as {
+        accessToken?: unknown;
+      };
+      expect(arg.accessToken).toBeUndefined();
+    });
+
+    it("throws 401 when supabase admin can't find the user", async () => {
+      users.findByAuthId.mockResolvedValue(null);
+      supabaseAdmin.getUserById.mockResolvedValue(null);
       await expect(service.me(USER_ID)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(users.upsertFromAuth).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("sync", () => {
+    it("mirrors the user and stores the encrypted provider token", async () => {
+      const user = makeUser();
+      supabaseAdmin.getUserById.mockResolvedValue({
+        id: USER_ID,
+        email: "u@example.com",
+        githubId: "42",
+        username: "u",
+        avatarUrl: "https://x/a.png",
+      });
+      users.upsertFromAuth.mockResolvedValue(user);
+
+      await expect(service.sync(USER_ID, "gho_test")).resolves.toBe(user);
+
+      expect(crypto.encryptParts).toHaveBeenCalledWith("gho_test");
+      const arg = users.upsertFromAuth.mock.calls[0]?.[0] as {
+        accessToken: { ciphertext: Buffer; iv: Buffer; tag: Buffer };
+      };
+      expect(arg.accessToken.ciphertext).toBeInstanceOf(Buffer);
+      expect(arg.accessToken.iv).toBeInstanceOf(Buffer);
+      expect(arg.accessToken.tag).toBeInstanceOf(Buffer);
+    });
+
+    it("skips token encryption when providerToken is null", async () => {
+      const user = makeUser();
+      supabaseAdmin.getUserById.mockResolvedValue({
+        id: USER_ID,
+        email: null,
+        githubId: null,
+        username: null,
+        avatarUrl: null,
+      });
+      users.upsertFromAuth.mockResolvedValue(user);
+
+      await service.sync(USER_ID, null);
+      expect(crypto.encryptParts).not.toHaveBeenCalled();
+    });
+
+    it("throws 401 when supabase admin can't resolve the user", async () => {
+      supabaseAdmin.getUserById.mockResolvedValue(null);
+      await expect(service.sync(USER_ID, "gho_test")).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
     });

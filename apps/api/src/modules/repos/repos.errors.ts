@@ -6,9 +6,9 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 
-export class GithubTokenMissingError extends UnauthorizedException {
-  constructor() {
-    super("github access token missing");
+export class GithubTokenExpiredError extends UnauthorizedException {
+  constructor(message = "github access token expired") {
+    super({ message, code: "token_expired" });
   }
 }
 
@@ -73,14 +73,17 @@ const makeRateLimited = (err: OctokitLike): GithubUpstreamError =>
     readRetryAfter(err),
   );
 
-export const mapOctokitError = (err: unknown): GithubUpstreamError => {
+export const mapOctokitError = (err: unknown): HttpException => {
   const maybe: OctokitLike = (err ?? {}) as OctokitLike;
   const status = typeof maybe.status === "number" ? maybe.status : 0;
 
   if (looksRateLimited(maybe)) {
     return makeRateLimited(maybe);
   }
-  if (status === 401 || status === 403) {
+  if (status === 401) {
+    return new GithubTokenExpiredError();
+  }
+  if (status === 403) {
     return new GithubUpstreamError(
       HttpStatus.BAD_GATEWAY,
       "github authorization rejected",
