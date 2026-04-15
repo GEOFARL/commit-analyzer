@@ -2,17 +2,17 @@ import type { ServerEnv } from "@commit-analyzer/shared-types/env";
 import type { RequestHandler } from "express";
 import helmet from "helmet";
 
-export const DEFAULT_CONNECT_SRC = [
+const DEFAULT_CONNECT_SRC = [
   "'self'",
   "https://*.supabase.co",
   "wss://*.supabase.co",
 ] as const;
 
-export interface SecurityHeadersOptions {
+interface SecurityHeadersOptions {
   extraConnectSrc: readonly string[];
 }
 
-export const buildCspDirectives = ({
+const buildCspDirectives = ({
   extraConnectSrc,
 }: SecurityHeadersOptions): Record<string, string[]> => ({
   "default-src": ["'self'"],
@@ -21,13 +21,6 @@ export const buildCspDirectives = ({
   "script-src": ["'self'", "'unsafe-inline'"],
   "style-src": ["'self'", "'unsafe-inline'"],
 });
-
-export const serializeCsp = (
-  directives: Record<string, readonly string[]>,
-): string =>
-  Object.entries(directives)
-    .map(([name, values]) => `${name} ${values.join(" ")}`)
-    .join(";");
 
 export const buildHelmetMiddleware = (
   env: Pick<ServerEnv, "CSP_CONNECT_SRC">,

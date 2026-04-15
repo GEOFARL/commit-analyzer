@@ -1,0 +1,51 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["commitlint.config.cjs"]
+    },
+    "apps/api": {
+      "entry": ["src/main.ts", "src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/cli": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "apps/web": {
+      "entry": [
+        "src/app/**/page.tsx",
+        "src/app/**/layout.tsx",
+        "src/app/**/loading.tsx",
+        "src/app/**/error.tsx",
+        "src/app/**/route.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignore": ["src/components/ui/**"],
+      "ignoreDependencies": ["tailwindcss", "tw-animate-css"]
+    },
+    "packages/contracts": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/database": {
+      "entry": [
+        "src/index.ts",
+        "src/cli-data-source.ts",
+        "src/migrations/*.ts"
+      ],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/shared-types": {
+      "entry": ["src/index.ts", "src/env/index.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/eslint-config": {
+      "entry": ["base.js", "node.js", "next.js", "api.js", "cli.js"],
+      "project": ["*.js"]
+    },
+    "packages/typescript-config": {
+      "ignoreUnresolved": ["next"]
+    }
+  }
+}
