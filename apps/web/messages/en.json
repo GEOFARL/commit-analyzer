@@ -15,7 +15,27 @@
     "repositories": "Repositories",
     "generate": "Generate",
     "policies": "Policies",
-    "settings": "Settings"
+    "settings": "Settings",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu"
+  },
+  "metadata": {
+    "description": "AI-assisted commit message generation and repository analytics for teams that care about their history."
+  },
+  "placeholders": {
+    "comingInPhase": "Coming in Phase {phase}",
+    "generate": {
+      "title": "Generate",
+      "description": "Draft commit messages from a diff using your configured LLM provider."
+    },
+    "policies": {
+      "title": "Policies",
+      "description": "Configure commit message policies enforced by the analyzer."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Manage your workspace, tokens, and preferences."
+    }
   },
   "landing": {
     "title": "Ship better commits, faster.",

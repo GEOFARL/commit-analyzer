@@ -42,7 +42,7 @@ export const UserMenu = ({ email, name, avatarUrl }: UserMenuProps) => {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full ring-1 ring-border hover:ring-primary/40"
+          className="rounded-full"
           aria-label={t("signOut")}
         >
           <Avatar className="h-8 w-8">

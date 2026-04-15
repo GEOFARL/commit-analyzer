@@ -1,6 +1,17 @@
 import type { ConnectedRepo, GithubRepo } from "@commit-analyzer/contracts";
+import type { Metadata } from "next";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "nav" });
+  return { title: t("repositories") };
+}
 
 import { RepositoriesView } from "@/components/repositories/repositories-view";
 import { createServerTsRestClient } from "@/lib/api/tsr";

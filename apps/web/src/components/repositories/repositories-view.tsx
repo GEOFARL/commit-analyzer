@@ -74,6 +74,7 @@ export const RepositoriesView = ({
       headers: new Headers(),
     },
     staleTime: 0,
+    retry: 0,
   });
 
   const connectedQuery = tsr.repos.listConnected.useQuery({
@@ -85,7 +86,13 @@ export const RepositoriesView = ({
       headers: new Headers(),
     },
     staleTime: 0,
+    retry: 0,
   });
+
+  const githubHasError =
+    githubQuery.isError || githubQuery.failureReason !== null;
+  const connectedHasError =
+    connectedQuery.isError || connectedQuery.failureReason !== null;
 
   const githubItems: GithubRepo[] =
     githubQuery.data?.body.items ?? initialGithub;
@@ -255,7 +262,7 @@ export const RepositoriesView = ({
             </p>
           </div>
         </header>
-        {connectedQuery.isError ? (
+        {connectedHasError ? (
           <ErrorCard message={t("error.load")} />
         ) : connectedItems.length === 0 ? (
           <EmptyState
@@ -311,7 +318,7 @@ export const RepositoriesView = ({
             {t("github.subtitle")}
           </p>
         </header>
-        {githubQuery.isError ? (
+        {githubHasError ? (
           <ErrorCard message={t("error.load")} />
         ) : githubItems.length === 0 ? (
           <EmptyState
