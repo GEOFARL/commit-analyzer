@@ -89,10 +89,8 @@ export const RepositoriesView = ({
     retry: 0,
   });
 
-  const githubHasError =
-    githubQuery.isError || githubQuery.failureReason !== null;
-  const connectedHasError =
-    connectedQuery.isError || connectedQuery.failureReason !== null;
+  const githubHasError = githubQuery.isError;
+  const connectedHasError = connectedQuery.isError;
 
   const githubItems: GithubRepo[] =
     githubQuery.data?.body.items ?? initialGithub;
