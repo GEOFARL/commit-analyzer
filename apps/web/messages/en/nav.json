@@ -1,0 +1,14 @@
+{
+  "language": "Language",
+  "switchTo": {
+    "en": "English",
+    "uk": "Ukrainian"
+  },
+  "dashboard": "Dashboard",
+  "repositories": "Repositories",
+  "generate": "Generate",
+  "policies": "Policies",
+  "settings": "Settings",
+  "openMenu": "Open navigation menu",
+  "closeMenu": "Close navigation menu"
+}

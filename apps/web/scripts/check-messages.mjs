@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,33 +21,71 @@ function collectKeys(obj, prefix = "") {
   return keys.sort();
 }
 
-function load(locale) {
-  const raw = readFileSync(join(messagesDir, `${locale}.json`), "utf8");
+function listLocales() {
+  return readdirSync(messagesDir).filter((entry) => {
+    const full = join(messagesDir, entry);
+    return statSync(full).isDirectory();
+  });
+}
+
+function listNamespaces(locale) {
+  return readdirSync(join(messagesDir, locale))
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => f.replace(/\.json$/, ""))
+    .sort();
+}
+
+function loadNamespace(locale, ns) {
+  const raw = readFileSync(join(messagesDir, locale, `${ns}.json`), "utf8");
   return JSON.parse(raw);
 }
 
-const catalogs = readdirSync(messagesDir)
-  .filter((f) => f.endsWith(".json"))
-  .map((f) => f.replace(/\.json$/, ""));
+const locales = listLocales();
 
-if (!catalogs.includes(BASE_LOCALE)) {
-  console.error(`Base locale ${BASE_LOCALE}.json not found`);
+if (!locales.includes(BASE_LOCALE)) {
+  console.error(`Base locale directory ${BASE_LOCALE}/ not found`);
   process.exit(1);
 }
 
-const baseKeys = new Set(collectKeys(load(BASE_LOCALE)));
+const baseNamespaces = listNamespaces(BASE_LOCALE);
 let failed = false;
 
-for (const locale of catalogs) {
+for (const locale of locales) {
   if (locale === BASE_LOCALE) continue;
-  const keys = new Set(collectKeys(load(locale)));
-  const missing = [...baseKeys].filter((k) => !keys.has(k));
-  const extra = [...keys].filter((k) => !baseKeys.has(k));
-  if (missing.length || extra.length) {
+
+  const nsList = listNamespaces(locale);
+  const missingFiles = baseNamespaces.filter((ns) => !nsList.includes(ns));
+  const extraFiles = nsList.filter((ns) => !baseNamespaces.includes(ns));
+
+  if (missingFiles.length) {
     failed = true;
-    console.error(`Catalog ${locale}.json drift:`);
-    if (missing.length) console.error(`  missing: ${missing.join(", ")}`);
-    if (extra.length) console.error(`  extra:   ${extra.join(", ")}`);
+    console.error(
+      `Locale ${locale}/ is missing namespace files: ${missingFiles
+        .map((ns) => `${ns}.json`)
+        .join(", ")}`,
+    );
+  }
+  if (extraFiles.length) {
+    failed = true;
+    console.error(
+      `Locale ${locale}/ has extra namespace files not in ${BASE_LOCALE}/: ${extraFiles
+        .map((ns) => `${ns}.json`)
+        .join(", ")}`,
+    );
+  }
+
+  for (const ns of baseNamespaces) {
+    if (missingFiles.includes(ns)) continue;
+    const baseKeys = new Set(collectKeys(loadNamespace(BASE_LOCALE, ns)));
+    const localeKeys = new Set(collectKeys(loadNamespace(locale, ns)));
+    const missing = [...baseKeys].filter((k) => !localeKeys.has(k));
+    const extra = [...localeKeys].filter((k) => !baseKeys.has(k));
+    if (missing.length || extra.length) {
+      failed = true;
+      console.error(`${locale}/${ns}.json drift:`);
+      if (missing.length) console.error(`  missing: ${missing.join(", ")}`);
+      if (extra.length) console.error(`  extra:   ${extra.join(", ")}`);
+    }
   }
 }
 
@@ -56,4 +94,6 @@ if (failed) {
   process.exit(1);
 }
 
-console.log(`Message catalogs in sync (${catalogs.join(", ")}).`);
+console.log(
+  `Message catalogs in sync (${locales.join(", ")}, ${baseNamespaces.length} namespaces).`,
+);

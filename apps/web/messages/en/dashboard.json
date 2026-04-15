@@ -1,0 +1,14 @@
+{
+  "title": "Dashboard",
+  "placeholder": "Your connected repositories will appear here.",
+  "welcome": "Welcome back",
+  "welcomeHelper": "Here's a quick overview of your workspace.",
+  "ctaRepositories": "Go to repositories",
+  "cards": {
+    "repositories": "Repositories",
+    "repositoriesHelper": "Connect a GitHub repo to start analyzing commits.",
+    "generate": "Generate",
+    "generateHelper": "Draft commit messages from a diff using your LLM keys.",
+    "comingSoon": "Coming soon"
+  }
+}

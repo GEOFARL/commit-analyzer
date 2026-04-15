@@ -18,7 +18,7 @@ export const Sidebar = async () => {
         <SidebarNav />
       </div>
       <div className="border-t border-sidebar-border px-5 py-3 text-xs text-sidebar-foreground/50">
-        v0.1 · Phase 1
+        {t("version")}
       </div>
     </aside>
   );
