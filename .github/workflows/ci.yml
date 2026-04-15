@@ -41,5 +41,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: pnpm --filter "@commit-analyzer/*" build
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm knip
