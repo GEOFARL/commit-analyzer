@@ -1,37 +1,45 @@
 import type { ConnectedRepo, GithubRepo } from "@commit-analyzer/contracts";
-import { cookies } from "next/headers";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { RepositoriesView } from "@/components/repositories/repositories-view";
-import { createServerClient } from "@/lib/api/tsr";
+import { createServerTsRestClient } from "@/lib/api/tsr";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const loadInitialData = async (): Promise<{
+type InitialData = {
   github: GithubRepo[];
   connected: ConnectedRepo[];
-}> => {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map(({ name, value }) => `${name}=${value}`)
-    .join("; ");
+  userId: string;
+};
 
-  const client = createServerClient(
-    cookieHeader ? { cookie: cookieHeader } : {},
-  );
+const loadInitialData = async (): Promise<InitialData> => {
+  const supabase = await createSupabaseServerClient();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token ?? null;
+  const userId = sessionData.session?.user.id ?? "anonymous";
+
+  const client = createServerTsRestClient(accessToken);
 
   const [githubRes, connectedRes] = await Promise.all([
-    client.repos.listGithub().catch(() => null),
-    client.repos.listConnected().catch(() => null),
+    client.repos.listGithub(),
+    client.repos.listConnected(),
   ]);
 
+  if (githubRes.status !== 200) {
+    throw new Error(
+      `Failed to load GitHub repositories (status ${githubRes.status})`,
+    );
+  }
+  if (connectedRes.status !== 200) {
+    throw new Error(
+      `Failed to load connected repositories (status ${connectedRes.status})`,
+    );
+  }
+
   return {
-    github:
-      githubRes && githubRes.status === 200 ? githubRes.body.items : [],
-    connected:
-      connectedRes && connectedRes.status === 200
-        ? connectedRes.body.items
-        : [],
+    github: githubRes.body.items,
+    connected: connectedRes.body.items,
+    userId,
   };
 };
 
@@ -44,7 +52,7 @@ export default async function RepositoriesPage({
   setRequestLocale(locale);
   const t = await getTranslations("repositories");
 
-  const { github, connected } = await loadInitialData();
+  const { github, connected, userId } = await loadInitialData();
 
   return (
     <div className="flex flex-col gap-8">
@@ -53,6 +61,7 @@ export default async function RepositoriesPage({
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
       <RepositoriesView
+        userId={userId}
         initialGithub={github}
         initialConnected={connected}
       />

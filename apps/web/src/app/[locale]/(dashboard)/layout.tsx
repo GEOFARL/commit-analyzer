@@ -30,21 +30,22 @@ export default async function DashboardLayout({
 
   if (!user) {
     redirect({ href: "/login", locale });
+    return null;
   }
 
-  const metadata = (user?.user_metadata ?? {}) as {
+  const metadata = (user.user_metadata ?? {}) as {
     full_name?: string;
     user_name?: string;
     name?: string;
     avatar_url?: string;
   };
   const dashboardUser: DashboardUser = {
-    email: user?.email ?? null,
+    email: user.email ?? null,
     name:
       metadata.full_name ??
       metadata.name ??
       metadata.user_name ??
-      user?.email ??
+      user.email ??
       null,
     avatarUrl: metadata.avatar_url ?? null,
   };

@@ -16,10 +16,10 @@ type RepoCardProps = {
   fullName: string;
   description?: string | null;
   defaultBranch: string;
-  isPrivate: boolean;
+  isPrivate?: boolean;
   isConnected?: boolean;
-  privateLabel: string;
-  publicLabel: string;
+  privateLabel?: string;
+  publicLabel?: string;
   connectedLabel?: string;
   action: ReactNode;
 };
@@ -61,14 +61,16 @@ export const RepoCard = ({
       ) : null}
     </CardHeader>
     <CardContent className="flex flex-1 items-end gap-2 pb-4">
-      <Badge variant="outline" className="gap-1">
-        {isPrivate ? (
-          <Lock className="h-3 w-3" />
-        ) : (
-          <Unlock className="h-3 w-3" />
-        )}
-        {isPrivate ? privateLabel : publicLabel}
-      </Badge>
+      {isPrivate !== undefined && privateLabel && publicLabel ? (
+        <Badge variant="outline" className="gap-1">
+          {isPrivate ? (
+            <Lock className="h-3 w-3" />
+          ) : (
+            <Unlock className="h-3 w-3" />
+          )}
+          {isPrivate ? privateLabel : publicLabel}
+        </Badge>
+      ) : null}
       <Badge variant="secondary" className="gap-1 font-mono text-[11px]">
         <GitBranch className="h-3 w-3" />
         {defaultBranch}

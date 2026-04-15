@@ -24,19 +24,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { tsr } from "@/lib/api/tsr";
 
 type Props = {
+  userId: string;
   initialGithub: GithubRepo[];
   initialConnected: ConnectedRepo[];
 };
-
-const GITHUB_KEY = ["repos", "github"] as const;
-const CONNECTED_KEY = ["repos", "connected"] as const;
 
 type GithubEnvelope = {
   status: 200;
@@ -49,44 +46,51 @@ type ConnectedEnvelope = {
   headers: Headers;
 };
 
+const OPTIMISTIC_ID_PREFIX = "optimistic:";
+
 export const RepositoriesView = ({
+  userId,
   initialGithub,
   initialConnected,
 }: Props) => {
   const t = useTranslations("repositories");
   const queryClient = useQueryClient();
 
+  const githubKey = useMemo(
+    () => ["repos", "github", userId] as const,
+    [userId],
+  );
+  const connectedKey = useMemo(
+    () => ["repos", "connected", userId] as const,
+    [userId],
+  );
+
   const githubQuery = tsr.repos.listGithub.useQuery({
-    queryKey: [...GITHUB_KEY],
+    queryKey: [...githubKey],
     queryData: {},
     initialData: {
       status: 200,
       body: { items: initialGithub },
       headers: new Headers(),
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   const connectedQuery = tsr.repos.listConnected.useQuery({
-    queryKey: [...CONNECTED_KEY],
+    queryKey: [...connectedKey],
     queryData: {},
     initialData: {
       status: 200,
       body: { items: initialConnected },
       headers: new Headers(),
     },
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
-  const githubItems = useMemo<GithubRepo[]>(() => {
-    const data = githubQuery.data;
-    return data && data.status === 200 ? data.body.items : initialGithub;
-  }, [githubQuery.data, initialGithub]);
-
-  const connectedItems = useMemo<ConnectedRepo[]>(() => {
-    const data = connectedQuery.data;
-    return data && data.status === 200 ? data.body.items : initialConnected;
-  }, [connectedQuery.data, initialConnected]);
+  const githubItems: GithubRepo[] =
+    githubQuery.data?.body.items ?? initialGithub;
+  const connectedItems: ConnectedRepo[] =
+    connectedQuery.data?.body.items ?? initialConnected;
 
   const connectedByGithubId = useMemo(() => {
     const map = new Map<number, ConnectedRepo>();
@@ -97,17 +101,21 @@ export const RepositoriesView = ({
   const connectMutation = tsr.repos.connect.useMutation({
     onMutate: async (vars) => {
       await Promise.all([
-        queryClient.cancelQueries({ queryKey: [...GITHUB_KEY] }),
-        queryClient.cancelQueries({ queryKey: [...CONNECTED_KEY] }),
+        queryClient.cancelQueries({ queryKey: [...githubKey] }),
+        queryClient.cancelQueries({ queryKey: [...connectedKey] }),
       ]);
       const prevGithub = queryClient.getQueryData<GithubEnvelope>([
-        ...GITHUB_KEY,
+        ...githubKey,
       ]);
       const prevConnected = queryClient.getQueryData<ConnectedEnvelope>([
-        ...CONNECTED_KEY,
+        ...connectedKey,
       ]);
+      const target = prevGithub?.body.items.find(
+        (r) => r.githubRepoId === vars.params.githubRepoId,
+      );
+
       if (prevGithub) {
-        queryClient.setQueryData<GithubEnvelope>([...GITHUB_KEY], {
+        queryClient.setQueryData<GithubEnvelope>([...githubKey], {
           ...prevGithub,
           body: {
             items: prevGithub.body.items.map((r) =>
@@ -118,55 +126,77 @@ export const RepositoriesView = ({
           },
         });
       }
+      if (prevConnected && target) {
+        const stub: ConnectedRepo = {
+          id: `${OPTIMISTIC_ID_PREFIX}${target.githubRepoId}`,
+          githubRepoId: target.githubRepoId,
+          owner: target.owner,
+          name: target.name,
+          fullName: target.fullName,
+          defaultBranch: target.defaultBranch,
+          lastSyncedAt: null,
+          createdAt: new Date().toISOString(),
+        };
+        queryClient.setQueryData<ConnectedEnvelope>([...connectedKey], {
+          ...prevConnected,
+          body: { items: [...prevConnected.body.items, stub] },
+        });
+      }
       return { prevGithub, prevConnected };
     },
     onError: (_err, _vars, context) => {
       if (context?.prevGithub) {
-        queryClient.setQueryData([...GITHUB_KEY], context.prevGithub);
+        queryClient.setQueryData([...githubKey], context.prevGithub);
       }
       if (context?.prevConnected) {
-        queryClient.setQueryData([...CONNECTED_KEY], context.prevConnected);
+        queryClient.setQueryData([...connectedKey], context.prevConnected);
       }
       toast.error(t("toast.connectError"));
     },
     onSuccess: (data) => {
       if (data.status === 201) {
         queryClient.setQueryData<ConnectedEnvelope>(
-          [...CONNECTED_KEY],
-          (prev) => ({
-            status: 200,
-            body: {
-              items: prev ? [...prev.body.items, data.body] : [data.body],
-            },
-            headers: prev?.headers ?? new Headers(),
-          }),
+          [...connectedKey],
+          (prev) => {
+            const withoutStub =
+              prev?.body.items.filter(
+                (r) =>
+                  !r.id.startsWith(OPTIMISTIC_ID_PREFIX) ||
+                  r.githubRepoId !== data.body.githubRepoId,
+              ) ?? [];
+            return {
+              status: 200,
+              body: { items: [...withoutStub, data.body] },
+              headers: prev?.headers ?? new Headers(),
+            };
+          },
         );
         toast.success(t("toast.connected"));
       }
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [...GITHUB_KEY] });
-      void queryClient.invalidateQueries({ queryKey: [...CONNECTED_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [...githubKey] });
+      void queryClient.invalidateQueries({ queryKey: [...connectedKey] });
     },
   });
 
   const disconnectMutation = tsr.repos.disconnect.useMutation({
     onMutate: async (vars) => {
       await Promise.all([
-        queryClient.cancelQueries({ queryKey: [...CONNECTED_KEY] }),
-        queryClient.cancelQueries({ queryKey: [...GITHUB_KEY] }),
+        queryClient.cancelQueries({ queryKey: [...connectedKey] }),
+        queryClient.cancelQueries({ queryKey: [...githubKey] }),
       ]);
       const prevConnected = queryClient.getQueryData<ConnectedEnvelope>([
-        ...CONNECTED_KEY,
+        ...connectedKey,
       ]);
       const prevGithub = queryClient.getQueryData<GithubEnvelope>([
-        ...GITHUB_KEY,
+        ...githubKey,
       ]);
       const removed = prevConnected?.body.items.find(
         (r) => r.id === vars.params.repoId,
       );
       if (prevConnected) {
-        queryClient.setQueryData<ConnectedEnvelope>([...CONNECTED_KEY], {
+        queryClient.setQueryData<ConnectedEnvelope>([...connectedKey], {
           ...prevConnected,
           body: {
             items: prevConnected.body.items.filter(
@@ -176,7 +206,7 @@ export const RepositoriesView = ({
         });
       }
       if (prevGithub && removed) {
-        queryClient.setQueryData<GithubEnvelope>([...GITHUB_KEY], {
+        queryClient.setQueryData<GithubEnvelope>([...githubKey], {
           ...prevGithub,
           body: {
             items: prevGithub.body.items.map((r) =>
@@ -191,10 +221,10 @@ export const RepositoriesView = ({
     },
     onError: (_err, _vars, context) => {
       if (context?.prevConnected) {
-        queryClient.setQueryData([...CONNECTED_KEY], context.prevConnected);
+        queryClient.setQueryData([...connectedKey], context.prevConnected);
       }
       if (context?.prevGithub) {
-        queryClient.setQueryData([...GITHUB_KEY], context.prevGithub);
+        queryClient.setQueryData([...githubKey], context.prevGithub);
       }
       toast.error(t("toast.disconnectError"));
     },
@@ -202,21 +232,14 @@ export const RepositoriesView = ({
       toast.success(t("toast.disconnected"));
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [...CONNECTED_KEY] });
-      void queryClient.invalidateQueries({ queryKey: [...GITHUB_KEY] });
+      void queryClient.invalidateQueries({ queryKey: [...connectedKey] });
+      void queryClient.invalidateQueries({ queryKey: [...githubKey] });
     },
   });
 
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
-
-  const githubError =
-    githubQuery.isError ||
-    (githubQuery.data && githubQuery.data.status !== 200);
-  const connectedError =
-    connectedQuery.isError ||
-    (connectedQuery.data && connectedQuery.data.status !== 200);
 
   return (
     <div className="flex flex-col gap-10">
@@ -232,7 +255,7 @@ export const RepositoriesView = ({
             </p>
           </div>
         </header>
-        {connectedError ? (
+        {connectedQuery.isError ? (
           <ErrorCard message={t("error.load")} />
         ) : connectedItems.length === 0 ? (
           <EmptyState
@@ -242,39 +265,38 @@ export const RepositoriesView = ({
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {connectedItems.map((repo) => (
-              <RepoCard
-                key={repo.id}
-                fullName={repo.fullName}
-                defaultBranch={repo.defaultBranch}
-                isPrivate={false}
-                isConnected
-                privateLabel={t("badge.private")}
-                publicLabel={t("badge.public")}
-                connectedLabel={t("badge.connected")}
-                action={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setPendingDisconnect(repo)}
-                    disabled={
-                      disconnectMutation.isPending &&
-                      disconnectMutation.variables?.params.repoId === repo.id
-                    }
-                  >
-                    {disconnectMutation.isPending &&
-                    disconnectMutation.variables?.params.repoId === repo.id ? (
-                      <Loader2 className="animate-spin" />
-                    ) : (
-                      <Trash2 />
-                    )}
-                    {t("actions.disconnect")}
-                  </Button>
-                }
-              />
-            ))}
+            {connectedItems.map((repo) => {
+              const isDisconnecting =
+                disconnectMutation.isPending &&
+                disconnectMutation.variables?.params.repoId === repo.id;
+              const isStub = repo.id.startsWith(OPTIMISTIC_ID_PREFIX);
+              return (
+                <RepoCard
+                  key={repo.id}
+                  fullName={repo.fullName}
+                  defaultBranch={repo.defaultBranch}
+                  isConnected
+                  connectedLabel={t("badge.connected")}
+                  action={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setPendingDisconnect(repo)}
+                      disabled={isDisconnecting || isStub}
+                    >
+                      {isDisconnecting ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Trash2 />
+                      )}
+                      {t("actions.disconnect")}
+                    </Button>
+                  }
+                />
+              );
+            })}
           </div>
         )}
       </section>
@@ -289,7 +311,7 @@ export const RepositoriesView = ({
             {t("github.subtitle")}
           </p>
         </header>
-        {githubError ? (
+        {githubQuery.isError ? (
           <ErrorCard message={t("error.load")} />
         ) : githubItems.length === 0 ? (
           <EmptyState
@@ -360,9 +382,6 @@ export const RepositoriesView = ({
           if (!open) setPendingDisconnect(null);
         }}
       >
-        <AlertDialogTrigger asChild>
-          <span className="hidden" />
-        </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
