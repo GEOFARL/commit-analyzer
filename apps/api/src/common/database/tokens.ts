@@ -1,3 +1,4 @@
 export const DATA_SOURCE = Symbol("APP_DATA_SOURCE");
 export const API_KEY_REPOSITORY = Symbol("API_KEY_REPOSITORY");
+export const REPOSITORY_REPOSITORY = Symbol("REPOSITORY_REPOSITORY");
 export const USER_REPOSITORY = Symbol("USER_REPOSITORY");

@@ -6,6 +6,7 @@ import { AuthTsRestController } from "./auth-ts-rest.controller.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
 import {
+  SUPABASE_CLIENT,
   SupabaseAuthGuard,
   supabaseClientProvider,
 } from "./supabase-auth.guard.js";
@@ -14,6 +15,6 @@ import {
   imports: [CqrsModule],
   controllers: [AuthController, AuthTsRestController],
   providers: [supabaseClientProvider, SupabaseAuthGuard, ApiKeyGuard, AuthService],
-  exports: [SupabaseAuthGuard, ApiKeyGuard, AuthService],
+  exports: [SupabaseAuthGuard, ApiKeyGuard, AuthService, SUPABASE_CLIENT],
 })
 export class AuthModule {}

@@ -1,0 +1,33 @@
+import type { ConnectedRepo, GithubRepo } from "@commit-analyzer/contracts";
+import type { Repository } from "@commit-analyzer/database";
+
+import type { GithubRepoRaw } from "./repos.types.js";
+
+export const toGithubRepoDto = (
+  raw: GithubRepoRaw,
+  connectedGithubIds: ReadonlySet<string>,
+): GithubRepo => ({
+  githubRepoId: raw.id,
+  owner: raw.owner.login,
+  name: raw.name,
+  fullName: raw.full_name,
+  private: raw.private,
+  defaultBranch: raw.default_branch,
+  description: raw.description,
+  htmlUrl: raw.html_url,
+  connected: connectedGithubIds.has(String(raw.id)),
+});
+
+export const toConnectedRepoDto = (entity: Repository): ConnectedRepo => {
+  const [owner, name] = entity.fullName.split("/", 2);
+  return {
+    id: entity.id,
+    githubRepoId: Number(entity.githubRepoId),
+    owner: owner ?? "",
+    name: name ?? entity.fullName,
+    fullName: entity.fullName,
+    defaultBranch: entity.defaultBranch ?? "main",
+    lastSyncedAt: entity.lastSyncedAt ? entity.lastSyncedAt.toISOString() : null,
+    createdAt: entity.createdAt.toISOString(),
+  };
+};
