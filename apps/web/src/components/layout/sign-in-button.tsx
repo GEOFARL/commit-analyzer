@@ -1,26 +1,18 @@
-"use client";
-
-import { ArrowRight, Github, Loader2 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { ArrowRight, Github } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
 
-export const SignInButton = () => {
-  const t = useTranslations("landing");
-  const [pending, setPending] = useState(false);
-
+export const SignInButton = async () => {
+  const t = await getTranslations("landing");
   return (
-    <form
-      action="/auth/sign-in"
-      method="post"
-      onSubmit={() => setPending(true)}
-    >
-      <Button type="submit" size="lg" disabled={pending}>
-        {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Github aria-hidden="true" />}
+    <Button asChild size="lg">
+      <Link href="/login">
+        <Github aria-hidden="true" />
         {t("cta")}
-        {!pending && <ArrowRight aria-hidden="true" />}
-      </Button>
-    </form>
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </Button>
   );
 };
