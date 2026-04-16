@@ -3,15 +3,22 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { routing } from "@/i18n/routing";
 
-// Literal references required so Next.js inlines these at build time.
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    "Missing required env vars: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  );
+// Literal process.env references are required so Next.js inlines the values
+// at build time. The helper narrows the type to string and throws early with
+// a readable message rather than deferring to a runtime non-null assertion.
+function requireEnv(name: string, value: string | undefined): string {
+  if (!value) throw new Error(`Missing required env var: ${name}`);
+  return value;
 }
+
+const SUPABASE_URL = requireEnv(
+  "NEXT_PUBLIC_SUPABASE_URL",
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+);
+const SUPABASE_ANON_KEY = requireEnv(
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 
 const GUEST_ONLY_PATHS = ["/", "/login"];
 
