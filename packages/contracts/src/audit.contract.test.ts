@@ -61,6 +61,6 @@ describe("auditContract", () => {
   });
 
   it("tags with jwt auth", () => {
-    expect(auditContract.list.metadata).toEqual({ auth: "jwt" });
+    expect(auditContract.list.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
   });
 });

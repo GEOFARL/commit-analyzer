@@ -81,9 +81,9 @@ describe("authContract", () => {
   });
 
   it("tags every auth endpoint with jwt", () => {
-    expect(authContract.me.metadata).toEqual({ auth: "jwt" });
-    expect(authContract.apiKeys.list.metadata).toEqual({ auth: "jwt" });
-    expect(authContract.apiKeys.create.metadata).toEqual({ auth: "jwt" });
-    expect(authContract.apiKeys.revoke.metadata).toEqual({ auth: "jwt" });
+    expect(authContract.me.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(authContract.apiKeys.list.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(authContract.apiKeys.create.metadata).toEqual({ auth: "jwt", rateLimit: "auth" });
+    expect(authContract.apiKeys.revoke.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
   });
 });

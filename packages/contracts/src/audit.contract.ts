@@ -48,7 +48,7 @@ export const auditContract = c.router(
         401: errorEnvelopeSchema,
       },
       summary: "List audit events for the current user",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
   },
   { strictStatusCodes: true },

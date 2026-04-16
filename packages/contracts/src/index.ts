@@ -42,3 +42,5 @@ export {
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";
+
+export type { RateLimitTier, RouteMetadata } from "./shared/metadata.js";

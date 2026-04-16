@@ -47,7 +47,7 @@ export const authContract = c.router(
         401: errorEnvelopeSchema,
       },
       summary: "Get the currently authenticated user",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
     sync: {
       method: "POST",
@@ -59,7 +59,7 @@ export const authContract = c.router(
       },
       summary:
         "Mirror the authenticated Supabase user into public.users and store the encrypted GitHub provider token",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
     apiKeys: c.router(
       {
@@ -71,7 +71,7 @@ export const authContract = c.router(
             401: errorEnvelopeSchema,
           },
           summary: "List API keys for the current user",
-          metadata: { auth: "jwt" } as const,
+          metadata: { auth: "jwt", rateLimit: "default" } as const,
         },
         create: {
           method: "POST",
@@ -83,7 +83,7 @@ export const authContract = c.router(
             401: errorEnvelopeSchema,
           },
           summary: "Create a new API key (plaintext returned once)",
-          metadata: { auth: "jwt" } as const,
+          metadata: { auth: "jwt", rateLimit: "auth" } as const,
         },
         revoke: {
           method: "DELETE",
@@ -96,7 +96,7 @@ export const authContract = c.router(
             404: errorEnvelopeSchema,
           },
           summary: "Revoke an API key",
-          metadata: { auth: "jwt" } as const,
+          metadata: { auth: "jwt", rateLimit: "default" } as const,
         },
       },
       { pathPrefix: "" },
