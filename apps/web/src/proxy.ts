@@ -25,7 +25,7 @@ const GUEST_ONLY_PATHS = ["/", "/login"];
 
 const intlMiddleware = createMiddleware(routing);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { strippedPath, localePrefix } = parseLocale(pathname);
 
