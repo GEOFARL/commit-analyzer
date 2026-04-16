@@ -1,3 +1,4 @@
+import type apiKeys from "../messages/en/apiKeys.json";
 import type auth from "../messages/en/auth.json";
 import type common from "../messages/en/common.json";
 import type dashboard from "../messages/en/dashboard.json";
@@ -13,6 +14,7 @@ import type userMenu from "../messages/en/userMenu.json";
 import type { routing } from "./i18n/routing";
 
 type Messages = {
+  apiKeys: typeof apiKeys;
   auth: typeof auth;
   common: typeof common;
   dashboard: typeof dashboard;
