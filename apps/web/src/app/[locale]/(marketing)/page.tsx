@@ -1,11 +1,11 @@
-import { ArrowRight, Github, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AuroraBackground } from "@/components/layout/aurora-background";
 import { LogoMark } from "@/components/layout/logo-mark";
+import { SignInButton } from "@/components/layout/sign-in-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 export default async function LandingPage({
   params,
@@ -19,7 +19,7 @@ export default async function LandingPage({
   return (
     <>
       <AuroraBackground />
-      <main className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
+      <main id="main-content" className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-3">
             <LogoMark className="h-10 w-10" />
@@ -37,13 +37,7 @@ export default async function LandingPage({
             {t("tagline")}
           </p>
           <div className="mt-2 flex items-center gap-3">
-            <form action="/auth/sign-in" method="post">
-              <Button type="submit" size="lg">
-                <Github aria-hidden="true" />
-                {t("cta")}
-                <ArrowRight aria-hidden="true" />
-              </Button>
-            </form>
+            <SignInButton />
           </div>
         </div>
       </main>

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { tsr } from "@/lib/api/tsr";
 
 export const QueryProvider = ({ children }: { children: ReactNode }) => {
@@ -21,7 +22,9 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <tsr.ReactQueryProvider>{children}</tsr.ReactQueryProvider>
+      <tsr.ReactQueryProvider>
+        <TooltipProvider>{children}</TooltipProvider>
+      </tsr.ReactQueryProvider>
     </QueryClientProvider>
   );
 };

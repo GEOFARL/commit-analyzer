@@ -21,6 +21,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Link } from "@/i18n/navigation";
 
 export default async function DashboardPage({
@@ -77,9 +82,18 @@ export default async function DashboardPage({
             <CardDescription>{t("cards.generateHelper")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button size="sm" variant="outline" disabled>
-              {t("cards.comingSoon")}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0}>
+                  <Button size="sm" variant="outline" disabled>
+                    {t("cards.comingSoon")}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t("cards.comingSoonTooltip")}
+              </TooltipContent>
+            </Tooltip>
           </CardContent>
         </Card>
       </div>

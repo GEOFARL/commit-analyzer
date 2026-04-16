@@ -46,6 +46,10 @@ export async function generateMetadata({
     title: { default: appName, template: `%s · ${appName}` },
     description,
     applicationName: appName,
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+      { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    ],
     openGraph: {
       title: appName,
       description,
@@ -76,6 +80,8 @@ export default async function LocaleLayout({
 
   setRequestLocale(locale);
 
+  const tCommon = await getTranslations({ locale, namespace: "common" });
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
@@ -85,6 +91,12 @@ export default async function LocaleLayout({
           "min-h-screen bg-background font-sans text-foreground antialiased",
         )}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:ring-2 focus:ring-ring"
+        >
+          {tCommon("skipToContent")}
+        </a>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

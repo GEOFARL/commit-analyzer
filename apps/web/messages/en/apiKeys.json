@@ -8,7 +8,8 @@
   "never": "Never",
   "empty": {
     "title": "No API keys yet",
-    "description": "Create a key to authenticate the CLI with your account."
+    "description": "Create a key to authenticate the CLI with your account.",
+    "cta": "Create your first key"
   },
   "error": {
     "load": "Failed to load API keys. Please try again."

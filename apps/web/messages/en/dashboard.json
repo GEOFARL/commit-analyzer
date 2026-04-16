@@ -9,6 +9,7 @@
     "repositoriesHelper": "Connect a GitHub repo to start analyzing commits.",
     "generate": "Generate",
     "generateHelper": "Draft commit messages from a diff using your LLM keys.",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "comingSoonTooltip": "Available in Phase 2"
   }
 }
