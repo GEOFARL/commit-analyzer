@@ -24,10 +24,12 @@ export const ApiKeyRow = ({ apiKey, isRevoking, onRevoke }: Props) => {
   const t = useTranslations("apiKeys");
 
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors">
+    <div className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors sm:gap-4 sm:p-4">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium">{apiKey.name}</span>
+          <span className="truncate font-medium text-sm sm:text-base">
+            {apiKey.name}
+          </span>
           <Badge variant="secondary" className="font-mono text-xs shrink-0">
             {apiKey.prefix}…
           </Badge>
@@ -51,7 +53,7 @@ export const ApiKeyRow = ({ apiKey, isRevoking, onRevoke }: Props) => {
         disabled={isRevoking}
       >
         {isRevoking ? <Loader2 className="animate-spin" /> : <Trash2 />}
-        {t("revoke")}
+        <span className="hidden sm:inline">{t("revoke")}</span>
       </Button>
     </div>
   );
