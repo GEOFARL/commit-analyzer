@@ -41,8 +41,8 @@ export const RepoCard = ({
 }: RepoCardProps) => (
   <Card
     className={cn(
-      "group relative flex h-full flex-col overflow-hidden transition-all duration-300",
-      "hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/30",
+      "group relative flex h-full flex-col overflow-hidden transition-[transform,box-shadow,opacity] duration-300",
+      "motion-safe:hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/30",
     )}
   >
     <div
@@ -68,21 +68,21 @@ export const RepoCard = ({
       {isPrivate !== undefined && privateLabel && publicLabel ? (
         <Badge variant="outline" className="gap-1">
           {isPrivate ? (
-            <Lock className="h-3 w-3" />
+            <Lock aria-hidden="true" className="h-3 w-3" />
           ) : (
-            <Unlock className="h-3 w-3" />
+            <Unlock aria-hidden="true" className="h-3 w-3" />
           )}
           {isPrivate ? privateLabel : publicLabel}
         </Badge>
       ) : null}
       {isArchived && archivedLabel ? (
         <Badge variant="outline" className="gap-1 text-muted-foreground">
-          <Archive className="h-3 w-3" />
+          <Archive aria-hidden="true" className="h-3 w-3" />
           {archivedLabel}
         </Badge>
       ) : null}
       <Badge variant="secondary" className="gap-1 font-mono text-[11px]">
-        <GitBranch className="h-3 w-3" />
+        <GitBranch aria-hidden="true" className="h-3 w-3" />
         {defaultBranch}
       </Badge>
     </CardContent>

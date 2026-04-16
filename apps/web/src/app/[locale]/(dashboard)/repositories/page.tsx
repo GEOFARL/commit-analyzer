@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Suspense } from "react";
 
 import { RepositoriesView } from "@/features/repositories/components/repositories-view";
 import { getRepositoriesPageData } from "@/features/repositories/server";
@@ -29,10 +30,14 @@ export default async function RepositoriesPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-wrap-balance">
+          {t("title")}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
-      <RepositoriesView {...data} />
+      <Suspense>
+        <RepositoriesView {...data} />
+      </Suspense>
     </div>
   );
 }
