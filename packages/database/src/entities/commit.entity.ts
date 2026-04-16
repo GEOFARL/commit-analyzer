@@ -5,40 +5,51 @@ import {
   JoinColumn,
   ManyToOne,
   OneToOne,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
+  Unique,
 } from "typeorm";
 
 import { CommitQualityScore } from "./commit-quality-score.entity.js";
 import { Repository } from "./repository.entity.js";
 
 @Entity({ name: "commits" })
-@Index("commits_repo_authored_idx", ["repoId", "authoredAt"])
-@Index("commits_repo_author_email_idx", ["repoId", "authorEmail"])
+@Unique("commits_repo_sha_uk", ["repositoryId", "sha"])
+@Index("commits_repo_authored_idx", ["repositoryId", "authoredAt"])
 export class Commit {
-  @PrimaryColumn("text")
-  sha!: string;
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
   @Column("uuid")
-  repoId!: string;
+  repositoryId!: string;
 
   @ManyToOne(() => Repository, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "repo_id" })
+  @JoinColumn({ name: "repository_id" })
   repository!: Repository;
 
   @Column("text")
-  authorEmail!: string;
+  sha!: string;
 
   @Column("text")
   authorName!: string;
 
-  @Column("timestamptz")
-  authoredAt!: Date;
+  @Index("commits_author_email_idx")
+  @Column("text")
+  authorEmail!: string;
 
   @Column("text")
   message!: string;
 
+  @Column("text", { nullable: true })
+  subject!: string | null;
+
+  @Column("text", { nullable: true })
+  body!: string | null;
+
+  @Column("text", { nullable: true })
+  footer!: string | null;
+
   @Column("int", { default: 0 })
-  additions!: number;
+  insertions!: number;
 
   @Column("int", { default: 0 })
   deletions!: number;
@@ -46,9 +57,9 @@ export class Commit {
   @Column("int", { default: 0 })
   filesChanged!: number;
 
-  @Column("smallint", { default: 1 })
-  parentCount!: number;
+  @Column("timestamptz")
+  authoredAt!: Date;
 
   @OneToOne(() => CommitQualityScore, (score) => score.commit)
-  qualityScore!: CommitQualityScore | null;
+  qualityScore?: CommitQualityScore;
 }

@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -8,32 +9,36 @@ import {
 
 import { Repository } from "./repository.entity.js";
 
-export type SyncJobStatus = "pending" | "running" | "done" | "failed";
+export type SyncJobStatus = "queued" | "running" | "completed" | "failed";
 
 @Entity({ name: "sync_jobs" })
+@Index("sync_jobs_repo_status_idx", ["repositoryId", "status"])
 export class SyncJob {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Column("uuid")
-  repoId!: string;
+  repositoryId!: string;
 
   @ManyToOne(() => Repository, { onDelete: "CASCADE" })
-  @JoinColumn({ name: "repo_id" })
+  @JoinColumn({ name: "repository_id" })
   repository!: Repository;
 
   @Column("text")
   status!: SyncJobStatus;
+
+  @Column("int", { nullable: true })
+  commitsProcessed!: number | null;
+
+  @Column("int", { nullable: true })
+  totalCommits!: number | null;
+
+  @Column("text", { nullable: true })
+  errorMessage!: string | null;
 
   @Column("timestamptz", { nullable: true })
   startedAt!: Date | null;
 
   @Column("timestamptz", { nullable: true })
   finishedAt!: Date | null;
-
-  @Column("smallint", { nullable: true })
-  progressPct!: number | null;
-
-  @Column("text", { nullable: true })
-  error!: string | null;
 }

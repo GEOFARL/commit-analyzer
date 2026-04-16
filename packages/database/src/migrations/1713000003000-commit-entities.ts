@@ -5,57 +5,67 @@ export class CommitEntities1713000003000 implements MigrationInterface {
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      CREATE TYPE "sync_job_status" AS ENUM ('pending', 'running', 'done', 'failed')
-    `);
-
-    await queryRunner.query(`
       CREATE TABLE "commits" (
-        "sha" text PRIMARY KEY,
-        "repo_id" uuid NOT NULL REFERENCES "repositories"("id") ON DELETE CASCADE,
-        "author_email" text NOT NULL,
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "repository_id" uuid NOT NULL REFERENCES "repositories"("id") ON DELETE CASCADE,
+        "sha" text NOT NULL,
         "author_name" text NOT NULL,
-        "authored_at" timestamptz NOT NULL,
+        "author_email" text NOT NULL,
         "message" text NOT NULL,
-        "additions" int NOT NULL DEFAULT 0,
+        "subject" text,
+        "body" text,
+        "footer" text,
+        "insertions" int NOT NULL DEFAULT 0,
         "deletions" int NOT NULL DEFAULT 0,
         "files_changed" int NOT NULL DEFAULT 0,
-        "parent_count" smallint NOT NULL DEFAULT 1
+        "authored_at" timestamptz NOT NULL,
+        CONSTRAINT "commits_repo_sha_uk" UNIQUE ("repository_id", "sha")
       )
     `);
 
     await queryRunner.query(
-      `CREATE INDEX "commits_repo_authored_idx" ON "commits" ("repo_id", "authored_at" DESC)`,
+      `CREATE INDEX "commits_repo_authored_idx" ON "commits" ("repository_id", "authored_at" DESC)`,
     );
     await queryRunner.query(
-      `CREATE INDEX "commits_repo_author_email_idx" ON "commits" ("repo_id", "author_email")`,
+      `CREATE INDEX "commits_author_email_idx" ON "commits" ("author_email")`,
     );
 
     await queryRunner.query(`
       CREATE TABLE "commit_quality_scores" (
-        "commit_sha" text PRIMARY KEY REFERENCES "commits"("sha") ON DELETE CASCADE,
-        "cc_valid" bool NOT NULL DEFAULT false,
-        "score" smallint NOT NULL,
-        "breakdown" jsonb NOT NULL DEFAULT '{}',
-        "scored_at" timestamptz NOT NULL,
-        CONSTRAINT "commit_quality_scores_score_chk" CHECK ("score" >= 0 AND "score" <= 100)
-      )
-    `);
-
-    await queryRunner.query(`
-      CREATE TABLE "sync_jobs" (
         "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        "repo_id" uuid NOT NULL REFERENCES "repositories"("id") ON DELETE CASCADE,
-        "status" sync_job_status NOT NULL DEFAULT 'pending',
-        "started_at" timestamptz,
-        "finished_at" timestamptz,
-        "progress_pct" smallint,
-        "error" text,
-        CONSTRAINT "sync_jobs_progress_chk" CHECK ("progress_pct" IS NULL OR ("progress_pct" >= 0 AND "progress_pct" <= 100))
+        "commit_id" uuid NOT NULL UNIQUE REFERENCES "commits"("id") ON DELETE CASCADE,
+        "is_conventional" bool NOT NULL DEFAULT false,
+        "cc_type" text,
+        "cc_scope" text,
+        "subject_length" int,
+        "has_body" bool NOT NULL DEFAULT false,
+        "has_footer" bool NOT NULL DEFAULT false,
+        "overall_score" int NOT NULL,
+        "details" jsonb NOT NULL DEFAULT '{}',
+        CONSTRAINT "commit_quality_scores_score_chk" CHECK ("overall_score" >= 0 AND "overall_score" <= 100)
       )
     `);
 
     await queryRunner.query(
-      `CREATE INDEX "sync_jobs_repo_id_idx" ON "sync_jobs" ("repo_id")`,
+      `CREATE INDEX "commit_quality_scores_overall_score_idx" ON "commit_quality_scores" ("overall_score")`,
+    );
+
+    await queryRunner.query(`
+      CREATE TABLE "sync_jobs" (
+        "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        "repository_id" uuid NOT NULL REFERENCES "repositories"("id") ON DELETE CASCADE,
+        "status" text NOT NULL DEFAULT 'queued',
+        "commits_processed" int,
+        "total_commits" int,
+        "error_message" text,
+        "started_at" timestamptz,
+        "finished_at" timestamptz,
+        CONSTRAINT "sync_jobs_status_chk" CHECK ("status" IN ('queued', 'running', 'completed', 'failed'))
+      )
+    `);
+
+    await queryRunner.query(
+      `CREATE INDEX "sync_jobs_repo_status_idx" ON "sync_jobs" ("repository_id", "status")`,
     );
 
     for (const table of ["commits", "commit_quality_scores", "sync_jobs"]) {
@@ -72,14 +82,14 @@ export class CommitEntities1713000003000 implements MigrationInterface {
         USING (
           EXISTS (
             SELECT 1 FROM "repositories" r
-            WHERE r."id" = "commits"."repo_id"
+            WHERE r."id" = "commits"."repository_id"
               AND r."user_id" = auth.uid()
           )
         )
         WITH CHECK (
           EXISTS (
             SELECT 1 FROM "repositories" r
-            WHERE r."id" = "commits"."repo_id"
+            WHERE r."id" = "commits"."repository_id"
               AND r."user_id" = auth.uid()
           )
         )
@@ -90,16 +100,16 @@ export class CommitEntities1713000003000 implements MigrationInterface {
         USING (
           EXISTS (
             SELECT 1 FROM "commits" c
-            JOIN "repositories" r ON r."id" = c."repo_id"
-            WHERE c."sha" = "commit_quality_scores"."commit_sha"
+            JOIN "repositories" r ON r."id" = c."repository_id"
+            WHERE c."id" = "commit_quality_scores"."commit_id"
               AND r."user_id" = auth.uid()
           )
         )
         WITH CHECK (
           EXISTS (
             SELECT 1 FROM "commits" c
-            JOIN "repositories" r ON r."id" = c."repo_id"
-            WHERE c."sha" = "commit_quality_scores"."commit_sha"
+            JOIN "repositories" r ON r."id" = c."repository_id"
+            WHERE c."id" = "commit_quality_scores"."commit_id"
               AND r."user_id" = auth.uid()
           )
         )
@@ -110,14 +120,14 @@ export class CommitEntities1713000003000 implements MigrationInterface {
         USING (
           EXISTS (
             SELECT 1 FROM "repositories" r
-            WHERE r."id" = "sync_jobs"."repo_id"
+            WHERE r."id" = "sync_jobs"."repository_id"
               AND r."user_id" = auth.uid()
           )
         )
         WITH CHECK (
           EXISTS (
             SELECT 1 FROM "repositories" r
-            WHERE r."id" = "sync_jobs"."repo_id"
+            WHERE r."id" = "sync_jobs"."repository_id"
               AND r."user_id" = auth.uid()
           )
         )
@@ -138,7 +148,5 @@ export class CommitEntities1713000003000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE IF EXISTS "sync_jobs"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "commit_quality_scores"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "commits"`);
-
-    await queryRunner.query(`DROP TYPE IF EXISTS "sync_job_status"`);
   }
 }
