@@ -16,6 +16,9 @@ export const toGithubRepoDto = (
   description: raw.description,
   htmlUrl: raw.html_url,
   connected: connectedGithubIds.has(String(raw.id)),
+  pushedAt: raw.pushed_at,
+  stargazersCount: raw.stargazers_count,
+  archived: raw.archived,
 });
 
 export const toConnectedRepoDto = (entity: Repository): ConnectedRepo => {

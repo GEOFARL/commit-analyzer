@@ -1,4 +1,4 @@
-import { GitBranch, Lock, Unlock } from "lucide-react";
+import { Archive, GitBranch, Lock, Unlock } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,8 @@ type RepoCardProps = {
   privateLabel?: string;
   publicLabel?: string;
   connectedLabel?: string;
+  isArchived?: boolean;
+  archivedLabel?: string;
   action: ReactNode;
 };
 
@@ -33,6 +35,8 @@ export const RepoCard = ({
   privateLabel,
   publicLabel,
   connectedLabel,
+  isArchived,
+  archivedLabel,
   action,
 }: RepoCardProps) => (
   <Card
@@ -69,6 +73,12 @@ export const RepoCard = ({
             <Unlock className="h-3 w-3" />
           )}
           {isPrivate ? privateLabel : publicLabel}
+        </Badge>
+      ) : null}
+      {isArchived && archivedLabel ? (
+        <Badge variant="outline" className="gap-1 text-muted-foreground">
+          <Archive className="h-3 w-3" />
+          {archivedLabel}
         </Badge>
       ) : null}
       <Badge variant="secondary" className="gap-1 font-mono text-[11px]">

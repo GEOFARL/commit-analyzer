@@ -7,6 +7,9 @@ export interface GithubRepoRaw {
   default_branch: string;
   description: string | null;
   html_url: string;
+  pushed_at: string | null;
+  stargazers_count: number;
+  archived: boolean;
 }
 
 export interface GithubClient {

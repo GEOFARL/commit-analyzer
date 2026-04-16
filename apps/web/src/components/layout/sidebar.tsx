@@ -7,7 +7,7 @@ export const Sidebar = async () => {
   const t = await getTranslations("common");
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
       <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5">
         <LogoMark />
         <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
