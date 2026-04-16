@@ -103,6 +103,28 @@ describe("ApiKeyGuard", () => {
     expect(touchLastUsed).not.toHaveBeenCalled();
   });
 
+  it("401 when key is exactly PREFIX_LENGTH (no secret part)", async () => {
+    await request(server())
+      .get("/probe")
+      .set("x-api-key", "git_abcd")
+      .expect(401);
+    expect(findActiveByPrefix).not.toHaveBeenCalled();
+  });
+
+  it("401 when argon2.verify throws (corrupted hash)", async () => {
+    findActiveByPrefix.mockResolvedValueOnce({
+      id: "k-1",
+      userId: "u-1",
+      keyPrefix: "git_abcd",
+      keyHash: "not-a-valid-hash",
+    });
+    await request(server())
+      .get("/probe")
+      .set("x-api-key", validKey)
+      .expect(401);
+    expect(touchLastUsed).not.toHaveBeenCalled();
+  });
+
   it("200 with valid key: handler sees user id, last_used_at updated", async () => {
     findActiveByPrefix.mockResolvedValueOnce({
       id: "k-1",
