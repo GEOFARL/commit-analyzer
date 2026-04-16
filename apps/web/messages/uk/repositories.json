@@ -35,7 +35,8 @@
     "filterAll": "Усі",
     "filterPublic": "Публічні",
     "filterPrivate": "Приватні",
-    "showArchived": "Показати архівні"
+    "showArchived": "Показати архівні",
+    "reset": "Скинути фільтри"
   },
   "pagination": {
     "page": "Сторінка {current} із {total}",

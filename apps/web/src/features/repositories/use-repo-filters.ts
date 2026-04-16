@@ -23,6 +23,7 @@ type UseRepoFiltersReturn = {
   setVisibility: (v: VisibilityFilter) => void;
   setShowArchived: (v: boolean) => void;
   setPage: (v: number) => void;
+  reset: () => void;
   filtered: GithubRepo[];
   paginated: GithubRepo[];
   totalFiltered: number;
@@ -98,6 +99,14 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
     setPage(1);
   };
 
+  const reset = () => {
+    setSearchRaw("");
+    setSortByRaw("name");
+    setVisibilityRaw("all");
+    setShowArchivedRaw(false);
+    setPage(1);
+  };
+
   const filtered = useMemo(
     () => sortRepos(filterRepos(items, search, visibility, showArchived), sortBy),
     [items, search, sortBy, visibility, showArchived],
@@ -128,6 +137,7 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
     setVisibility,
     setShowArchived,
     setPage,
+    reset,
     filtered,
     paginated,
     totalFiltered,
