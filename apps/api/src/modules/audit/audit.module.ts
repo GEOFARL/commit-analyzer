@@ -1,6 +1,8 @@
 import { Global, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 
+import { AuthModule } from "../auth/auth.module.js";
+
 import { AuditController } from "./audit.controller.js";
 import { AuditService } from "./audit.service.js";
 import { OnApiKeyCreatedHandler } from "./handlers/on-api-key-created.handler.js";
@@ -27,7 +29,7 @@ const EVENT_HANDLERS = [
 
 @Global()
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, AuthModule],
   controllers: [AuditController],
   providers: [AuditService, ...EVENT_HANDLERS],
   exports: [AuditService],
