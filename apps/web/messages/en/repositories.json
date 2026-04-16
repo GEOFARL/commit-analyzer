@@ -56,7 +56,8 @@
     "disconnected": "Repository disconnected",
     "connectError": "Could not connect repository",
     "disconnectError": "Could not disconnect repository",
-    "refreshed": "Repositories refreshed"
+    "refreshed": "Repositories refreshed",
+    "refreshError": "Could not refresh repositories"
   },
   "error": {
     "load": "We couldn't load your repositories. Please try again."

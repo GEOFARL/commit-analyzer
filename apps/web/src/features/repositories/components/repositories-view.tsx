@@ -28,7 +28,8 @@ import { RepoCardSkeleton } from "./repo-card-skeleton";
 import { RepoPagination } from "./repo-pagination";
 import { RepoToolbar } from "./repo-toolbar";
 
-const SKELETON_COUNT = 6;
+const CONNECTED_SKELETON_COUNT = 3;
+const GITHUB_SKELETON_COUNT = 6;
 
 export const RepositoriesView = ({
   userId,
@@ -73,17 +74,21 @@ export const RepositoriesView = ({
       queryClient.invalidateQueries({
         queryKey: [...repositoryQueryKeys.connected(userId)],
       }),
-    ]).then(() => {
-      setIsRefreshing(false);
-      toast.success(t("toast.refreshed"));
-    });
+    ])
+      .then(() => {
+        toast.success(t("toast.refreshed"));
+      })
+      .catch(() => {
+        toast.error(t("toast.refreshError"));
+      })
+      .finally(() => {
+        setIsRefreshing(false);
+      });
   };
 
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
-
-  const isLoading = githubQuery.isLoading || connectedQuery.isLoading;
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,9 +114,9 @@ export const RepositoriesView = ({
             </p>
           </div>
         </header>
-        {isLoading ? (
+        {connectedQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: CONNECTED_SKELETON_COUNT }).map((_, i) => (
               <RepoCardSkeleton key={i} />
             ))}
           </div>
@@ -172,9 +177,9 @@ export const RepositoriesView = ({
             {t("github.subtitle")}
           </p>
         </header>
-        {isLoading ? (
+        {githubQuery.isLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+            {Array.from({ length: GITHUB_SKELETON_COUNT }).map((_, i) => (
               <RepoCardSkeleton key={i} />
             ))}
           </div>
@@ -207,6 +212,8 @@ export const RepositoriesView = ({
                     privateLabel={t("badge.private")}
                     publicLabel={t("badge.public")}
                     connectedLabel={t("badge.connected")}
+                    isArchived={repo.archived}
+                    archivedLabel={t("badge.archived")}
                     action={
                       <Button
                         type="button"

@@ -33,7 +33,7 @@ export type UseRepoFiltersReturn = {
   totalPages: number;
 };
 
-function filterRepos(
+export function filterRepos(
   items: GithubRepo[],
   search: string,
   visibility: VisibilityFilter,
@@ -58,7 +58,7 @@ function filterRepos(
   return result;
 }
 
-function sortRepos(items: GithubRepo[], sortBy: SortField): GithubRepo[] {
+export function sortRepos(items: GithubRepo[], sortBy: SortField): GithubRepo[] {
   const sorted = [...items];
   switch (sortBy) {
     case "name":
