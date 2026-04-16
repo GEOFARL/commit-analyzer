@@ -16,7 +16,7 @@ export type RepoFilterState = {
   page: number;
 };
 
-export type UseRepoFiltersReturn = {
+type UseRepoFiltersReturn = {
   state: RepoFilterState;
   setSearch: (v: string) => void;
   setSortBy: (v: SortField) => void;
@@ -29,7 +29,7 @@ export type UseRepoFiltersReturn = {
   totalPages: number;
 };
 
-export function filterRepos(
+function filterRepos(
   items: GithubRepo[],
   search: string,
   visibility: VisibilityFilter,
@@ -54,7 +54,7 @@ export function filterRepos(
   return result;
 }
 
-export function sortRepos(items: GithubRepo[], sortBy: SortField): GithubRepo[] {
+function sortRepos(items: GithubRepo[], sortBy: SortField): GithubRepo[] {
   const sorted = [...items];
   switch (sortBy) {
     case "name":
