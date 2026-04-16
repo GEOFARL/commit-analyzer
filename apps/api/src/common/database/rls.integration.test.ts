@@ -11,6 +11,7 @@ import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
 } from "@testcontainers/postgresql";
+import argon2 from "argon2";
 import { DataSource } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -91,6 +92,31 @@ describe.skipIf(SKIP)("RLS isolation (integration)", () => {
       [USER_B],
     );
 
+    // Seed api_keys
+    const hashA = await argon2.hash("git_AAAAsecretA");
+    const hashB = await argon2.hash("git_BBBBsecretB");
+    await ds.query(
+      `INSERT INTO api_keys (user_id, name, key_prefix, key_hash) VALUES ($1, 'alice-key', 'git_AAAA', $2)`,
+      [USER_A, hashA],
+    );
+    await ds.query(
+      `INSERT INTO api_keys (user_id, name, key_prefix, key_hash) VALUES ($1, 'bob-key', 'git_BBBB', $2)`,
+      [USER_B, hashB],
+    );
+
+    // Seed llm_api_keys
+    const dummyEnc = Buffer.from("enc");
+    const dummyIv = Buffer.from("iv");
+    const dummyTag = Buffer.from("tag");
+    await ds.query(
+      `INSERT INTO llm_api_keys (user_id, provider, key_enc, key_iv, key_tag) VALUES ($1, 'openai', $2, $3, $4)`,
+      [USER_A, dummyEnc, dummyIv, dummyTag],
+    );
+    await ds.query(
+      `INSERT INTO llm_api_keys (user_id, provider, key_enc, key_iv, key_tag) VALUES ($1, 'anthropic', $2, $3, $4)`,
+      [USER_B, dummyEnc, dummyIv, dummyTag],
+    );
+
     // Re-enable RLS for test assertions.
     for (const table of PHASE_1_TABLES) {
       await ds.query(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`);
@@ -111,7 +137,11 @@ describe.skipIf(SKIP)("RLS isolation (integration)", () => {
     if (container) await container.stop();
   }, 30_000);
 
-  async function queryAs<T>(userId: string, sql: string): Promise<T[]> {
+  async function queryAs<T>(
+    userId: string,
+    sql: string,
+    params?: unknown[],
+  ): Promise<T[]> {
     const qr = ds.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -121,7 +151,7 @@ describe.skipIf(SKIP)("RLS isolation (integration)", () => {
         `SELECT set_config('request.jwt.claims', $1, true)`,
         [JSON.stringify({ sub: userId })],
       );
-      return await qr.manager.query(sql);
+      return await qr.manager.query(sql, params);
     } finally {
       await qr.rollbackTransaction();
       await qr.release();
@@ -155,7 +185,25 @@ describe.skipIf(SKIP)("RLS isolation (integration)", () => {
   it("user A cannot select user B's user row", async () => {
     const rows = await queryAs<{ id: string }>(
       USER_A,
-      `SELECT id FROM users WHERE id = '${USER_B}'`,
+      `SELECT id FROM users WHERE id = $1`,
+      [USER_B],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("user B cannot see user A's api_keys", async () => {
+    const rows = await queryAs<{ name: string }>(
+      USER_B,
+      `SELECT name FROM api_keys WHERE key_prefix = $1`,
+      ["git_AAAA"],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("user A cannot see user B's llm_api_keys", async () => {
+    const rows = await queryAs<{ provider: string }>(
+      USER_A,
+      `SELECT provider FROM llm_api_keys WHERE provider = 'anthropic'`,
     );
     expect(rows).toHaveLength(0);
   });
