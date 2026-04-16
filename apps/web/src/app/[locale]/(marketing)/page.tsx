@@ -6,6 +6,7 @@ import { AuroraBackground } from "@/components/layout/aurora-background";
 import { LogoMark } from "@/components/layout/logo-mark";
 import { SignInButton } from "@/components/layout/sign-in-button";
 import { Badge } from "@/components/ui/badge";
+
 export default async function LandingPage({
   params,
 }: {
