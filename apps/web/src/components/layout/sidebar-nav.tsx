@@ -50,12 +50,12 @@ export const SidebarNav = () => {
           >
             <span
               className={cn(
-                "absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-sidebar-primary transition-all",
+                "absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-sidebar-primary transition-[opacity,transform]",
                 active ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0",
               )}
               aria-hidden="true"
             />
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{t(labelKey)}</span>
           </Link>
         );

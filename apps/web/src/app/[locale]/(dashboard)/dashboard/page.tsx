@@ -35,7 +35,7 @@ export default async function DashboardPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
+        <h1 className="text-balance bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
           {t("welcome")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -46,13 +46,13 @@ export default async function DashboardPage({
         <Card className="group relative overflow-hidden">
           <div
             aria-hidden="true"
-            className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-all group-hover:scale-110"
+            className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-transform motion-safe:group-hover:scale-110"
           />
           <CardHeader>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <GitBranch className="h-5 w-5" />
+              <GitBranch className="h-5 w-5" aria-hidden="true" />
             </div>
-            <CardTitle className="mt-3">{t("cards.repositories")}</CardTitle>
+            <CardTitle className="mt-3 text-balance">{t("cards.repositories")}</CardTitle>
             <CardDescription>{t("cards.repositoriesHelper")}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -67,13 +67,13 @@ export default async function DashboardPage({
         <Card className="group relative overflow-hidden">
           <div
             aria-hidden="true"
-            className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-fuchsia-500/10 blur-2xl transition-all group-hover:scale-110"
+            className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-fuchsia-500/10 blur-2xl transition-transform motion-safe:group-hover:scale-110"
           />
           <CardHeader>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-500">
-              <Sparkles className="h-5 w-5" />
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
             </div>
-            <CardTitle className="mt-3">{t("cards.generate")}</CardTitle>
+            <CardTitle className="mt-3 text-balance">{t("cards.generate")}</CardTitle>
             <CardDescription>{t("cards.generateHelper")}</CardDescription>
           </CardHeader>
           <CardContent>

@@ -36,7 +36,7 @@ export function LanguageToggle() {
           aria-label={t("language")}
           disabled={isPending}
         >
-          <Globe />
+          <Globe aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

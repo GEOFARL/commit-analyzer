@@ -26,7 +26,10 @@
     "cancel": "Cancel",
     "create": "Create",
     "done": "Done",
-    "warning": "This secret will only be shown once. Copy it now and store it safely."
+    "warning": "This secret will only be shown once. Copy it now and store it safely.",
+    "revealKey": "Reveal key",
+    "hideKey": "Hide key",
+    "copyKey": "Copy key"
   },
   "revokeDialog": {
     "title": "Revoke API key?",

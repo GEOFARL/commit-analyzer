@@ -28,9 +28,9 @@ export default async function LandingPage({
             </span>
           </div>
           <Badge variant="default" className="gap-1.5">
-            <Sparkles className="h-3 w-3" /> {t("phaseBadge")}
+            <Sparkles className="h-3 w-3" aria-hidden="true" /> {t("phaseBadge")}
           </Badge>
-          <h1 className="max-w-3xl bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
+          <h1 className="max-w-3xl text-balance bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
             {t("title")}
           </h1>
           <p className="max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
@@ -39,9 +39,9 @@ export default async function LandingPage({
           <div className="mt-2 flex items-center gap-3">
             <form action="/auth/sign-in" method="post">
               <Button type="submit" size="lg">
-                <Github />
+                <Github aria-hidden="true" />
                 {t("cta")}
-                <ArrowRight />
+                <ArrowRight aria-hidden="true" />
               </Button>
             </form>
           </div>

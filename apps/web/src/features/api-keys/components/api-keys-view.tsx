@@ -57,8 +57,8 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Key className="h-5 w-5" />
+          <h2 className="flex items-center gap-2 text-balance text-lg font-semibold tracking-tight">
+            <Key className="h-5 w-5" aria-hidden="true" />
             {t("title")}
           </h2>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
@@ -73,13 +73,13 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
       </header>
 
       {query.isError ? (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div role="alert" className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{t("error.load")}</span>
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-          <Key className="h-8 w-8" />
+          <Key className="h-8 w-8" aria-hidden="true" />
           <p className="text-sm font-medium">{t("empty.title")}</p>
           <p className="text-xs">{t("empty.description")}</p>
         </div>

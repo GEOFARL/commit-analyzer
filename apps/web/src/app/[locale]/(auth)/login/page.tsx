@@ -40,13 +40,13 @@ export default async function LoginPage({
         <Card className="w-full max-w-md">
           <CardHeader className="items-center text-center">
             <LogoMark className="h-10 w-10" />
-            <CardTitle className="mt-3 text-2xl">{t("title")}</CardTitle>
+            <CardTitle className="mt-3 text-balance text-2xl">{t("title")}</CardTitle>
             <CardDescription>{t("subtitle")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form action="/auth/sign-in" method="post">
               <Button type="submit" size="lg" className="w-full">
-                <Github />
+                <Github aria-hidden="true" />
                 {t("continueWithGithub")}
               </Button>
             </form>
