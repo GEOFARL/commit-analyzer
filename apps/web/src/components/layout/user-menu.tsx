@@ -43,7 +43,7 @@ export const UserMenu = ({ email, name, avatarUrl }: UserMenuProps) => {
           variant="ghost"
           size="icon"
           className="rounded-full"
-          aria-label={t("signOut")}
+          aria-label={t("menu")}
         >
           <Avatar className="h-8 w-8">
             {avatarUrl ? (

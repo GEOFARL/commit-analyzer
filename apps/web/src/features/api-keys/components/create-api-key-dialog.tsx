@@ -108,7 +108,7 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
                 type="submit"
                 disabled={!name.trim() || submitting}
               >
-                {submitting && <Loader2 className="animate-spin" />}
+                {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
                 {t("create")}
               </Button>
             </DialogFooter>
@@ -125,11 +125,12 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
                 size="icon"
                 onClick={() => setRevealed((r) => !r)}
                 className="shrink-0"
+                aria-label={revealed ? t("hideKey") : t("revealKey")}
               >
                 {revealed ? (
-                  <EyeOff className="h-4 w-4" />
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
               <Button
@@ -138,17 +139,18 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
                 size="icon"
                 onClick={() => void handleCopy()}
                 className="shrink-0"
+                aria-label={copied ? t("copied") : t("copyKey")}
               >
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
             </div>
 
             <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-sm text-yellow-600 dark:text-yellow-400">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{t("warning")}</span>
             </div>
 

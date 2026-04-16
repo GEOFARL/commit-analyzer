@@ -51,8 +51,13 @@ export const ApiKeyRow = ({ apiKey, isRevoking, onRevoke }: Props) => {
         className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
         onClick={() => onRevoke(apiKey.id)}
         disabled={isRevoking}
+        aria-label={t("revoke")}
       >
-        {isRevoking ? <Loader2 className="animate-spin" /> : <Trash2 />}
+        {isRevoking ? (
+          <Loader2 className="animate-spin" aria-hidden="true" />
+        ) : (
+          <Trash2 aria-hidden="true" />
+        )}
         <span className="hidden sm:inline">{t("revoke")}</span>
       </Button>
     </div>
