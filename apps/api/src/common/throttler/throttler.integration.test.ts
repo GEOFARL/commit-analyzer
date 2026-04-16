@@ -101,6 +101,8 @@ describe("throttler integration", () => {
       .post("/api-keys")
       .set("x-forwarded-for", "10.0.0.42");
     expect(blocked.status).toBe(429);
+    // v6 named tiers suffix all headers: Retry-After-{name}, X-RateLimit-Limit-{name}
+    // Clients must parse the tier-suffixed header, not bare Retry-After.
     expect(blocked.headers).toHaveProperty("retry-after-auth");
   });
 
