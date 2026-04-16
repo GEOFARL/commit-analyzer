@@ -16,12 +16,34 @@
     "connect": "Connect",
     "connecting": "Connecting…",
     "disconnect": "Disconnect",
-    "disconnecting": "Disconnecting…"
+    "disconnecting": "Disconnecting…",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…"
   },
   "badge": {
     "private": "Private",
     "public": "Public",
-    "connected": "Connected"
+    "connected": "Connected",
+    "archived": "Archived"
+  },
+  "toolbar": {
+    "search": "Search repositories…",
+    "sort": "Sort by",
+    "sortName": "Name",
+    "sortPushed": "Recently pushed",
+    "sortStars": "Stars",
+    "filterVisibility": "Visibility",
+    "filterAll": "All",
+    "filterPublic": "Public",
+    "filterPrivate": "Private",
+    "showArchived": "Show archived"
+  },
+  "pagination": {
+    "page": "Page {current} of {total}",
+    "prev": "Previous",
+    "next": "Next",
+    "perPage": "{count} per page",
+    "showing": "Showing {from}–{to} of {total}"
   },
   "disconnectDialog": {
     "title": "Disconnect repository?",
@@ -33,7 +55,8 @@
     "connected": "Repository connected",
     "disconnected": "Repository disconnected",
     "connectError": "Could not connect repository",
-    "disconnectError": "Could not disconnect repository"
+    "disconnectError": "Could not disconnect repository",
+    "refreshed": "Repositories refreshed"
   },
   "error": {
     "load": "We couldn't load your repositories. Please try again."

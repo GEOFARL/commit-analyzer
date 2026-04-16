@@ -16,12 +16,34 @@
     "connect": "Підключити",
     "connecting": "Підключення…",
     "disconnect": "Відʼєднати",
-    "disconnecting": "Відʼєднання…"
+    "disconnecting": "Відʼєднання…",
+    "refresh": "Оновити",
+    "refreshing": "Оновлення…"
   },
   "badge": {
     "private": "Приватний",
     "public": "Публічний",
-    "connected": "Підключено"
+    "connected": "Підключено",
+    "archived": "Архівний"
+  },
+  "toolbar": {
+    "search": "Шукати репозиторії…",
+    "sort": "Сортувати",
+    "sortName": "Назва",
+    "sortPushed": "Нещодавно оновлені",
+    "sortStars": "Зірки",
+    "filterVisibility": "Видимість",
+    "filterAll": "Усі",
+    "filterPublic": "Публічні",
+    "filterPrivate": "Приватні",
+    "showArchived": "Показати архівні"
+  },
+  "pagination": {
+    "page": "Сторінка {current} із {total}",
+    "prev": "Попередня",
+    "next": "Наступна",
+    "perPage": "{count} на сторінку",
+    "showing": "Показано {from}–{to} з {total}"
   },
   "disconnectDialog": {
     "title": "Відʼєднати репозиторій?",
@@ -33,7 +55,8 @@
     "connected": "Репозиторій підключено",
     "disconnected": "Репозиторій відʼєднано",
     "connectError": "Не вдалося підключити репозиторій",
-    "disconnectError": "Не вдалося відʼєднати репозиторій"
+    "disconnectError": "Не вдалося відʼєднати репозиторій",
+    "refreshed": "Репозиторії оновлено"
   },
   "error": {
     "load": "Не вдалося завантажити репозиторії. Спробуйте ще раз."
