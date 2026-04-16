@@ -1,6 +1,6 @@
 "use client";
 
-import { SlidersHorizontal, Search } from "lucide-react";
+import { RotateCcw, SlidersHorizontal, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -131,11 +131,12 @@ export const RepoToolbar = ({
 
           {hasActiveFilters && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               className="w-full"
               onClick={onReset}
             >
+              <RotateCcw className="h-3.5 w-3.5" />
               {t("reset")}
             </Button>
           )}
