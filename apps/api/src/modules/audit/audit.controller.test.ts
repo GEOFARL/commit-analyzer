@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import type { AuditEvent } from "@commit-analyzer/database";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { toAuditEventDto } from "./audit.mappers.js";
 

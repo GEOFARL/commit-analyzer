@@ -3,6 +3,7 @@ import "reflect-metadata";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthLoggedInEvent } from "../../auth/events/auth-logged-in.event.js";
+
 import { OnAuthLoggedInHandler } from "./on-auth-logged-in.handler.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
