@@ -12,11 +12,14 @@
     "test": "node scripts/check-messages.mjs",
     "clean": "rm -rf .next .turbo *.tsbuildinfo",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
