@@ -1,51 +1,23 @@
 import { Injectable, Logger } from "@nestjs/common";
 
-import {
+import type {
   AuthenticatedRepo,
-  PluggedOctokit,
-  type PluggedOctokitInstance,
+  PluggedOctokitInstance,
   RepoById,
 } from "./github.octokit.js";
 import {
   GITHUB_LIST_MAX_PAGES,
   GITHUB_LIST_PER_PAGE,
-  GITHUB_REQUEST_TIMEOUT_MS,
 } from "./repos.constants.js";
 import { mapOctokitError } from "./repos.errors.js";
-import type { GithubClient, GithubRepoRaw } from "./repos.types.js";
+import type { GithubRepoRaw } from "./repos.types.js";
 
 @Injectable()
-export class GithubService implements GithubClient {
+export class GithubService {
   private readonly logger = new Logger(GithubService.name);
 
-  private client(token: string): PluggedOctokitInstance {
-    return new PluggedOctokit({
-      auth: token,
-      request: { timeout: GITHUB_REQUEST_TIMEOUT_MS },
-      // Octokit's throttling plugin handles primary + secondary rate limits:
-      // on the first hit we let it retry once (per GitHub's recommendation);
-      // beyond that we surface the error so `mapOctokitError` translates it
-      // to a 429 with `Retry-After` for the caller.
-      throttle: {
-        onRateLimit: (retryAfter, options, _octokit, retryCount) => {
-          this.logger.warn(
-            `github primary rate limit on ${options.method} ${options.url}, retry-after=${retryAfter.toString()}s`,
-          );
-          return retryCount < 1;
-        },
-        onSecondaryRateLimit: (retryAfter, options, _octokit, retryCount) => {
-          this.logger.warn(
-            `github secondary rate limit on ${options.method} ${options.url}, retry-after=${retryAfter.toString()}s`,
-          );
-          return retryCount < 1;
-        },
-      },
-    });
-  }
-
-  async listMyRepos(token: string): Promise<GithubRepoRaw[]> {
+  async listMyRepos(octokit: PluggedOctokitInstance): Promise<GithubRepoRaw[]> {
     try {
-      const octokit = this.client(token);
       const iterator = octokit.paginate.iterator(
         octokit.rest.repos.listForAuthenticatedUser,
         {
@@ -75,9 +47,11 @@ export class GithubService implements GithubClient {
     }
   }
 
-  async getRepo(token: string, githubRepoId: number): Promise<GithubRepoRaw> {
+  async getRepo(
+    octokit: PluggedOctokitInstance,
+    githubRepoId: number,
+  ): Promise<GithubRepoRaw> {
     try {
-      const octokit = this.client(token);
       const res = await octokit.request("GET /repositories/{id}", {
         id: githubRepoId,
       });

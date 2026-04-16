@@ -17,7 +17,7 @@ import type { GithubRepoRaw } from "./repos.types.js";
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 const REPO_ID = "22222222-2222-2222-2222-222222222222";
 const GH_ID = 98765;
-const TOKEN = "gho_test_token";
+const FAKE_OCTOKIT = Symbol("octokit");
 
 const rawRepo = (overrides: Partial<GithubRepoRaw> = {}): GithubRepoRaw => ({
   id: GH_ID,
@@ -64,8 +64,8 @@ describe("ReposService", () => {
     listMyRepos: vi.fn(),
     getRepo: vi.fn(),
   };
-  const githubToken = {
-    getForUser: vi.fn(),
+  const octokitFactory = {
+    forUser: vi.fn(),
   };
   const cache = {
     getJson: vi.fn(),
@@ -77,11 +77,11 @@ describe("ReposService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    githubToken.getForUser.mockResolvedValue(TOKEN);
+    octokitFactory.forUser.mockResolvedValue(FAKE_OCTOKIT);
     service = new ReposService(
       repos as never,
       github as never,
-      githubToken as never,
+      octokitFactory as never,
       cache as never,
       { publish } as never,
     );
@@ -95,7 +95,8 @@ describe("ReposService", () => {
 
       const result = await service.listGithubRepos(USER_ID);
 
-      expect(github.listMyRepos).toHaveBeenCalledWith(TOKEN);
+      expect(octokitFactory.forUser).toHaveBeenCalledWith(USER_ID);
+      expect(github.listMyRepos).toHaveBeenCalledWith(FAKE_OCTOKIT);
       expect(cache.setJson).toHaveBeenCalledWith(
         `repos:github:list:${USER_ID}`,
         [rawRepo()],
@@ -136,7 +137,8 @@ describe("ReposService", () => {
 
       const result = await service.connect(USER_ID, GH_ID);
 
-      expect(github.getRepo).toHaveBeenCalledWith(TOKEN, GH_ID);
+      expect(octokitFactory.forUser).toHaveBeenCalledWith(USER_ID);
+      expect(github.getRepo).toHaveBeenCalledWith(FAKE_OCTOKIT, GH_ID);
       expect(repos.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: USER_ID,
@@ -229,4 +231,3 @@ describe("ReposService", () => {
     });
   });
 });
-

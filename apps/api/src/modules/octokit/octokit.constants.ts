@@ -1,0 +1,3 @@
+export const OCTOKIT_REQUEST_TIMEOUT_MS = 10_000;
+
+export const RATE_LIMIT_LOG_INTERVAL = 50;

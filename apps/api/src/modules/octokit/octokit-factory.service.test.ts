@@ -4,9 +4,9 @@ import type { User } from "@commit-analyzer/database";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CryptoService } from "../../shared/crypto.service.js";
+import { GithubTokenExpiredError } from "../../shared/github-token-expired.error.js";
 
-import { GithubTokenService } from "./github-token.service.js";
-import { GithubTokenExpiredError } from "./repos.errors.js";
+import { OctokitFactory } from "./octokit-factory.service.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -28,19 +28,17 @@ const makeUser = (overrides: Partial<User> = {}): User =>
     ...overrides,
   }) as unknown as User;
 
-describe("GithubTokenService", () => {
+describe("OctokitFactory", () => {
   const crypto = new CryptoService(Buffer.alloc(32, 7));
-  const users = {
-    findByAuthId: vi.fn(),
-  };
-  let service: GithubTokenService;
+  const users = { findByAuthId: vi.fn() };
+  let factory: OctokitFactory;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new GithubTokenService(users as never, crypto);
+    factory = new OctokitFactory(users as never, crypto);
   });
 
-  it("decrypts and returns the stored github token", async () => {
+  it("returns an octokit instance for a valid user", async () => {
     const parts = crypto.encryptParts("gho_secret");
     users.findByAuthId.mockResolvedValue(
       makeUser({
@@ -49,24 +47,27 @@ describe("GithubTokenService", () => {
         accessTokenTag: parts.tag,
       }),
     );
-    await expect(service.getForUser(USER_ID)).resolves.toBe("gho_secret");
+    const client = await factory.forUser(USER_ID);
+    expect(client).toBeDefined();
+    expect(client.rest).toBeDefined();
+    expect(client.paginate).toBeDefined();
   });
 
-  it("throws token_expired when user has no stored token", async () => {
+  it("throws when user has no stored token", async () => {
     users.findByAuthId.mockResolvedValue(makeUser());
-    await expect(service.getForUser(USER_ID)).rejects.toBeInstanceOf(
+    await expect(factory.forUser(USER_ID)).rejects.toBeInstanceOf(
       GithubTokenExpiredError,
     );
   });
 
-  it("throws token_expired when user row is missing", async () => {
+  it("throws when user row is missing", async () => {
     users.findByAuthId.mockResolvedValue(null);
-    await expect(service.getForUser(USER_ID)).rejects.toBeInstanceOf(
+    await expect(factory.forUser(USER_ID)).rejects.toBeInstanceOf(
       GithubTokenExpiredError,
     );
   });
 
-  it("throws token_expired when stored ciphertext is corrupt", async () => {
+  it("throws when stored ciphertext is corrupt", async () => {
     const parts = crypto.encryptParts("gho_secret");
     const corrupt = Buffer.from(parts.ciphertext);
     corrupt[0] = (corrupt[0] ?? 0) ^ 0xff;
@@ -77,8 +78,22 @@ describe("GithubTokenService", () => {
         accessTokenTag: parts.tag,
       }),
     );
-    await expect(service.getForUser(USER_ID)).rejects.toBeInstanceOf(
+    await expect(factory.forUser(USER_ID)).rejects.toBeInstanceOf(
       GithubTokenExpiredError,
     );
+  });
+
+  it("returns separate instances per call", async () => {
+    const parts = crypto.encryptParts("gho_secret");
+    users.findByAuthId.mockResolvedValue(
+      makeUser({
+        accessTokenEnc: parts.ciphertext,
+        accessTokenIv: parts.iv,
+        accessTokenTag: parts.tag,
+      }),
+    );
+    const a = await factory.forUser(USER_ID);
+    const b = await factory.forUser(USER_ID);
+    expect(a).not.toBe(b);
   });
 });
