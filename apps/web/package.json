@@ -47,6 +47,7 @@
     "postcss": "^8.4.47",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "server-only": "^0.0.1",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss": "^4.1.0",
