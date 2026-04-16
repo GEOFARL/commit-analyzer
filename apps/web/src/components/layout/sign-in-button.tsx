@@ -1,6 +1,6 @@
 "use client";
 
-import { Github, Loader2 } from "lucide-react";
+import { ArrowRight, Github, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -17,8 +17,9 @@ export const SignInButton = () => {
       onSubmit={() => setPending(true)}
     >
       <Button type="submit" size="lg" disabled={pending}>
-        {pending ? <Loader2 className="animate-spin" /> : <Github />}
+        {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Github aria-hidden="true" />}
         {t("cta")}
+        {!pending && <ArrowRight aria-hidden="true" />}
       </Button>
     </form>
   );

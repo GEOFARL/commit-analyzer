@@ -97,7 +97,7 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
                 maxLength={100}
                 autoFocus
               />
-              {(name.length > 0) && (
+              {name.length > 0 && (
                 <p className="text-right text-xs text-muted-foreground">
                   {name.length}/100
                 </p>

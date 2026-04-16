@@ -19,7 +19,7 @@ export default async function LandingPage({
   return (
     <>
       <AuroraBackground />
-      <main className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
+      <main id="main-content" className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-3">
             <LogoMark className="h-10 w-10" />
