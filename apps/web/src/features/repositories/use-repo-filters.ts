@@ -111,14 +111,19 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Sync URL → local state when user navigates back/forward
-  const prevSearchParams = useRef(searchParams.toString());
+  // Track all pending URL pushes so stale router.replace echoes
+  // don't overwrite local state during rapid interactions
+  const pendingUrls = useRef(new Set<string>());
+
+  // Sync URL → local state only for external navigation (back/forward)
   useEffect(() => {
     const current = searchParams.toString();
-    if (current !== prevSearchParams.current) {
-      prevSearchParams.current = current;
-      setState(readParams(searchParams));
+    if (pendingUrls.current.has(current)) {
+      pendingUrls.current.delete(current);
+      return;
     }
+    pendingUrls.current.clear();
+    setState(readParams(searchParams));
   }, [searchParams]);
 
   // Debounced URL sync for search, immediate for other filters
@@ -129,7 +134,7 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
   const syncUrl = useCallback(
     (next: RepoFilterState) => {
       const qs = buildQuery(next);
-      prevSearchParams.current = qs;
+      pendingUrls.current.add(qs);
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
     [router, pathname],
@@ -198,7 +203,7 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
     };
     clearTimeout(searchTimerRef.current);
     setState(next);
-    prevSearchParams.current = "";
+    pendingUrls.current.add("");
     router.replace(pathname, { scroll: false });
   }, [router, pathname]);
 
