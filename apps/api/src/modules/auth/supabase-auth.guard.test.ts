@@ -83,6 +83,24 @@ describe("SupabaseAuthGuard", () => {
     expect(getUser).not.toHaveBeenCalled();
   });
 
+  it("401 with empty bearer token", async () => {
+    const res = await request(server())
+      .get("/probe")
+      .set("Authorization", "Bearer ")
+      .expect(401);
+    expect((res.body as { message: string }).message).toBe("invalid credentials");
+    expect(getUser).not.toHaveBeenCalled();
+  });
+
+  it("401 with non-Bearer scheme", async () => {
+    const res = await request(server())
+      .get("/probe")
+      .set("Authorization", "Basic abc123")
+      .expect(401);
+    expect((res.body as { message: string }).message).toBe("invalid credentials");
+    expect(getUser).not.toHaveBeenCalled();
+  });
+
   it("401 on invalid token", async () => {
     getUser.mockResolvedValueOnce({ data: null, error: { message: "bad" } });
     const res = await request(server())
@@ -118,9 +136,33 @@ describe("SupabaseAuthGuard", () => {
 
   it("falls back to minimal sub claim when token is not decodable", async () => {
     getUser.mockResolvedValueOnce({ data: { user: { id: "u-99" } }, error: null });
-    await request(server())
+    const res = await request(server())
       .get("/probe")
       .set("Authorization", "Bearer not-a-jwt")
       .expect(200);
+    const body = res.body as ProbeResponse;
+    expect(body.userId).toBe("u-99");
+    expect(body.claims).toEqual({ sub: "u-99" });
+  });
+
+  it("falls back to minimal sub when payload is non-object JSON", async () => {
+    getUser.mockResolvedValueOnce({ data: { user: { id: "u-77" } }, error: null });
+    const header = Buffer.from('{"alg":"HS256"}').toString("base64url");
+    const payload = Buffer.from('"just a string"').toString("base64url");
+    const token = `${header}.${payload}.sig`;
+    const res = await request(server())
+      .get("/probe")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+    const body = res.body as ProbeResponse;
+    expect(body.claims).toEqual({ sub: "u-77" });
+  });
+
+  it("401 when supabase returns null user without error", async () => {
+    getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    await request(server())
+      .get("/probe")
+      .set("Authorization", "Bearer some-token")
+      .expect(401);
   });
 });

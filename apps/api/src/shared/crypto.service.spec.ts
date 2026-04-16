@@ -82,4 +82,35 @@ describe("CryptoService", () => {
   it("rejects key of wrong length", () => {
     expect(() => new CryptoService(Buffer.alloc(16))).toThrow(/32 bytes/);
   });
+
+  it("encryptParts/decryptParts round-trip", () => {
+    const svc = new CryptoService(makeKey());
+    const plain = "structured data";
+    const parts = svc.encryptParts(plain);
+    expect(parts.ciphertext).toBeInstanceOf(Buffer);
+    expect(parts.iv).toBeInstanceOf(Buffer);
+    expect(parts.tag).toBeInstanceOf(Buffer);
+    expect(svc.decryptParts(parts)).toBe(plain);
+  });
+
+  it("decryptParts throws on wrong iv length", () => {
+    const svc = new CryptoService(makeKey());
+    const parts = svc.encryptParts("x");
+    parts.iv = Buffer.alloc(8);
+    expect(() => svc.decryptParts(parts)).toThrow(DecryptionError);
+  });
+
+  it("decryptParts throws on wrong tag length", () => {
+    const svc = new CryptoService(makeKey());
+    const parts = svc.encryptParts("x");
+    parts.tag = Buffer.alloc(8);
+    expect(() => svc.decryptParts(parts)).toThrow(DecryptionError);
+  });
+
+  it("decryptParts throws on tampered iv", () => {
+    const svc = new CryptoService(makeKey());
+    const parts = svc.encryptParts("secret");
+    parts.iv[0] = (parts.iv[0] ?? 0) ^ 0xff;
+    expect(() => svc.decryptParts(parts)).toThrow(DecryptionError);
+  });
 });

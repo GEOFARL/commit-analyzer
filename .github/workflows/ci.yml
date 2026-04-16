@@ -30,10 +30,21 @@ jobs:
   unit:
     name: Unit tests
     runs-on: ubuntu-latest
+    env:
+      SKIP_INTEGRATION: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: pnpm test -- -- --run
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter "./packages/*" build
+      - run: pnpm --filter api test -- -- --run
 
   knip:
     name: Knip (unused exports)
