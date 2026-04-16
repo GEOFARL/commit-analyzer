@@ -55,7 +55,7 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-end justify-between gap-4">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <Key className="h-5 w-5" />
@@ -63,7 +63,10 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
           </h2>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => setCreateOpen(true)}
+        >
           <Plus />
           {t("createKey")}
         </Button>
