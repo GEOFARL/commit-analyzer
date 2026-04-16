@@ -1,7 +1,8 @@
 "use client";
 
 import type { GithubRepo } from "@commit-analyzer/contracts";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
 
 export type SortField = "name" | "pushedAt" | "stars";
 export type VisibilityFilter = "all" | "public" | "private";
@@ -76,36 +77,58 @@ function sortRepos(items: GithubRepo[], sortBy: SortField): GithubRepo[] {
 }
 
 export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
-  const [search, setSearchRaw] = useState("");
-  const [sortBy, setSortByRaw] = useState<SortField>("name");
-  const [visibility, setVisibilityRaw] = useState<VisibilityFilter>("all");
-  const [showArchived, setShowArchivedRaw] = useState(false);
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const setSearch = (v: string) => {
-    setSearchRaw(v);
-    setPage(1);
-  };
-  const setSortBy = (v: SortField) => {
-    setSortByRaw(v);
-    setPage(1);
-  };
-  const setVisibility = (v: VisibilityFilter) => {
-    setVisibilityRaw(v);
-    setPage(1);
-  };
-  const setShowArchived = (v: boolean) => {
-    setShowArchivedRaw(v);
-    setPage(1);
-  };
+  const search = searchParams.get("search") ?? "";
+  const sortBy = (searchParams.get("sort") as SortField | null) ?? "name";
+  const visibility =
+    (searchParams.get("vis") as VisibilityFilter | null) ?? "all";
+  const showArchived = searchParams.get("archived") === "1";
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
 
-  const reset = () => {
-    setSearchRaw("");
-    setSortByRaw("name");
-    setVisibilityRaw("all");
-    setShowArchivedRaw(false);
-    setPage(1);
-  };
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, val] of Object.entries(updates)) {
+        if (val === null) {
+          params.delete(key);
+        } else {
+          params.set(key, val);
+        }
+      }
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
+  const setSearch = useCallback(
+    (v: string) => updateParams({ search: v || null, page: null }),
+    [updateParams],
+  );
+  const setSortBy = useCallback(
+    (v: SortField) =>
+      updateParams({ sort: v === "name" ? null : v, page: null }),
+    [updateParams],
+  );
+  const setVisibility = useCallback(
+    (v: VisibilityFilter) =>
+      updateParams({ vis: v === "all" ? null : v, page: null }),
+    [updateParams],
+  );
+  const setShowArchived = useCallback(
+    (v: boolean) => updateParams({ archived: v ? "1" : null, page: null }),
+    [updateParams],
+  );
+  const setPage = useCallback(
+    (v: number) => updateParams({ page: v === 1 ? null : String(v) }),
+    [updateParams],
+  );
+  const reset = useCallback(() => {
+    router.replace(pathname, { scroll: false });
+  }, [router, pathname]);
 
   const filtered = useMemo(
     () => sortRepos(filterRepos(items, search, visibility, showArchived), sortBy),
@@ -116,13 +139,10 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
   const totalPages = Math.max(1, Math.ceil(totalFiltered / DEFAULT_PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
 
-  const paginated = useMemo(
-    () => {
-      const start = (clampedPage - 1) * DEFAULT_PAGE_SIZE;
-      return filtered.slice(start, start + DEFAULT_PAGE_SIZE);
-    },
-    [filtered, clampedPage],
-  );
+  const paginated = useMemo(() => {
+    const start = (clampedPage - 1) * DEFAULT_PAGE_SIZE;
+    return filtered.slice(start, start + DEFAULT_PAGE_SIZE);
+  }, [filtered, clampedPage]);
 
   return {
     state: {

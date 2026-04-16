@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
-import { AlertCircle, Github, Loader2, Plug, Trash2 } from "lucide-react";
+import { AlertCircle, Github, Loader2, Plug, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -68,6 +68,8 @@ export const RepositoriesView = ({
     );
   }, [connectedItems, filters.state.search]);
 
+  const hasActiveSearch = filters.state.search.trim().length > 0;
+
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
@@ -86,9 +88,14 @@ export const RepositoriesView = ({
       <section className="flex flex-col gap-4">
         <header className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+            <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-wrap-balance">
               {t("connected.title")}
-              <Badge variant="secondary">{filteredConnected.length}</Badge>
+              <Badge
+                variant="secondary"
+                className="tabular-nums"
+              >
+                {filteredConnected.length}
+              </Badge>
             </h2>
             <p className="text-sm text-muted-foreground">
               {t("connected.subtitle")}
@@ -104,11 +111,19 @@ export const RepositoriesView = ({
         ) : connectedQuery.isError ? (
           <ErrorCard message={t("error.load")} />
         ) : filteredConnected.length === 0 ? (
-          <EmptyState
-            icon={<EmptyGitGraph />}
-            title={t("connected.empty")}
-            description={t("connected.emptyHelper")}
-          />
+          hasActiveSearch ? (
+            <FilteredEmptyState
+              onClear={() => filters.setSearch("")}
+              clearLabel={t("clearSearch")}
+              title={t("connected.emptyFiltered", { search: filters.state.search })}
+            />
+          ) : (
+            <EmptyState
+              icon={<EmptyGitGraph />}
+              title={t("connected.empty")}
+              description={t("connected.emptyHelper")}
+            />
+          )
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredConnected.map((repo) => {
@@ -149,10 +164,12 @@ export const RepositoriesView = ({
 
       <section ref={githubSectionRef} className="flex flex-col gap-4">
         <header>
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Github className="h-5 w-5" />
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-wrap-balance">
+            <Github aria-hidden="true" className="h-5 w-5" />
             {t("github.title")}
-            <Badge variant="secondary">{filters.totalFiltered}</Badge>
+            <Badge variant="secondary" className="tabular-nums">
+              {filters.totalFiltered}
+            </Badge>
           </h2>
           <p className="text-sm text-muted-foreground">
             {t("github.subtitle")}
@@ -167,10 +184,18 @@ export const RepositoriesView = ({
         ) : githubQuery.isError ? (
           <ErrorCard message={t("error.load")} />
         ) : filters.paginated.length === 0 ? (
-          <EmptyState
-            icon={<Github className="h-6 w-6" />}
-            title={t("github.empty")}
-          />
+          hasActiveSearch ? (
+            <FilteredEmptyState
+              onClear={() => filters.setSearch("")}
+              clearLabel={t("clearSearch")}
+              title={t("github.emptyFiltered", { search: filters.state.search })}
+            />
+          ) : (
+            <EmptyState
+              icon={<Github className="h-6 w-6" aria-hidden="true" />}
+              title={t("github.empty")}
+            />
+          )
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -252,8 +277,29 @@ export const RepositoriesView = ({
 };
 
 const ErrorCard = ({ message }: { message: string }) => (
-  <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-    <AlertCircle className="h-4 w-4 shrink-0" />
+  <div
+    role="alert"
+    className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+  >
+    <AlertCircle aria-hidden="true" className="h-4 w-4 shrink-0" />
     <span>{message}</span>
+  </div>
+);
+
+const FilteredEmptyState = ({
+  title,
+  onClear,
+  clearLabel,
+}: {
+  title: string;
+  onClear: () => void;
+  clearLabel: string;
+}) => (
+  <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center">
+    <p className="text-sm text-muted-foreground">{title}</p>
+    <Button variant="outline" size="sm" onClick={onClear}>
+      <X aria-hidden="true" className="h-3.5 w-3.5" />
+      {clearLabel}
+    </Button>
   </div>
 );

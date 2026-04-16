@@ -1,16 +1,19 @@
 {
   "title": "Repositories",
   "subtitle": "Connect GitHub repositories to analyze commits and generate messages.",
+  "clearSearch": "Clear search",
   "connected": {
     "title": "Connected",
     "subtitle": "Repositories available to the commit analyzer.",
     "empty": "No repositories connected yet",
-    "emptyHelper": "Connect one from the list below to get started."
+    "emptyHelper": "Connect one from the list below to get started.",
+    "emptyFiltered": "No connected repositories match \"{search}\""
   },
   "github": {
     "title": "Your GitHub repositories",
     "subtitle": "Pick a repository to connect.",
-    "empty": "No repositories found on your GitHub account"
+    "empty": "No repositories found on your GitHub account",
+    "emptyFiltered": "No repositories match \"{search}\""
   },
   "actions": {
     "connect": "Connect",
@@ -26,6 +29,7 @@
   },
   "toolbar": {
     "search": "Search repositories…",
+    "searchAriaLabel": "Search repositories",
     "filters": "Filters",
     "sort": "Sort by",
     "sortName": "Name",

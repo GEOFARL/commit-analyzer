@@ -2,6 +2,7 @@
 
 import { RotateCcw, SlidersHorizontal, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,9 @@ export const RepoToolbar = ({
   onReset,
 }: RepoToolbarProps) => {
   const t = useTranslations("repositories.toolbar");
+  const uid = useId();
+  const sortLabelId = `${uid}-sort`;
+  const visibilityLabelId = `${uid}-visibility`;
 
   const hasActiveFilters =
     state.sortBy !== "name" ||
@@ -51,9 +55,15 @@ export const RepoToolbar = ({
   return (
     <div className="flex items-center gap-3">
       <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search
+          aria-hidden="true"
+          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           type="search"
+          name="search"
+          autoComplete="off"
+          aria-label={t("searchAriaLabel")}
           placeholder={t("search")}
           value={state.search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -64,7 +74,7 @@ export const RepoToolbar = ({
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
-            <SlidersHorizontal className="h-4 w-4" />
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
             {t("filters")}
             {hasActiveFilters && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
@@ -77,12 +87,14 @@ export const RepoToolbar = ({
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 space-y-4">
           <div className="space-y-2">
-            <p className="text-sm font-medium">{t("sort")}</p>
+            <p className="text-sm font-medium" id={sortLabelId}>
+              {t("sort")}
+            </p>
             <Select
               value={state.sortBy}
               onValueChange={(v) => onSortChange(v as SortField)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-labelledby={sortLabelId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -94,12 +106,17 @@ export const RepoToolbar = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">{t("filterVisibility")}</p>
+            <p className="text-sm font-medium" id={visibilityLabelId}>
+              {t("filterVisibility")}
+            </p>
             <Select
               value={state.visibility}
               onValueChange={(v) => onVisibilityChange(v as VisibilityFilter)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby={visibilityLabelId}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -136,7 +153,7 @@ export const RepoToolbar = ({
               className="w-full"
               onClick={onReset}
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               {t("reset")}
             </Button>
           )}
