@@ -6,9 +6,7 @@ import { useMemo, useState } from "react";
 export type SortField = "name" | "pushedAt" | "stars";
 export type VisibilityFilter = "all" | "public" | "private";
 
-const PAGE_SIZES = [12, 24, 48] as const;
-export type PageSize = (typeof PAGE_SIZES)[number];
-export { PAGE_SIZES };
+export const DEFAULT_PAGE_SIZE = 12;
 
 export type RepoFilterState = {
   search: string;
@@ -16,7 +14,6 @@ export type RepoFilterState = {
   visibility: VisibilityFilter;
   showArchived: boolean;
   page: number;
-  pageSize: PageSize;
 };
 
 export type UseRepoFiltersReturn = {
@@ -26,7 +23,6 @@ export type UseRepoFiltersReturn = {
   setVisibility: (v: VisibilityFilter) => void;
   setShowArchived: (v: boolean) => void;
   setPage: (v: number) => void;
-  setPageSize: (v: PageSize) => void;
   filtered: GithubRepo[];
   paginated: GithubRepo[];
   totalFiltered: number;
@@ -84,7 +80,6 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
   const [visibility, setVisibilityRaw] = useState<VisibilityFilter>("all");
   const [showArchived, setShowArchivedRaw] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSizeRaw] = useState<PageSize>(12);
 
   const setSearch = (v: string) => {
     setSearchRaw(v);
@@ -102,10 +97,6 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
     setShowArchivedRaw(v);
     setPage(1);
   };
-  const setPageSize = (v: PageSize) => {
-    setPageSizeRaw(v);
-    setPage(1);
-  };
 
   const filtered = useMemo(
     () => sortRepos(filterRepos(items, search, visibility, showArchived), sortBy),
@@ -113,15 +104,15 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
   );
 
   const totalFiltered = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / DEFAULT_PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
 
   const paginated = useMemo(
     () => {
-      const start = (clampedPage - 1) * pageSize;
-      return filtered.slice(start, start + pageSize);
+      const start = (clampedPage - 1) * DEFAULT_PAGE_SIZE;
+      return filtered.slice(start, start + DEFAULT_PAGE_SIZE);
     },
-    [filtered, clampedPage, pageSize],
+    [filtered, clampedPage],
   );
 
   return {
@@ -131,14 +122,12 @@ export function useRepoFilters(items: GithubRepo[]): UseRepoFiltersReturn {
       visibility,
       showArchived,
       page: clampedPage,
-      pageSize,
     },
     setSearch,
     setSortBy,
     setVisibility,
     setShowArchived,
     setPage,
-    setPageSize,
     filtered,
     paginated,
     totalFiltered,
