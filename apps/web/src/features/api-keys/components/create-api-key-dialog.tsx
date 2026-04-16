@@ -139,7 +139,7 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
                 size="icon"
                 onClick={() => void handleCopy()}
                 className="shrink-0"
-                aria-label={t("copyKey")}
+                aria-label={copied ? t("copied") : t("copyKey")}
               >
                 {copied ? (
                   <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
