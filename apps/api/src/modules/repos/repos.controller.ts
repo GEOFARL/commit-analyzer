@@ -2,6 +2,7 @@ import { reposContract } from "@commit-analyzer/contracts";
 import { Controller, UseGuards } from "@nestjs/common";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
+import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { SupabaseAuthGuard } from "../auth/supabase-auth.guard.js";
 
@@ -10,6 +11,7 @@ import { ReposService } from "./repos.service.js";
 
 @Controller()
 @UseGuards(SupabaseAuthGuard)
+@ThrottleTierDecorator("default")
 export class ReposController {
   constructor(private readonly repos: ReposService) {}
 

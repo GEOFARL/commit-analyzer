@@ -75,9 +75,9 @@ describe("reposContract", () => {
   });
 
   it("tags every repo endpoint with jwt", () => {
-    expect(reposContract.listGithub.metadata).toEqual({ auth: "jwt" });
-    expect(reposContract.listConnected.metadata).toEqual({ auth: "jwt" });
-    expect(reposContract.connect.metadata).toEqual({ auth: "jwt" });
-    expect(reposContract.disconnect.metadata).toEqual({ auth: "jwt" });
+    expect(reposContract.listGithub.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(reposContract.listConnected.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(reposContract.connect.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(reposContract.disconnect.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
   });
 });

@@ -2,6 +2,8 @@ import { authContract } from "@commit-analyzer/contracts";
 import { Controller, UseGuards } from "@nestjs/common";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
+import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
+
 import { toApiKeyDto, toUserDto } from "./auth.mappers.js";
 import { AuthService } from "./auth.service.js";
 import { CurrentUser } from "./current-user.decorator.js";
@@ -9,9 +11,11 @@ import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
 @Controller()
 @UseGuards(SupabaseAuthGuard)
+@ThrottleTierDecorator("default")
 export class AuthTsRestController {
   constructor(private readonly authService: AuthService) {}
 
+  // GET /me — default tier (not auth), per 05-api-contracts.md §5
   @TsRestHandler(authContract.me)
   me(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.me, async () => {
@@ -39,6 +43,7 @@ export class AuthTsRestController {
     });
   }
 
+  @ThrottleTierDecorator("auth")
   @TsRestHandler(authContract.apiKeys.create)
   createApiKey(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.apiKeys.create, async ({ body }) => {

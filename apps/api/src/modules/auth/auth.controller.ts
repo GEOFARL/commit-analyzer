@@ -9,6 +9,8 @@ import {
 } from "@nestjs/common";
 import { EventBus } from "@nestjs/cqrs";
 
+import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
+
 import { signInEventSchema } from "./auth.schemas.js";
 import { CurrentUser } from "./current-user.decorator.js";
 import { AuthLoggedInEvent } from "./events/auth-logged-in.event.js";
@@ -17,6 +19,7 @@ import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
 @Controller("auth")
 @UseGuards(SupabaseAuthGuard)
+@ThrottleTierDecorator("default")
 export class AuthController {
   constructor(@Inject(EventBus) private readonly eventBus: EventBus) {}
 

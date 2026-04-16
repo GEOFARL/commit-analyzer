@@ -45,7 +45,7 @@ export const reposContract = c.router(
         502: errorEnvelopeSchema,
       },
       summary: "List the authenticated user's GitHub repositories",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
     listConnected: {
       method: "GET",
@@ -55,7 +55,7 @@ export const reposContract = c.router(
         401: errorEnvelopeSchema,
       },
       summary: "List repositories connected to the current user",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
     connect: {
       method: "POST",
@@ -71,7 +71,7 @@ export const reposContract = c.router(
         409: errorEnvelopeSchema,
       },
       summary: "Connect a GitHub repository to the current user",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
     disconnect: {
       method: "DELETE",
@@ -84,7 +84,7 @@ export const reposContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Disconnect a repository",
-      metadata: { auth: "jwt" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
   },
   { strictStatusCodes: true },
