@@ -1,5 +1,3 @@
-import type { PluggedOctokitInstance } from "./github.octokit.js";
-
 export interface GithubRepoRaw {
   id: number;
   name: string;
@@ -12,12 +10,4 @@ export interface GithubRepoRaw {
   pushed_at: string | null;
   stargazers_count: number;
   archived: boolean;
-}
-
-export interface GithubClient {
-  listMyRepos(octokit: PluggedOctokitInstance): Promise<GithubRepoRaw[]>;
-  getRepo(
-    octokit: PluggedOctokitInstance,
-    githubRepoId: number,
-  ): Promise<GithubRepoRaw>;
 }
