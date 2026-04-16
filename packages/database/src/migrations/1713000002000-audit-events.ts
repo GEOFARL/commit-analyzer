@@ -20,7 +20,7 @@ export class AuditEvents1713000002000 implements MigrationInterface {
       `CREATE INDEX "audit_events_user_created_idx" ON "audit_events" ("user_id", "created_at" DESC)`,
     );
     await queryRunner.query(
-      `CREATE INDEX "audit_events_user_type_created_idx" ON "audit_events" ("user_id", "event_type", "created_at" DESC)`,
+      `CREATE INDEX "audit_events_user_type_created_idx" ON "audit_events" ("user_id", "event_type", "created_at" DESC) WHERE "event_type" IS NOT NULL`,
     );
 
     await queryRunner.query(

@@ -21,6 +21,7 @@ export class AuditService {
   async record(options: RecordOptions): Promise<void> {
     const { eventType, payload, ip, userAgent } = options;
     const userId = options.userId ?? this.cls.get<string>(CLS_USER_ID);
+    if (!userId) throw new Error("audit: no userId available");
 
     auditEventTypeSchema.parse(eventType);
     const validated = validatePayload(eventType, payload);

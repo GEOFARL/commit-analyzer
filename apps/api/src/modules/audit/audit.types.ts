@@ -1,7 +1,7 @@
 import type { AuditEventType } from "@commit-analyzer/contracts";
 
 export interface RecordOptions {
-  userId: string;
+  userId?: string;
   eventType: AuditEventType;
   payload: Record<string, unknown>;
   ip?: string | null;
