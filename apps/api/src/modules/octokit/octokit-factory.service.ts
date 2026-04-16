@@ -8,6 +8,7 @@ import { GithubTokenExpiredError } from "../../shared/github-token-expired.error
 import {
   OCTOKIT_REQUEST_TIMEOUT_MS,
   RATE_LIMIT_LOG_INTERVAL,
+  RATE_LIMIT_MAX_RETRIES,
 } from "./octokit.constants.js";
 import {
   PluggedOctokit,
@@ -68,14 +69,14 @@ export class OctokitFactory {
             `[user=${userId}] primary rate limit on ${options.method} ${options.url}, ` +
               `retry-after=${retryAfter.toString()}s (attempt ${String(retryCount + 1)})`,
           );
-          return true;
+          return retryCount < RATE_LIMIT_MAX_RETRIES;
         },
         onSecondaryRateLimit: (retryAfter, options, _octokit, retryCount) => {
           this.logger.warn(
             `[user=${userId}] secondary rate limit on ${options.method} ${options.url}, ` +
               `retry-after=${retryAfter.toString()}s (attempt ${String(retryCount + 1)})`,
           );
-          return true;
+          return retryCount < RATE_LIMIT_MAX_RETRIES;
         },
       },
     });
