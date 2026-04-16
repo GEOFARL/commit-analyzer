@@ -1,7 +1,13 @@
 name: E2E tests
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:
