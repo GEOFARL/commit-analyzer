@@ -16,6 +16,9 @@ const validGithubRepo = {
   description: "demo",
   htmlUrl: "https://github.com/octocat/hello-world",
   connected: false,
+  pushedAt: "2026-04-10T00:00:00.000Z",
+  stargazersCount: 42,
+  archived: false,
 };
 
 const validConnectedRepo = {

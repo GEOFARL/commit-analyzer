@@ -100,6 +100,9 @@ export class GithubService implements GithubClient {
       default_branch: repo.default_branch,
       description: repo.description ?? null,
       html_url: repo.html_url,
+      pushed_at: repo.pushed_at ?? null,
+      stargazers_count: repo.stargazers_count,
+      archived: repo.archived,
     };
   }
 }

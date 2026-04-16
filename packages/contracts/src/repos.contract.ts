@@ -15,6 +15,9 @@ export const githubRepoSchema = z.object({
   description: z.string().nullable(),
   htmlUrl: z.string().url(),
   connected: z.boolean(),
+  pushedAt: z.string().datetime().nullable(),
+  stargazersCount: z.number().int().nonnegative(),
+  archived: z.boolean(),
 });
 export type GithubRepo = z.infer<typeof githubRepoSchema>;
 

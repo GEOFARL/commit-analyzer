@@ -28,6 +28,9 @@ const rawRepo = (overrides: Partial<GithubRepoRaw> = {}): GithubRepoRaw => ({
   default_branch: "main",
   description: "demo",
   html_url: "https://github.com/octocat/hello-world",
+  pushed_at: "2026-04-10T00:00:00Z",
+  stargazers_count: 0,
+  archived: false,
   ...overrides,
 });
 
