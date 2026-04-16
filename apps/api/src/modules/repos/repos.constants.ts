@@ -7,7 +7,5 @@ export const GITHUB_LIST_PER_PAGE = 100;
 // up to 500 repos returned; anything past that is truncated and logged.
 export const GITHUB_LIST_MAX_PAGES = 5;
 
-export const GITHUB_REQUEST_TIMEOUT_MS = 10_000;
-
 export const githubListCacheKey = (userId: string): string =>
   `repos:github:list:${userId}`;

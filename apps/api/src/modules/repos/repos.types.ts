@@ -11,8 +11,3 @@ export interface GithubRepoRaw {
   stargazers_count: number;
   archived: boolean;
 }
-
-export interface GithubClient {
-  listMyRepos(token: string): Promise<GithubRepoRaw[]>;
-  getRepo(token: string, githubRepoId: number): Promise<GithubRepoRaw>;
-}

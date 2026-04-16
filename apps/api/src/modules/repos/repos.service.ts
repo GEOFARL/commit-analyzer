@@ -7,10 +7,10 @@ import { EventBus } from "@nestjs/cqrs";
 
 import { CacheService } from "../../common/cache/cache.service.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
+import { OctokitFactory } from "../octokit/octokit-factory.service.js";
 
 import { RepoConnectedEvent } from "./events/repo-connected.event.js";
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
-import { GithubTokenService } from "./github-token.service.js";
 import { GithubService } from "./github.service.js";
 import {
   GITHUB_LIST_TTL_SECONDS,
@@ -30,7 +30,7 @@ export class ReposService {
     @Inject(REPOSITORY_REPOSITORY)
     private readonly repos: RepositoryRepository,
     private readonly github: GithubService,
-    private readonly githubToken: GithubTokenService,
+    private readonly octokitFactory: OctokitFactory,
     private readonly cache: CacheService,
     private readonly eventBus: EventBus,
   ) {}
@@ -42,8 +42,8 @@ export class ReposService {
     const cached = await this.cache.getJson<GithubRepoRaw[]>(key);
     let raws = cached;
     if (!raws) {
-      const token = await this.githubToken.getForUser(userId);
-      raws = await this.github.listMyRepos(token);
+      const octokit = await this.octokitFactory.forUser(userId);
+      raws = await this.github.listMyRepos(octokit);
       await this.cache.setJson(key, raws, GITHUB_LIST_TTL_SECONDS);
     }
 
@@ -69,8 +69,8 @@ export class ReposService {
       throw new RepoAlreadyConnectedError();
     }
 
-    const token = await this.githubToken.getForUser(userId);
-    const raw = await this.github.getRepo(token, githubRepoId);
+    const octokit = await this.octokitFactory.forUser(userId);
+    const raw = await this.github.getRepo(octokit, githubRepoId);
 
     const saved = existing
       ? await this.reconnectExisting(existing, raw)

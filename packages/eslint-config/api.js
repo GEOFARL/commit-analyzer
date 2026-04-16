@@ -107,6 +107,15 @@ export default [
                 to: { type: "module", captured: { name: "auth" } },
               },
             },
+            // OctokitFactory is shared GitHub-client infrastructure used by
+            // repos, sync/jobs, and any future module that talks to the
+            // GitHub API — same cross-cutting rationale as auth.
+            {
+              from: { type: "module" },
+              allow: {
+                to: { type: "module", captured: { name: "octokit" } },
+              },
+            },
             {
               from: { type: "shared" },
               allow: { to: { type: "common" } },
