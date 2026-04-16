@@ -1,9 +1,11 @@
 "use client";
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
+import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Github, Loader2, Plug, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,12 +16,19 @@ import {
   useDisconnectRepoMutation,
   useGithubReposQuery,
 } from "@/features/repositories/hooks";
+import { repositoryQueryKeys } from "@/features/repositories/queries";
 import type { RepositoriesPageData } from "@/features/repositories/types";
+import { useRepoFilters } from "@/features/repositories/use-repo-filters";
 
 import { DisconnectDialog } from "./disconnect-dialog";
 import { EmptyGitGraph } from "./empty-git-graph";
 import { EmptyState } from "./empty-state";
 import { RepoCard } from "./repo-card";
+import { RepoCardSkeleton } from "./repo-card-skeleton";
+import { RepoPagination } from "./repo-pagination";
+import { RepoToolbar } from "./repo-toolbar";
+
+const SKELETON_COUNT = 6;
 
 export const RepositoriesView = ({
   userId,
@@ -27,6 +36,7 @@ export const RepositoriesView = ({
   initialConnected,
 }: RepositoriesPageData) => {
   const t = useTranslations("repositories");
+  const queryClient = useQueryClient();
 
   const githubQuery = useGithubReposQuery(userId, initialGithub);
   const connectedQuery = useConnectedReposQuery(userId, initialConnected);
@@ -42,27 +52,72 @@ export const RepositoriesView = ({
     return map;
   }, [connectedItems]);
 
+  const filters = useRepoFilters(githubItems);
+
+  const filteredConnected = useMemo(() => {
+    if (!filters.state.search.trim()) return connectedItems;
+    const q = filters.state.search.trim().toLowerCase();
+    return connectedItems.filter((r) =>
+      r.fullName.toLowerCase().includes(q),
+    );
+  }, [connectedItems, filters.state.search]);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    void Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: [...repositoryQueryKeys.github(userId)],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: [...repositoryQueryKeys.connected(userId)],
+      }),
+    ]).then(() => {
+      setIsRefreshing(false);
+      toast.success(t("toast.refreshed"));
+    });
+  };
+
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
 
+  const isLoading = githubQuery.isLoading || connectedQuery.isLoading;
+
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
+      <RepoToolbar
+        state={filters.state}
+        onSearchChange={filters.setSearch}
+        onSortChange={filters.setSortBy}
+        onVisibilityChange={filters.setVisibility}
+        onArchivedChange={filters.setShowArchived}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
+
       <section className="flex flex-col gap-4">
         <header className="flex items-end justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
               {t("connected.title")}
-              <Badge variant="secondary">{connectedItems.length}</Badge>
+              <Badge variant="secondary">{filteredConnected.length}</Badge>
             </h2>
             <p className="text-sm text-muted-foreground">
               {t("connected.subtitle")}
             </p>
           </div>
         </header>
-        {connectedQuery.isError ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <RepoCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : connectedQuery.isError ? (
           <ErrorCard message={t("error.load")} />
-        ) : connectedItems.length === 0 ? (
+        ) : filteredConnected.length === 0 ? (
           <EmptyState
             icon={<EmptyGitGraph />}
             title={t("connected.empty")}
@@ -70,7 +125,7 @@ export const RepositoriesView = ({
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {connectedItems.map((repo) => {
+            {filteredConnected.map((repo) => {
               const isDisconnecting =
                 disconnectMutation.isPending &&
                 disconnectMutation.variables?.params.repoId === repo.id;
@@ -111,73 +166,90 @@ export const RepositoriesView = ({
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <Github className="h-5 w-5" />
             {t("github.title")}
+            <Badge variant="secondary">{filters.totalFiltered}</Badge>
           </h2>
           <p className="text-sm text-muted-foreground">
             {t("github.subtitle")}
           </p>
         </header>
-        {githubQuery.isError ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+              <RepoCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : githubQuery.isError ? (
           <ErrorCard message={t("error.load")} />
-        ) : githubItems.length === 0 ? (
+        ) : filters.paginated.length === 0 ? (
           <EmptyState
             icon={<Github className="h-6 w-6" />}
             title={t("github.empty")}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {githubItems.map((repo) => {
-              const alreadyConnected =
-                repo.connected ||
-                connectedByGithubId.has(repo.githubRepoId);
-              const isPending =
-                connectMutation.isPending &&
-                connectMutation.variables?.params.githubRepoId ===
-                  repo.githubRepoId;
-              return (
-                <RepoCard
-                  key={repo.githubRepoId}
-                  fullName={repo.fullName}
-                  description={repo.description}
-                  defaultBranch={repo.defaultBranch}
-                  isPrivate={repo.private}
-                  isConnected={alreadyConnected}
-                  privateLabel={t("badge.private")}
-                  publicLabel={t("badge.public")}
-                  connectedLabel={t("badge.connected")}
-                  action={
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="group/btn ml-auto relative overflow-hidden"
-                      disabled={alreadyConnected || isPending}
-                      onClick={() =>
-                        connectMutation.mutate({
-                          params: { githubRepoId: repo.githubRepoId },
-                        })
-                      }
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary via-fuchsia-500 to-primary bg-[length:200%_100%] opacity-0 transition-opacity group-hover/btn:animate-shimmer group-hover/btn:opacity-100"
-                      />
-                      <span className="relative z-10 inline-flex items-center gap-2">
-                        {isPending ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <Plug />
-                        )}
-                        {alreadyConnected
-                          ? t("badge.connected")
-                          : isPending
-                            ? t("actions.connecting")
-                            : t("actions.connect")}
-                      </span>
-                    </Button>
-                  }
-                />
-              );
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {filters.paginated.map((repo) => {
+                const alreadyConnected =
+                  repo.connected ||
+                  connectedByGithubId.has(repo.githubRepoId);
+                const isPending =
+                  connectMutation.isPending &&
+                  connectMutation.variables?.params.githubRepoId ===
+                    repo.githubRepoId;
+                return (
+                  <RepoCard
+                    key={repo.githubRepoId}
+                    fullName={repo.fullName}
+                    description={repo.description}
+                    defaultBranch={repo.defaultBranch}
+                    isPrivate={repo.private}
+                    isConnected={alreadyConnected}
+                    privateLabel={t("badge.private")}
+                    publicLabel={t("badge.public")}
+                    connectedLabel={t("badge.connected")}
+                    action={
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="group/btn ml-auto relative overflow-hidden"
+                        disabled={alreadyConnected || isPending}
+                        onClick={() =>
+                          connectMutation.mutate({
+                            params: { githubRepoId: repo.githubRepoId },
+                          })
+                        }
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary via-fuchsia-500 to-primary bg-[length:200%_100%] opacity-0 transition-opacity group-hover/btn:animate-shimmer group-hover/btn:opacity-100"
+                        />
+                        <span className="relative z-10 inline-flex items-center gap-2">
+                          {isPending ? (
+                            <Loader2 className="animate-spin" />
+                          ) : (
+                            <Plug />
+                          )}
+                          {alreadyConnected
+                            ? t("badge.connected")
+                            : isPending
+                              ? t("actions.connecting")
+                              : t("actions.connect")}
+                        </span>
+                      </Button>
+                    }
+                  />
+                );
+              })}
+            </div>
+            <RepoPagination
+              page={filters.state.page}
+              totalPages={filters.totalPages}
+              pageSize={filters.state.pageSize}
+              totalFiltered={filters.totalFiltered}
+              onPageChange={filters.setPage}
+              onPageSizeChange={filters.setPageSize}
+            />
+          </>
         )}
       </section>
 
