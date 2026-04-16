@@ -1,7 +1,7 @@
 export const SYNC_QUEUE = "sync";
 
 export interface SyncJobData {
-  repoId: string;
+  repositoryId: string;
   userId: string;
 }
 

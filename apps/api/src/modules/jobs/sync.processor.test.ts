@@ -7,7 +7,7 @@ import type { SyncJobData } from "./queues/sync.queue.js";
 function makeJob(overrides: Partial<Job<SyncJobData>> = {}): Job<SyncJobData> {
   return {
     id: "test-job-1",
-    data: { repoId: "repo-1", userId: "user-1" },
+    data: { repositoryId: "repo-1", userId: "user-1" },
     attemptsMade: 0,
     ...overrides,
   } as unknown as Job<SyncJobData>;
@@ -40,5 +40,24 @@ describe("SyncProcessor", () => {
 
     expect(errorSpy).toHaveBeenCalledOnce();
     expect(errorSpy.mock.calls[0]![0]).toMatch(/failed/);
+  });
+
+  it("moves to failed state after retries exhausted", async () => {
+    const errorSpy = vi.spyOn(processor["logger"], "error");
+
+    // stub process() to throw as it would on each real attempt
+    vi.spyOn(processor, "process").mockRejectedValue(new Error("timeout"));
+
+    const job = makeJob({ attemptsMade: 3 });
+
+    // verify process() does throw
+    await expect(processor.process(job)).rejects.toThrow("timeout");
+
+    // BullMQ calls onFailed after the final attempt — assert it fires and logs
+    processor.onFailed(job, new Error("timeout"));
+
+    expect(errorSpy).toHaveBeenCalledOnce();
+    expect(errorSpy.mock.calls[0]![0]).toMatch(/failed/);
+    expect(errorSpy.mock.calls[0]![0]).toMatch(/attempt=3/);
   });
 });

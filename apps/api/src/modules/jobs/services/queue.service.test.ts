@@ -3,8 +3,9 @@ import { Test } from "@nestjs/testing";
 import type { Queue } from "bullmq";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SYNC_QUEUE } from "./queues/sync.queue.js";
-import { QueueService } from "./services/queue.service.js";
+import { SYNC_QUEUE } from "../queues/sync.queue.js";
+
+import { QueueService } from "./queue.service.js";
 
 describe("QueueService", () => {
   let service: QueueService;
@@ -38,7 +39,7 @@ describe("QueueService", () => {
     expect(addMock).toHaveBeenCalledOnce();
     expect(addMock).toHaveBeenCalledWith(
       "sync-repo",
-      { repoId: "repo-1", userId: "user-1" },
+      { repositoryId: "repo-1", userId: "user-1" },
       expect.objectContaining({
         jobId: "sync:repo-1",
         attempts: 3,
@@ -63,6 +64,17 @@ describe("QueueService", () => {
     getJobMock.mockResolvedValue({
       id: "sync:repo-1",
       getState: vi.fn().mockResolvedValue("waiting"),
+    });
+
+    await service.enqueueSync("repo-1", "user-1");
+
+    expect(addMock).not.toHaveBeenCalled();
+  });
+
+  it("skips duplicate when job is delayed", async () => {
+    getJobMock.mockResolvedValue({
+      id: "sync:repo-1",
+      getState: vi.fn().mockResolvedValue("delayed"),
     });
 
     await service.enqueueSync("repo-1", "user-1");
