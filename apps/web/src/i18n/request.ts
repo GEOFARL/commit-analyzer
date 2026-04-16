@@ -1,6 +1,7 @@
 import { hasLocale, type Messages } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
 
+import en_apiKeys from "../../messages/en/apiKeys.json";
 import en_auth from "../../messages/en/auth.json";
 import en_common from "../../messages/en/common.json";
 import en_dashboard from "../../messages/en/dashboard.json";
@@ -12,6 +13,7 @@ import en_nav from "../../messages/en/nav.json";
 import en_placeholders from "../../messages/en/placeholders.json";
 import en_repositories from "../../messages/en/repositories.json";
 import en_userMenu from "../../messages/en/userMenu.json";
+import uk_apiKeys from "../../messages/uk/apiKeys.json";
 import uk_auth from "../../messages/uk/auth.json";
 import uk_common from "../../messages/uk/common.json";
 import uk_dashboard from "../../messages/uk/dashboard.json";
@@ -28,6 +30,7 @@ import { routing } from "./routing";
 
 const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
   en: {
+    apiKeys: en_apiKeys,
     auth: en_auth,
     common: en_common,
     dashboard: en_dashboard,
@@ -41,6 +44,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     userMenu: en_userMenu,
   },
   uk: {
+    apiKeys: uk_apiKeys,
     auth: uk_auth,
     common: uk_common,
     dashboard: uk_dashboard,

@@ -1,0 +1,37 @@
+{
+  "title": "API Keys",
+  "subtitle": "Manage CLI authentication keys for your account.",
+  "createKey": "Create key",
+  "revoke": "Revoke",
+  "created": "Created",
+  "lastUsed": "Last used",
+  "never": "Never",
+  "empty": {
+    "title": "No API keys yet",
+    "description": "Create a key to authenticate the CLI with your account."
+  },
+  "error": {
+    "load": "Failed to load API keys. Please try again."
+  },
+  "toast": {
+    "createError": "Failed to create API key.",
+    "revokeError": "Failed to revoke API key.",
+    "revoked": "API key revoked."
+  },
+  "createDialog": {
+    "title": "Create API key",
+    "description": "Give your key a name to identify it later.",
+    "nameLabel": "Key name",
+    "namePlaceholder": "e.g. My laptop CLI",
+    "cancel": "Cancel",
+    "create": "Create",
+    "done": "Done",
+    "warning": "This secret will only be shown once. Copy it now and store it safely."
+  },
+  "revokeDialog": {
+    "title": "Revoke API key?",
+    "description": "The key \"{name}\" will be permanently revoked. Any CLI sessions using it will stop working immediately.",
+    "cancel": "Cancel",
+    "confirm": "Revoke"
+  }
+}
