@@ -12,6 +12,10 @@ export const REDACT_PATHS: readonly string[] = [
   "req.body.diff",
   "req.body.password",
   "res.headers['set-cookie']",
+  "payload.token",
+  "payload.api_key",
+  "payload.diff",
+  "payload.response_text",
 ];
 
 const SECRET_KEY_PATTERN = /(_TOKEN|_KEY|_SECRET|authorization|password)/i;
