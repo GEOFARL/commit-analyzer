@@ -78,10 +78,18 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
           <span>{t("error.load")}</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
           <Key className="h-8 w-8" aria-hidden="true" />
           <p className="text-sm font-medium">{t("empty.title")}</p>
           <p className="text-xs">{t("empty.description")}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus />
+            {t("empty.cta")}
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">

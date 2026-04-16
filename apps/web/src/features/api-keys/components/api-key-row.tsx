@@ -2,7 +2,7 @@
 
 import type { ApiKey } from "@commit-analyzer/contracts";
 import { Loader2, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,16 @@ type Props = {
   onRevoke: (id: string) => void;
 };
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
 export const ApiKeyRow = ({ apiKey, isRevoking, onRevoke }: Props) => {
   const t = useTranslations("apiKeys");
+  const locale = useLocale();
+
+  const formatDate = (iso: string) =>
+    new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(iso));
 
   return (
     <div className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors sm:gap-4 sm:p-4">

@@ -1,11 +1,11 @@
-import { ArrowRight, Github, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AuroraBackground } from "@/components/layout/aurora-background";
 import { LogoMark } from "@/components/layout/logo-mark";
+import { SignInButton } from "@/components/layout/sign-in-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 export default async function LandingPage({
   params,
@@ -37,13 +37,7 @@ export default async function LandingPage({
             {t("tagline")}
           </p>
           <div className="mt-2 flex items-center gap-3">
-            <form action="/auth/sign-in" method="post">
-              <Button type="submit" size="lg">
-                <Github aria-hidden="true" />
-                {t("cta")}
-                <ArrowRight aria-hidden="true" />
-              </Button>
-            </form>
+            <SignInButton />
           </div>
         </div>
       </main>

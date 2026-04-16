@@ -9,6 +9,7 @@
     "repositoriesHelper": "Підключіть GitHub-репозиторій, щоб почати аналіз комітів.",
     "generate": "Генерація",
     "generateHelper": "Створюйте повідомлення коміту з diff за допомогою ваших ключів LLM.",
-    "comingSoon": "Незабаром"
+    "comingSoon": "Незабаром",
+    "comingSoonTooltip": "Доступно у фазі 2"
   }
 }

@@ -89,12 +89,19 @@ export const CreateApiKeyDialog = ({ open, onClose, onSubmit }: Props) => {
               <Input
                 ref={nameRef}
                 id="key-name"
+                name="key-name"
+                autoComplete="off"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("namePlaceholder")}
                 maxLength={100}
                 autoFocus
               />
+              {(name.length > 0) && (
+                <p className="text-right text-xs text-muted-foreground">
+                  {name.length}/100
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button
