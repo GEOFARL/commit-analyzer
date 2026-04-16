@@ -30,6 +30,7 @@ type RepoToolbarProps = {
   onSortChange: (v: SortField) => void;
   onVisibilityChange: (v: VisibilityFilter) => void;
   onArchivedChange: (v: boolean) => void;
+  onReset: () => void;
 };
 
 export const RepoToolbar = ({
@@ -38,6 +39,7 @@ export const RepoToolbar = ({
   onSortChange,
   onVisibilityChange,
   onArchivedChange,
+  onReset,
 }: RepoToolbarProps) => {
   const t = useTranslations("repositories.toolbar");
 
@@ -126,6 +128,17 @@ export const RepoToolbar = ({
               />
             </button>
           </label>
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={onReset}
+            >
+              {t("reset")}
+            </Button>
+          )}
         </PopoverContent>
       </Popover>
     </div>

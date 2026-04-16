@@ -3,7 +3,7 @@
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
 import { AlertCircle, Github, Loader2, Plug, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,15 @@ export const RepositoriesView = ({
   }, [connectedItems]);
 
   const filters = useRepoFilters(githubItems);
+  const githubSectionRef = useRef<HTMLElement>(null);
+
+  const handlePageChange = useCallback(
+    (page: number) => {
+      filters.setPage(page);
+      githubSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    },
+    [filters],
+  );
 
   const filteredConnected = useMemo(() => {
     if (!filters.state.search.trim()) return connectedItems;
@@ -71,6 +80,7 @@ export const RepositoriesView = ({
         onSortChange={filters.setSortBy}
         onVisibilityChange={filters.setVisibility}
         onArchivedChange={filters.setShowArchived}
+        onReset={filters.reset}
       />
 
       <section className="flex flex-col gap-4">
@@ -137,7 +147,7 @@ export const RepositoriesView = ({
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section ref={githubSectionRef} className="flex flex-col gap-4">
         <header>
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <Github className="h-5 w-5" />
@@ -223,7 +233,7 @@ export const RepositoriesView = ({
               page={filters.state.page}
               totalPages={filters.totalPages}
               totalFiltered={filters.totalFiltered}
-              onPageChange={filters.setPage}
+              onPageChange={handlePageChange}
             />
           </>
         )}

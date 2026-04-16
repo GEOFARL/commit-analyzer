@@ -35,7 +35,8 @@
     "filterAll": "All",
     "filterPublic": "Public",
     "filterPrivate": "Private",
-    "showArchived": "Show archived"
+    "showArchived": "Show archived",
+    "reset": "Reset filters"
   },
   "pagination": {
     "page": "Page {current} of {total}",
