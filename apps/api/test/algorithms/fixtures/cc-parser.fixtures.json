@@ -1,0 +1,236 @@
+[
+  {
+    "name": "simple feat",
+    "input": "feat: add user authentication",
+    "expected": { "ok": true, "type": "feat", "subject": "add user authentication", "isBreaking": false }
+  },
+  {
+    "name": "fix with scope",
+    "input": "fix(auth): resolve token expiry bug",
+    "expected": { "ok": true, "type": "fix", "scope": "auth", "subject": "resolve token expiry bug", "isBreaking": false }
+  },
+  {
+    "name": "chore no scope",
+    "input": "chore: update dependencies",
+    "expected": { "ok": true, "type": "chore", "subject": "update dependencies", "isBreaking": false }
+  },
+  {
+    "name": "docs type",
+    "input": "docs: improve README",
+    "expected": { "ok": true, "type": "docs", "subject": "improve README", "isBreaking": false }
+  },
+  {
+    "name": "refactor with scope",
+    "input": "refactor(parser): simplify state machine",
+    "expected": { "ok": true, "type": "refactor", "scope": "parser", "subject": "simplify state machine", "isBreaking": false }
+  },
+  {
+    "name": "test with scope",
+    "input": "test(api): add integration tests for auth",
+    "expected": { "ok": true, "type": "test", "scope": "api", "subject": "add integration tests for auth", "isBreaking": false }
+  },
+  {
+    "name": "ci no scope",
+    "input": "ci: configure github actions pipeline",
+    "expected": { "ok": true, "type": "ci", "subject": "configure github actions pipeline", "isBreaking": false }
+  },
+  {
+    "name": "perf with scope",
+    "input": "perf(db): add index on user_id column",
+    "expected": { "ok": true, "type": "perf", "scope": "db", "subject": "add index on user_id column", "isBreaking": false }
+  },
+  {
+    "name": "build with scope",
+    "input": "build(deps): upgrade typescript to 5.4",
+    "expected": { "ok": true, "type": "build", "scope": "deps", "subject": "upgrade typescript to 5.4", "isBreaking": false }
+  },
+  {
+    "name": "style no scope",
+    "input": "style: format codebase with prettier",
+    "expected": { "ok": true, "type": "style", "subject": "format codebase with prettier", "isBreaking": false }
+  },
+  {
+    "name": "breaking bang no scope",
+    "input": "feat!: drop support for node 14",
+    "expected": { "ok": true, "type": "feat", "subject": "drop support for node 14", "isBreaking": true }
+  },
+  {
+    "name": "breaking bang with scope",
+    "input": "feat(api)!: redesign authentication endpoints",
+    "expected": { "ok": true, "type": "feat", "scope": "api", "subject": "redesign authentication endpoints", "isBreaking": true }
+  },
+  {
+    "name": "breaking bang fix with scope",
+    "input": "fix(core)!: change default timeout from 30s to 10s",
+    "expected": { "ok": true, "type": "fix", "scope": "core", "subject": "change default timeout from 30s to 10s", "isBreaking": true }
+  },
+  {
+    "name": "with body",
+    "input": "fix: handle null response\n\nPreviously the code crashed when the API returned null.\nNow it returns an empty array instead.",
+    "expected": {
+      "ok": true,
+      "type": "fix",
+      "subject": "handle null response",
+      "body": "Previously the code crashed when the API returned null.\nNow it returns an empty array instead.",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "refactor with body",
+    "input": "refactor: extract payment service\n\nMoves payment logic out of the controller.\nNo behaviour change.",
+    "expected": {
+      "ok": true,
+      "type": "refactor",
+      "subject": "extract payment service",
+      "body": "Moves payment logic out of the controller.\nNo behaviour change.",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "BREAKING CHANGE footer sets isBreaking",
+    "input": "feat: add stripe payment integration\n\nAdds full Stripe checkout support.\n\nBREAKING CHANGE: old /pay endpoint removed",
+    "expected": {
+      "ok": true,
+      "type": "feat",
+      "subject": "add stripe payment integration",
+      "body": "Adds full Stripe checkout support.",
+      "footer": "BREAKING CHANGE: old /pay endpoint removed",
+      "isBreaking": true
+    }
+  },
+  {
+    "name": "footer closes issue",
+    "input": "fix(auth): clear session on logout\n\nEnsures all tokens are invalidated.\n\nCloses #42",
+    "expected": {
+      "ok": true,
+      "type": "fix",
+      "scope": "auth",
+      "subject": "clear session on logout",
+      "body": "Ensures all tokens are invalidated.",
+      "footer": "Closes #42",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "BREAKING-CHANGE footer (hyphen variant)",
+    "input": "feat(billing)!: replace PayPal with Stripe\n\nFull migration to Stripe SDK v3.\n\nBREAKING-CHANGE: PayPal webhook URLs no longer work",
+    "expected": {
+      "ok": true,
+      "type": "feat",
+      "scope": "billing",
+      "subject": "replace PayPal with Stripe",
+      "body": "Full migration to Stripe SDK v3.",
+      "footer": "BREAKING-CHANGE: PayPal webhook URLs no longer work",
+      "isBreaking": true
+    }
+  },
+  {
+    "name": "revert commit",
+    "input": "revert: feat: add experimental dark mode\n\nThis reverts commit a1b2c3d.",
+    "expected": {
+      "ok": true,
+      "type": "revert",
+      "subject": "feat: add experimental dark mode",
+      "body": "This reverts commit a1b2c3d.",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "multi-paragraph body with footer",
+    "input": "docs(api): document rate limiting\n\nAdds details about tier-based throttling.\n\nIncludes examples for each tier.\n\nRef: #99",
+    "expected": {
+      "ok": true,
+      "type": "docs",
+      "scope": "api",
+      "subject": "document rate limiting",
+      "body": "Adds details about tier-based throttling.\n\nIncludes examples for each tier.",
+      "footer": "Ref: #99",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "scope with hyphens",
+    "input": "feat(user-profile): add avatar upload",
+    "expected": { "ok": true, "type": "feat", "scope": "user-profile", "subject": "add avatar upload", "isBreaking": false }
+  },
+  {
+    "name": "footer hash token",
+    "input": "fix: correct off-by-one in pagination\n\nFixes edge case at page boundary.\n\nFixes #101",
+    "expected": {
+      "ok": true,
+      "type": "fix",
+      "subject": "correct off-by-one in pagination",
+      "body": "Fixes edge case at page boundary.",
+      "footer": "Fixes #101",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "multiple footer tokens",
+    "input": "feat(oauth): add google sign-in\n\nIntegrates Google OAuth2 flow.\n\nCloses #55\nReviewed-by: alice",
+    "expected": {
+      "ok": true,
+      "type": "feat",
+      "scope": "oauth",
+      "subject": "add google sign-in",
+      "body": "Integrates Google OAuth2 flow.",
+      "footer": "Closes #55\nReviewed-by: alice",
+      "isBreaking": false
+    }
+  },
+  {
+    "name": "invalid: uppercase type",
+    "input": "Fix: resolve crash on startup",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: missing space after colon",
+    "input": "feat:add missing space",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: empty message",
+    "input": "",
+    "expected": { "ok": false, "reason": "empty" }
+  },
+  {
+    "name": "invalid: whitespace only",
+    "input": "   ",
+    "expected": { "ok": false, "reason": "empty" }
+  },
+  {
+    "name": "invalid: plain text no type",
+    "input": "update the readme file",
+    "expected": { "ok": false, "reason": "no-type" }
+  },
+  {
+    "name": "invalid: merge commit",
+    "input": "Merge pull request #42 from feature/foo",
+    "expected": { "ok": false, "reason": "no-type" }
+  },
+  {
+    "name": "invalid: empty scope",
+    "input": "feat(): empty scope not allowed",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: body not separated by blank line",
+    "input": "fix: correct typo\nThis line should be separated by a blank line",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: numeric type",
+    "input": "123: not a valid type",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: hyphenated type",
+    "input": "build-system: switch to esbuild",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  },
+  {
+    "name": "invalid: type with digit",
+    "input": "feat2: add feature",
+    "expected": { "ok": false, "reason": "malformed-header" }
+  }
+]
