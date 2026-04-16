@@ -35,7 +35,7 @@ export default async function RepositoriesPage({
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
-      <Suspense>
+      <Suspense fallback={null}>
         <RepositoriesView {...data} />
       </Suspense>
     </div>

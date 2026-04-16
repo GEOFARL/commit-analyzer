@@ -113,9 +113,8 @@ export const RepositoriesView = ({
         ) : filteredConnected.length === 0 ? (
           hasActiveSearch ? (
             <FilteredEmptyState
-              search={filters.state.search}
               onClear={() => filters.setSearch("")}
-              clearLabel={t("github.clearSearch")}
+              clearLabel={t("clearSearch")}
               title={t("connected.emptyFiltered", { search: filters.state.search })}
             />
           ) : (
@@ -187,9 +186,8 @@ export const RepositoriesView = ({
         ) : filters.paginated.length === 0 ? (
           hasActiveSearch ? (
             <FilteredEmptyState
-              search={filters.state.search}
               onClear={() => filters.setSearch("")}
-              clearLabel={t("github.clearSearch")}
+              clearLabel={t("clearSearch")}
               title={t("github.emptyFiltered", { search: filters.state.search })}
             />
           ) : (
@@ -293,7 +291,6 @@ const FilteredEmptyState = ({
   onClear,
   clearLabel,
 }: {
-  search: string;
   title: string;
   onClear: () => void;
   clearLabel: string;

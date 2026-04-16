@@ -2,6 +2,7 @@
 
 import { RotateCcw, SlidersHorizontal, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useId } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,9 @@ export const RepoToolbar = ({
   onReset,
 }: RepoToolbarProps) => {
   const t = useTranslations("repositories.toolbar");
+  const uid = useId();
+  const sortLabelId = `${uid}-sort`;
+  const visibilityLabelId = `${uid}-visibility`;
 
   const hasActiveFilters =
     state.sortBy !== "name" ||
@@ -83,14 +87,14 @@ export const RepoToolbar = ({
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 space-y-4">
           <div className="space-y-2">
-            <p className="text-sm font-medium" id="sort-label">
+            <p className="text-sm font-medium" id={sortLabelId}>
               {t("sort")}
             </p>
             <Select
               value={state.sortBy}
               onValueChange={(v) => onSortChange(v as SortField)}
             >
-              <SelectTrigger className="w-full" aria-labelledby="sort-label">
+              <SelectTrigger className="w-full" aria-labelledby={sortLabelId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -102,7 +106,7 @@ export const RepoToolbar = ({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium" id="visibility-label">
+            <p className="text-sm font-medium" id={visibilityLabelId}>
               {t("filterVisibility")}
             </p>
             <Select
@@ -111,7 +115,7 @@ export const RepoToolbar = ({
             >
               <SelectTrigger
                 className="w-full"
-                aria-labelledby="visibility-label"
+                aria-labelledby={visibilityLabelId}
               >
                 <SelectValue />
               </SelectTrigger>

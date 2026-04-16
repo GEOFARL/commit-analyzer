@@ -1,6 +1,7 @@
 {
   "title": "Repositories",
   "subtitle": "Connect GitHub repositories to analyze commits and generate messages.",
+  "clearSearch": "Clear search",
   "connected": {
     "title": "Connected",
     "subtitle": "Repositories available to the commit analyzer.",
@@ -12,8 +13,7 @@
     "title": "Your GitHub repositories",
     "subtitle": "Pick a repository to connect.",
     "empty": "No repositories found on your GitHub account",
-    "emptyFiltered": "No repositories match \"{search}\"",
-    "clearSearch": "Clear search"
+    "emptyFiltered": "No repositories match \"{search}\""
   },
   "actions": {
     "connect": "Connect",
