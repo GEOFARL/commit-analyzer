@@ -3,17 +3,19 @@ import type { Server } from "node:http";
 import { Controller, Get, type INestApplication, Module, Post } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
-import { Throttle, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { ClsModule } from "nestjs-cls";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { ThrottleTierDecorator } from "./throttle-tier.decorator.js";
 import { THROTTLE_TIERS } from "./tiers.js";
 import { UserThrottlerGuard } from "./user-throttler.guard.js";
 
 // ── Stub controllers ──────────────────────────────────────────────
 
 @Controller()
+@ThrottleTierDecorator("default")
 class DefaultController {
   @Get("me")
   me(): { ok: true } {
@@ -22,13 +24,9 @@ class DefaultController {
 }
 
 @Controller()
+@ThrottleTierDecorator("default")
 class AuthController {
-  @Throttle({
-    default: {
-      limit: THROTTLE_TIERS.auth.limit,
-      ttl: THROTTLE_TIERS.auth.ttl,
-    },
-  })
+  @ThrottleTierDecorator("auth")
   @Post("api-keys")
   create(): { ok: true } {
     return { ok: true };
@@ -36,30 +34,25 @@ class AuthController {
 }
 
 @Controller()
+@ThrottleTierDecorator("default")
 class GenerateController {
-  @Throttle({
-    default: {
-      limit: THROTTLE_TIERS.generate.limit,
-      ttl: THROTTLE_TIERS.generate.ttl,
-    },
-  })
+  @ThrottleTierDecorator("generate")
   @Post("generate")
   generate(): { ok: true } {
     return { ok: true };
   }
 }
 
-// ── Test module ───────────────────────────────────────────────────
+// ── Test module (registers all four named tiers) ─────────────────
 
 @Module({
   imports: [
     ClsModule.forRoot({ global: true, middleware: { mount: true } }),
     ThrottlerModule.forRoot([
-      {
-        name: THROTTLE_TIERS.default.name,
-        limit: THROTTLE_TIERS.default.limit,
-        ttl: THROTTLE_TIERS.default.ttl,
-      },
+      THROTTLE_TIERS.default,
+      THROTTLE_TIERS.auth,
+      THROTTLE_TIERS.generate,
+      THROTTLE_TIERS.analytics,
     ]),
   ],
   controllers: [DefaultController, AuthController, GenerateController],
@@ -96,7 +89,7 @@ describe("throttler integration", () => {
     expect(res.headers).toHaveProperty("x-ratelimit-remaining");
   });
 
-  it("11th POST /api-keys within 60s returns 429", async () => {
+  it("11th POST /api-keys within 60s returns 429 (auth tier)", async () => {
     for (let i = 0; i < 10; i++) {
       const res = await request(server)
         .post("/api-keys")
@@ -108,10 +101,10 @@ describe("throttler integration", () => {
       .post("/api-keys")
       .set("x-forwarded-for", "10.0.0.42");
     expect(blocked.status).toBe(429);
-    expect(blocked.headers).toHaveProperty("retry-after");
+    expect(blocked.headers).toHaveProperty("retry-after-auth");
   });
 
-  it("21st POST /generate within 60s returns 429; 20th succeeds", async () => {
+  it("21st POST /generate within 60s returns 429 (generate tier)", async () => {
     for (let i = 0; i < 20; i++) {
       const res = await request(server)
         .post("/generate")

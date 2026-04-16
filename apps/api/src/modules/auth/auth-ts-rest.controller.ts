@@ -1,9 +1,8 @@
 import { authContract } from "@commit-analyzer/contracts";
 import { Controller, UseGuards } from "@nestjs/common";
-import { Throttle } from "@nestjs/throttler";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
-import { THROTTLE_TIERS } from "../../common/throttler/tiers.js";
+import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
 
 import { toApiKeyDto, toUserDto } from "./auth.mappers.js";
 import { AuthService } from "./auth.service.js";
@@ -12,6 +11,7 @@ import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
 @Controller()
 @UseGuards(SupabaseAuthGuard)
+@ThrottleTierDecorator("default")
 export class AuthTsRestController {
   constructor(private readonly authService: AuthService) {}
 
@@ -43,7 +43,7 @@ export class AuthTsRestController {
     });
   }
 
-  @Throttle({ default: { limit: THROTTLE_TIERS.auth.limit, ttl: THROTTLE_TIERS.auth.ttl } })
+  @ThrottleTierDecorator("auth")
   @TsRestHandler(authContract.apiKeys.create)
   createApiKey(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.apiKeys.create, async ({ body }) => {

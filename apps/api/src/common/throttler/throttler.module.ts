@@ -8,11 +8,10 @@ import { UserThrottlerGuard } from "./user-throttler.guard.js";
 @Module({
   imports: [
     ThrottlerModule.forRoot([
-      {
-        name: THROTTLE_TIERS.default.name,
-        limit: THROTTLE_TIERS.default.limit,
-        ttl: THROTTLE_TIERS.default.ttl,
-      },
+      THROTTLE_TIERS.default,
+      THROTTLE_TIERS.auth,
+      THROTTLE_TIERS.generate,
+      THROTTLE_TIERS.analytics,
     ]),
   ],
   providers: [{ provide: APP_GUARD, useClass: UserThrottlerGuard }],

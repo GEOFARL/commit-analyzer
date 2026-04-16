@@ -16,6 +16,10 @@ export class UserThrottlerGuard extends ThrottlerGuard {
     const userId = getAuthUserId();
     if (userId) return `user:${userId}`;
 
+    // NOTE: x-forwarded-for is spoofable without `trust proxy` configured in
+    // Express. Acceptable for now — authenticated requests key by userId above;
+    // IP fallback only applies to pre-auth error paths. Enable `trust proxy`
+    // when deploying behind a reverse proxy (Railway / Vercel).
     const forwarded = req.headers
       ? (req.headers as Record<string, string | string[] | undefined>)[
           "x-forwarded-for"
