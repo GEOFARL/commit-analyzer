@@ -1,11 +1,9 @@
 "use client";
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
-import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Github, Loader2, Plug, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +14,6 @@ import {
   useDisconnectRepoMutation,
   useGithubReposQuery,
 } from "@/features/repositories/hooks";
-import { repositoryQueryKeys } from "@/features/repositories/queries";
 import type { RepositoriesPageData } from "@/features/repositories/types";
 import { useRepoFilters } from "@/features/repositories/use-repo-filters";
 
@@ -37,7 +34,6 @@ export const RepositoriesView = ({
   initialConnected,
 }: RepositoriesPageData) => {
   const t = useTranslations("repositories");
-  const queryClient = useQueryClient();
 
   const githubQuery = useGithubReposQuery(userId, initialGithub);
   const connectedQuery = useConnectedReposQuery(userId, initialConnected);
@@ -63,29 +59,6 @@ export const RepositoriesView = ({
     );
   }, [connectedItems, filters.state.search]);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    void Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: [...repositoryQueryKeys.github(userId)],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: [...repositoryQueryKeys.connected(userId)],
-      }),
-    ])
-      .then(() => {
-        toast.success(t("toast.refreshed"));
-      })
-      .catch(() => {
-        toast.error(t("toast.refreshError"));
-      })
-      .finally(() => {
-        setIsRefreshing(false);
-      });
-  };
-
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
@@ -98,8 +71,6 @@ export const RepositoriesView = ({
         onSortChange={filters.setSortBy}
         onVisibilityChange={filters.setVisibility}
         onArchivedChange={filters.setShowArchived}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
       />
 
       <section className="flex flex-col gap-4">
@@ -251,10 +222,8 @@ export const RepositoriesView = ({
             <RepoPagination
               page={filters.state.page}
               totalPages={filters.totalPages}
-              pageSize={filters.state.pageSize}
               totalFiltered={filters.totalFiltered}
               onPageChange={filters.setPage}
-              onPageSizeChange={filters.setPageSize}
             />
           </>
         )}
