@@ -1,5 +1,6 @@
 import {
   createApiKeyRepository,
+  createAuditEventRepository,
   createDataSource,
   createRepositoryRepository,
   createUserRepository,
@@ -12,6 +13,7 @@ import { getServerEnv } from "../config.js";
 
 import {
   API_KEY_REPOSITORY,
+  AUDIT_EVENT_REPOSITORY,
   DATA_SOURCE,
   REPOSITORY_REPOSITORY,
   USER_REPOSITORY,
@@ -58,6 +60,11 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createRepositoryRepository(ds),
     },
     {
+      provide: AUDIT_EVENT_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createAuditEventRepository(ds),
+    },
+    {
       provide: APP_INTERCEPTOR,
       useClass: TransactionalInterceptor,
     },
@@ -65,6 +72,7 @@ const dbLogger = new Logger("DatabaseModule");
   exports: [
     DATA_SOURCE,
     API_KEY_REPOSITORY,
+    AUDIT_EVENT_REPOSITORY,
     USER_REPOSITORY,
     REPOSITORY_REPOSITORY,
   ],
