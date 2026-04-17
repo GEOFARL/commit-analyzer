@@ -2,6 +2,7 @@ import "reflect-metadata";
 
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 
 import { AppModule } from "./app.module.js";
 import { getServerEnv } from "./common/config.js";
@@ -13,6 +14,7 @@ export const createApp = async (): Promise<NestExpressApplication> => {
     logger: false,
   });
 
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.use(buildHelmetMiddleware(env));
   app.enableCors({
     origin: env.WEB_ORIGIN,
