@@ -1,7 +1,7 @@
 "use client";
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
-import { AlertCircle, Github, Loader2, Plug, Trash2, X } from "lucide-react";
+import { AlertCircle, BarChart3, Github, Loader2, Plug, Trash2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -16,6 +16,7 @@ import {
 } from "@/features/repositories/hooks";
 import type { RepositoriesPageData } from "@/features/repositories/types";
 import { useRepoFilters } from "@/features/repositories/use-repo-filters";
+import { Link } from "@/i18n/navigation";
 
 import { DisconnectDialog } from "./disconnect-dialog";
 import { EmptyGitGraph } from "./empty-git-graph";
@@ -34,6 +35,7 @@ export const RepositoriesView = ({
   initialConnected,
 }: RepositoriesPageData) => {
   const t = useTranslations("repositories");
+  const tAnalytics = useTranslations("analytics");
 
   const githubQuery = useGithubReposQuery(userId, initialGithub);
   const connectedQuery = useConnectedReposQuery(userId, initialConnected);
@@ -139,21 +141,35 @@ export const RepositoriesView = ({
                   isConnected
                   connectedLabel={t("badge.connected")}
                   action={
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setPendingDisconnect(repo)}
-                      disabled={isDisconnecting || isStub}
-                    >
-                      {isDisconnecting ? (
-                        <Loader2 className="animate-spin" />
-                      ) : (
-                        <Trash2 />
-                      )}
-                      {t("actions.disconnect")}
-                    </Button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <Button
+                        asChild
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isStub}
+                      >
+                        <Link href={`/repositories/${repo.id}`}>
+                          <BarChart3 />
+                          {tAnalytics("actions.viewAnalytics")}
+                        </Link>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => setPendingDisconnect(repo)}
+                        disabled={isDisconnecting || isStub}
+                      >
+                        {isDisconnecting ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Trash2 />
+                        )}
+                        {t("actions.disconnect")}
+                      </Button>
+                    </div>
                   }
                 />
               );

@@ -1,3 +1,4 @@
+import type analytics from "../messages/en/analytics.json";
 import type apiKeys from "../messages/en/apiKeys.json";
 import type auth from "../messages/en/auth.json";
 import type common from "../messages/en/common.json";
@@ -14,6 +15,7 @@ import type userMenu from "../messages/en/userMenu.json";
 import type { routing } from "./i18n/routing";
 
 type Messages = {
+  analytics: typeof analytics;
   apiKeys: typeof apiKeys;
   auth: typeof auth;
   common: typeof common;
