@@ -1,8 +1,9 @@
 import type { CommitQualityScoreRepository } from "@commit-analyzer/database";
+import type { EventBus } from "@nestjs/cqrs";
 import type { Job } from "bullmq";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { CacheService } from "../../../common/cache/cache.service.js";
+import { RepoRescoredEvent } from "../../../shared/events/repo-rescored.event.js";
 import type { RescoreJobData } from "../queues/rescore.queue.js";
 
 import { RescoreProcessor } from "./rescore.processor.js";
@@ -29,13 +30,13 @@ describe("RescoreProcessor", () => {
   let processor: RescoreProcessor;
   let queryMock: ReturnType<typeof vi.fn>;
   let upsertBatchMock: ReturnType<typeof vi.fn>;
-  let delByPatternMock: ReturnType<typeof vi.fn>;
+  let publishMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     updateProgressMock.mockReset();
     queryMock = vi.fn().mockResolvedValue([]);
     upsertBatchMock = vi.fn().mockResolvedValue(undefined);
-    delByPatternMock = vi.fn().mockResolvedValue(0);
+    publishMock = vi.fn();
 
     const dataSource = { query: queryMock } as unknown as InstanceType<
       typeof import("typeorm").DataSource
@@ -43,11 +44,9 @@ describe("RescoreProcessor", () => {
     const qualityScoreRepo = {
       upsertBatch: upsertBatchMock,
     } as unknown as CommitQualityScoreRepository;
-    const cacheService = {
-      delByPattern: delByPatternMock,
-    } as unknown as CacheService;
+    const eventBus = { publish: publishMock } as unknown as EventBus;
 
-    processor = new RescoreProcessor(dataSource, qualityScoreRepo, cacheService);
+    processor = new RescoreProcessor(dataSource, qualityScoreRepo, eventBus);
   });
 
   it("processes empty repo without errors", async () => {
@@ -55,7 +54,7 @@ describe("RescoreProcessor", () => {
     await processor.process(job);
     expect(queryMock).toHaveBeenCalledOnce();
     expect(upsertBatchMock).not.toHaveBeenCalled();
-    expect(delByPatternMock).not.toHaveBeenCalled();
+    expect(publishMock).not.toHaveBeenCalled();
   });
 
   it("scores commits in batches and upserts results", async () => {
@@ -123,7 +122,7 @@ describe("RescoreProcessor", () => {
     expect(query[1]).toEqual(["repo-1", 500, 0]);
   });
 
-  it("invalidates analytics cache after scoring", async () => {
+  it("publishes RepoRescoredEvent after scoring", async () => {
     queryMock
       .mockResolvedValueOnce([makeCommit("c1", "fix: patch")])
       .mockResolvedValueOnce([]);
@@ -131,8 +130,12 @@ describe("RescoreProcessor", () => {
     const job = makeJob();
     await processor.process(job);
 
-    expect(delByPatternMock).toHaveBeenCalledOnce();
-    expect(delByPatternMock).toHaveBeenCalledWith("analytics:*:repo-1*");
+    expect(publishMock).toHaveBeenCalledOnce();
+    const event = publishMock.mock.calls[0]![0] as RepoRescoredEvent;
+    expect(event).toBeInstanceOf(RepoRescoredEvent);
+    expect(event.repositoryId).toBe("repo-1");
+    expect(event.rescoreJobId).toBe("rescore-job-1");
+    expect(event.commitsProcessed).toBe(1);
   });
 
   it("logs error on failure event", () => {
