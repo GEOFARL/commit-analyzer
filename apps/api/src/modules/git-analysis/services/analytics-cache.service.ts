@@ -1,36 +1,62 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 
 import { CacheService } from "../../../common/cache/cache.service.js";
 
 import {
   ANALYTICS_CACHE_PREFIX,
-  ANALYTICS_CACHE_TTL_SECONDS,
+  ANALYTICS_CACHE_TTL,
 } from "./analytics-cache.constants.js";
 import type { AnalyticsCacheKind } from "./analytics-cache.types.js";
 
 @Injectable()
 export class AnalyticsCacheService {
+  private readonly logger = new Logger(AnalyticsCacheService.name);
+  private hits = 0;
+  private misses = 0;
+
   constructor(private readonly cache: CacheService) {}
 
-  private key(kind: AnalyticsCacheKind, repoId: string, suffix?: string): string {
+  private key(repoId: string, kind: AnalyticsCacheKind, suffix?: string): string {
     return suffix
-      ? `${ANALYTICS_CACHE_PREFIX}:${kind}:${repoId}:${suffix}`
-      : `${ANALYTICS_CACHE_PREFIX}:${kind}:${repoId}`;
+      ? `${ANALYTICS_CACHE_PREFIX}:${repoId}:${kind}:${suffix}`
+      : `${ANALYTICS_CACHE_PREFIX}:${repoId}:${kind}`;
   }
 
-  async get<T>(kind: AnalyticsCacheKind, repoId: string, suffix?: string): Promise<T | null> {
-    return this.cache.getJson<T>(this.key(kind, repoId, suffix));
-  }
-
-  async set(kind: AnalyticsCacheKind, repoId: string, value: unknown, suffix?: string): Promise<void> {
-    await this.cache.setJson(
-      this.key(kind, repoId, suffix),
-      value,
-      ANALYTICS_CACHE_TTL_SECONDS,
+  /**
+   * Read-through helper: returns cached value if present, otherwise calls
+   * `loader`, stores the result under `analytics:<repoId>:<kind>[:<suffix>]`
+   * with the per-query TTL, and returns it.
+   */
+  async getOrSet<T>(
+    kind: AnalyticsCacheKind,
+    repoId: string,
+    loader: () => Promise<T>,
+    suffix?: string,
+  ): Promise<T> {
+    const k = this.key(repoId, kind, suffix);
+    const cached = await this.cache.getJson<T>(k);
+    if (cached !== null) {
+      this.hits++;
+      this.logger.debug(
+        `cache hit  key=${k} hits=${this.hits} misses=${this.misses}`,
+      );
+      return cached;
+    }
+    this.misses++;
+    this.logger.debug(
+      `cache miss key=${k} hits=${this.hits} misses=${this.misses}`,
     );
+    const result = await loader();
+    await this.cache.setJson(k, result, ANALYTICS_CACHE_TTL[kind]);
+    return result;
+  }
+
+  /** Hit/miss counters for debugging (e.g. health endpoint or logs). */
+  metrics(): { hits: number; misses: number } {
+    return { hits: this.hits, misses: this.misses };
   }
 
   async invalidateRepo(repoId: string): Promise<number> {
-    return this.cache.delByPattern(`${ANALYTICS_CACHE_PREFIX}:*:${repoId}*`);
+    return this.cache.delByPattern(`${ANALYTICS_CACHE_PREFIX}:${repoId}:*`);
   }
 }

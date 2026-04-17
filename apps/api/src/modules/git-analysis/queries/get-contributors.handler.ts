@@ -19,36 +19,36 @@ export class GetContributorsHandler implements IQueryHandler<GetContributorsQuer
   async execute(query: GetContributorsQuery): Promise<Contributor[]> {
     await assertRepoOwnership(this.ds, query.repoId, query.userId);
 
-    const suffix = String(query.limit);
-    const cached = await this.analyticsCache.get<Contributor[]>("contributors", query.repoId, suffix);
-    if (cached) return cached;
-
-    const rows: {
-      author_name: string;
-      author_email: string;
-      commit_count: string;
-      avg_quality: string;
-    }[] = await this.ds.query(
-      `SELECT c.author_name,
-              c.author_email,
-              count(*)::text AS commit_count,
-              coalesce(round(avg(qs.overall_score), 2), 0)::text AS avg_quality
-         FROM commits c
-         LEFT JOIN commit_quality_scores qs ON qs.commit_id = c.id
-        WHERE c.repository_id = $1
-        GROUP BY c.author_name, c.author_email
-        ORDER BY count(*) DESC
-        LIMIT $2`,
-      [query.repoId, query.limit],
+    return this.analyticsCache.getOrSet(
+      "contributors",
+      query.repoId,
+      async () => {
+        const rows: {
+          author_name: string;
+          author_email: string;
+          commit_count: string;
+          avg_quality: string;
+        }[] = await this.ds.query(
+          `SELECT c.author_name,
+                  c.author_email,
+                  count(*)::text AS commit_count,
+                  coalesce(round(avg(qs.overall_score), 2), 0)::text AS avg_quality
+             FROM commits c
+             LEFT JOIN commit_quality_scores qs ON qs.commit_id = c.id
+            WHERE c.repository_id = $1
+            GROUP BY c.author_name, c.author_email
+            ORDER BY count(*) DESC
+            LIMIT $2`,
+          [query.repoId, query.limit],
+        );
+        return rows.map((r) => ({
+          authorName: r.author_name,
+          authorEmail: r.author_email,
+          commitCount: Number(r.commit_count),
+          avgQuality: Number(r.avg_quality),
+        }));
+      },
+      String(query.limit),
     );
-
-    const result = rows.map((r) => ({
-      authorName: r.author_name,
-      authorEmail: r.author_email,
-      commitCount: Number(r.commit_count),
-      avgQuality: Number(r.avg_quality),
-    }));
-    await this.analyticsCache.set("contributors", query.repoId, result, suffix);
-    return result;
   }
 }

@@ -19,22 +19,22 @@ export class GetTimelineHandler implements IQueryHandler<GetTimelineQuery> {
   async execute(query: GetTimelineQuery): Promise<TimelinePoint[]> {
     await assertRepoOwnership(this.ds, query.repoId, query.userId);
 
-    const suffix = query.granularity;
-    const cached = await this.analyticsCache.get<TimelinePoint[]>("timeline", query.repoId, suffix);
-    if (cached) return cached;
-
-    const rows: { date: string; count: string }[] = await this.ds.query(
-      `SELECT date_trunc($1, c.authored_at)::date::text AS date,
-              count(*)::text AS count
-         FROM commits c
-        WHERE c.repository_id = $2
-        GROUP BY 1
-        ORDER BY 1`,
-      [query.granularity, query.repoId],
+    return this.analyticsCache.getOrSet(
+      "timeline",
+      query.repoId,
+      async () => {
+        const rows: { date: string; count: string }[] = await this.ds.query(
+          `SELECT date_trunc($1, c.authored_at)::date::text AS date,
+                  count(*)::text AS count
+             FROM commits c
+            WHERE c.repository_id = $2
+            GROUP BY 1
+            ORDER BY 1`,
+          [query.granularity, query.repoId],
+        );
+        return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
+      },
+      query.granularity,
     );
-
-    const result = rows.map((r) => ({ date: r.date, count: Number(r.count) }));
-    await this.analyticsCache.set("timeline", query.repoId, result, suffix);
-    return result;
   }
 }
