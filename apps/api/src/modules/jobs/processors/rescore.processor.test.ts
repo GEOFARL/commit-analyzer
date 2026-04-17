@@ -29,13 +29,13 @@ describe("RescoreProcessor", () => {
   let processor: RescoreProcessor;
   let queryMock: ReturnType<typeof vi.fn>;
   let upsertBatchMock: ReturnType<typeof vi.fn>;
-  let delByPrefixMock: ReturnType<typeof vi.fn>;
+  let delByPatternMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     updateProgressMock.mockReset();
     queryMock = vi.fn().mockResolvedValue([]);
     upsertBatchMock = vi.fn().mockResolvedValue(undefined);
-    delByPrefixMock = vi.fn().mockResolvedValue(0);
+    delByPatternMock = vi.fn().mockResolvedValue(0);
 
     const dataSource = { query: queryMock } as unknown as InstanceType<
       typeof import("typeorm").DataSource
@@ -44,7 +44,7 @@ describe("RescoreProcessor", () => {
       upsertBatch: upsertBatchMock,
     } as unknown as CommitQualityScoreRepository;
     const cacheService = {
-      delByPrefix: delByPrefixMock,
+      delByPattern: delByPatternMock,
     } as unknown as CacheService;
 
     processor = new RescoreProcessor(dataSource, qualityScoreRepo, cacheService);
@@ -55,7 +55,7 @@ describe("RescoreProcessor", () => {
     await processor.process(job);
     expect(queryMock).toHaveBeenCalledOnce();
     expect(upsertBatchMock).not.toHaveBeenCalled();
-    expect(delByPrefixMock).not.toHaveBeenCalled();
+    expect(delByPatternMock).not.toHaveBeenCalled();
   });
 
   it("scores commits in batches and upserts results", async () => {
@@ -131,8 +131,8 @@ describe("RescoreProcessor", () => {
     const job = makeJob();
     await processor.process(job);
 
-    expect(delByPrefixMock).toHaveBeenCalledOnce();
-    expect(delByPrefixMock).toHaveBeenCalledWith("analytics:repo-1");
+    expect(delByPatternMock).toHaveBeenCalledOnce();
+    expect(delByPatternMock).toHaveBeenCalledWith("analytics:*:repo-1*");
   });
 
   it("logs error on failure event", () => {

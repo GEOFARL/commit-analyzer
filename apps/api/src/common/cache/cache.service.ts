@@ -36,8 +36,8 @@ export class CacheService {
     }
   }
 
-  /** Delete all keys matching `prefix*` using SCAN (non-blocking). */
-  async delByPrefix(prefix: string): Promise<number> {
+  /** Delete all keys matching a glob `pattern` using SCAN (non-blocking). */
+  async delByPattern(pattern: string): Promise<number> {
     let deleted = 0;
     let cursor = "0";
     try {
@@ -45,7 +45,7 @@ export class CacheService {
         const [next, keys] = await this.redis.scan(
           cursor,
           "MATCH",
-          `${prefix}*`,
+          pattern,
           "COUNT",
           100,
         );
@@ -57,7 +57,7 @@ export class CacheService {
       } while (cursor !== "0");
     } catch (err) {
       this.logger.warn(
-        `cache.delByPrefix failed prefix=${prefix}: ${String(err)}`,
+        `cache.delByPattern failed pattern=${pattern}: ${String(err)}`,
       );
     }
     return deleted;

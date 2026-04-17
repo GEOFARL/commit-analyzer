@@ -17,7 +17,9 @@ import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { RESCORE_QUEUE, type RescoreJobData } from "../queues/rescore.queue.js";
 import { DEFAULT_RESCORE_BATCH_SIZE } from "../services/queue.constants.js";
 
-const ANALYTICS_CACHE_PREFIX = "analytics:";
+/** Glob matching all analytics keys for a repo (spec: `analytics:{type}:{repoId}…`). */
+const ANALYTICS_CACHE_PATTERN = (repoId: string) =>
+  `analytics:*:${repoId}*`;
 
 @Processor(RESCORE_QUEUE)
 export class RescoreProcessor extends WorkerHost {
@@ -80,9 +82,8 @@ export class RescoreProcessor extends WorkerHost {
     }
 
     if (processed > 0) {
-      const deleted = await this.cacheService.delByPrefix(
-        `${ANALYTICS_CACHE_PREFIX}${repositoryId}`,
-      );
+      const pattern = ANALYTICS_CACHE_PATTERN(repositoryId);
+      const deleted = await this.cacheService.delByPattern(pattern);
       this.logger.log(
         `rescore cache invalidated repositoryId=${repositoryId} keys=${deleted}`,
       );
