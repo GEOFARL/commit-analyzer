@@ -1,3 +1,5 @@
+import type { JobState } from "bullmq";
+
 import type { RescoreJobName } from "../queues/rescore.queue.js";
 import type { SyncJobName } from "../queues/sync.queue.js";
 
@@ -19,3 +21,12 @@ export const RESCORE_JOB_OPTS = {
 } as const;
 
 export const DEFAULT_RESCORE_BATCH_SIZE = 500;
+
+/** BullMQ states that indicate a job is still pending — skip enqueue. */
+export const ACTIVE_JOB_STATES = new Set<JobState | "unknown">([
+  "active",
+  "waiting",
+  "delayed",
+  "waiting-children",
+  "prioritized",
+]);

@@ -132,17 +132,20 @@ describe("QueueService", () => {
       );
     });
 
-    it("skips duplicate when rescore job is active", async () => {
-      rescoreGetJobMock.mockResolvedValue({
-        id: "rescore:repo-1",
-        getState: vi.fn().mockResolvedValue("active"),
-      });
+    it.each(["active", "waiting", "delayed", "waiting-children", "prioritized"] as const)(
+      "skips duplicate when rescore job is %s",
+      async (state) => {
+        rescoreGetJobMock.mockResolvedValue({
+          id: "rescore:repo-1",
+          getState: vi.fn().mockResolvedValue(state),
+        });
 
-      const id = await service.enqueueRescore("repo-1");
+        const id = await service.enqueueRescore("repo-1");
 
-      expect(id).toBe("rescore:repo-1");
-      expect(rescoreAddMock).not.toHaveBeenCalled();
-    });
+        expect(id).toBe("rescore:repo-1");
+        expect(rescoreAddMock).not.toHaveBeenCalled();
+      },
+    );
 
     it("re-enqueues when prior rescore job completed", async () => {
       rescoreGetJobMock.mockResolvedValue({

@@ -7,6 +7,7 @@ import { Inject, Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
 import type { DataSource } from "typeorm";
 
+import { CacheService } from "../../../common/cache/cache.service.js";
 import {
   COMMIT_QUALITY_SCORE_REPOSITORY,
   DATA_SOURCE,
@@ -16,6 +17,8 @@ import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { RESCORE_QUEUE, type RescoreJobData } from "../queues/rescore.queue.js";
 import { DEFAULT_RESCORE_BATCH_SIZE } from "../services/queue.constants.js";
 
+const ANALYTICS_CACHE_PREFIX = "analytics:";
+
 @Processor(RESCORE_QUEUE)
 export class RescoreProcessor extends WorkerHost {
   private readonly logger = new Logger(RescoreProcessor.name);
@@ -24,6 +27,7 @@ export class RescoreProcessor extends WorkerHost {
     @Inject(DATA_SOURCE) private readonly dataSource: DataSource,
     @Inject(COMMIT_QUALITY_SCORE_REPOSITORY)
     private readonly qualityScoreRepo: CommitQualityScoreRepository,
+    private readonly cacheService: CacheService,
   ) {
     super();
   }
@@ -59,7 +63,7 @@ export class RescoreProcessor extends WorkerHost {
           hasBody: score.hasBody,
           hasFooter: score.hasFooter,
           overallScore: score.overallScore,
-          details: score.details as unknown as Record<string, unknown>,
+          details: score.details,
         };
       });
 
@@ -72,6 +76,15 @@ export class RescoreProcessor extends WorkerHost {
 
       this.logger.debug(
         `rescore progress jobId=${job.id} processed=${processed}`,
+      );
+    }
+
+    if (processed > 0) {
+      const deleted = await this.cacheService.delByPrefix(
+        `${ANALYTICS_CACHE_PREFIX}${repositoryId}`,
+      );
+      this.logger.log(
+        `rescore cache invalidated repositoryId=${repositoryId} keys=${deleted}`,
       );
     }
 

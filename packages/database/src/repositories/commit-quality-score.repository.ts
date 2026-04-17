@@ -1,7 +1,12 @@
-import type { DataSource, Repository as OrmRepository } from "typeorm";
+import type {
+  DataSource,
+  QueryDeepPartialEntity,
+  Repository as OrmRepository,
+} from "typeorm";
 
 import { CommitQualityScore } from "../entities/commit-quality-score.entity.js";
 
+/** Plain object accepted by `upsertBatch` — decoupled from TypeORM entity. */
 export type UpsertScoreRow = {
   commitId: string;
   isConventional: boolean;
@@ -11,7 +16,8 @@ export type UpsertScoreRow = {
   hasBody: boolean;
   hasFooter: boolean;
   overallScore: number;
-  details: Record<string, unknown>;
+  /** Stored as JSONB; accepts any serialisable structure (e.g. ScoreDetail[]). */
+  details: unknown;
 };
 
 export interface CommitQualityScoreRepository
@@ -31,8 +37,23 @@ export const createCommitQualityScoreRepository = (
   const extensions: Pick<CommitQualityScoreRepository, "upsertBatch"> = {
     async upsertBatch(rows: UpsertScoreRow[]): Promise<void> {
       if (rows.length === 0) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await base.upsert(rows as any[], ["commitId"]);
+      // TypeORM's _QueryDeepPartialEntity rejects Record<string, unknown>
+      // for jsonb columns — cast each row to the expected partial type.
+      const mapped = rows.map(
+        (r) =>
+          ({
+            commitId: r.commitId,
+            isConventional: r.isConventional,
+            ccType: r.ccType,
+            ccScope: r.ccScope,
+            subjectLength: r.subjectLength,
+            hasBody: r.hasBody,
+            hasFooter: r.hasFooter,
+            overallScore: r.overallScore,
+            details: r.details,
+          }) as QueryDeepPartialEntity<CommitQualityScore>,
+      );
+      await base.upsert(mapped, ["commitId"]);
     },
   };
 

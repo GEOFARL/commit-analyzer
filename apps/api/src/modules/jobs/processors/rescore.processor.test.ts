@@ -2,8 +2,10 @@ import type { CommitQualityScoreRepository } from "@commit-analyzer/database";
 import type { Job } from "bullmq";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RescoreProcessor } from "./processors/rescore.processor.js";
-import type { RescoreJobData } from "./queues/rescore.queue.js";
+import type { CacheService } from "../../../common/cache/cache.service.js";
+import type { RescoreJobData } from "../queues/rescore.queue.js";
+
+import { RescoreProcessor } from "./rescore.processor.js";
 
 const updateProgressMock = vi.fn();
 
@@ -27,11 +29,13 @@ describe("RescoreProcessor", () => {
   let processor: RescoreProcessor;
   let queryMock: ReturnType<typeof vi.fn>;
   let upsertBatchMock: ReturnType<typeof vi.fn>;
+  let delByPrefixMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     updateProgressMock.mockReset();
     queryMock = vi.fn().mockResolvedValue([]);
     upsertBatchMock = vi.fn().mockResolvedValue(undefined);
+    delByPrefixMock = vi.fn().mockResolvedValue(0);
 
     const dataSource = { query: queryMock } as unknown as InstanceType<
       typeof import("typeorm").DataSource
@@ -39,8 +43,11 @@ describe("RescoreProcessor", () => {
     const qualityScoreRepo = {
       upsertBatch: upsertBatchMock,
     } as unknown as CommitQualityScoreRepository;
+    const cacheService = {
+      delByPrefix: delByPrefixMock,
+    } as unknown as CacheService;
 
-    processor = new RescoreProcessor(dataSource, qualityScoreRepo);
+    processor = new RescoreProcessor(dataSource, qualityScoreRepo, cacheService);
   });
 
   it("processes empty repo without errors", async () => {
@@ -48,6 +55,7 @@ describe("RescoreProcessor", () => {
     await processor.process(job);
     expect(queryMock).toHaveBeenCalledOnce();
     expect(upsertBatchMock).not.toHaveBeenCalled();
+    expect(delByPrefixMock).not.toHaveBeenCalled();
   });
 
   it("scores commits in batches and upserts results", async () => {
@@ -113,6 +121,18 @@ describe("RescoreProcessor", () => {
     const query = queryMock.mock.calls[0]!;
     // default batch size = 500
     expect(query[1]).toEqual(["repo-1", 500, 0]);
+  });
+
+  it("invalidates analytics cache after scoring", async () => {
+    queryMock
+      .mockResolvedValueOnce([makeCommit("c1", "fix: patch")])
+      .mockResolvedValueOnce([]);
+
+    const job = makeJob();
+    await processor.process(job);
+
+    expect(delByPrefixMock).toHaveBeenCalledOnce();
+    expect(delByPrefixMock).toHaveBeenCalledWith("analytics:repo-1");
   });
 
   it("logs error on failure event", () => {

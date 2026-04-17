@@ -9,6 +9,7 @@ import {
 import { SYNC_QUEUE, type SyncJobData } from "../queues/sync.queue.js";
 
 import {
+  ACTIVE_JOB_STATES,
   RESCORE_JOB_NAME,
   RESCORE_JOB_OPTS,
   SYNC_JOB_NAME,
@@ -36,7 +37,7 @@ export class QueueService {
     const existing = await this.syncQueue.getJob(jobId);
     if (existing) {
       const state = await existing.getState();
-      if (state === "active" || state === "waiting" || state === "delayed") {
+      if (ACTIVE_JOB_STATES.has(state)) {
         this.logger.log(
           `sync job already ${state}, skipping enqueue repositoryId=${repositoryId} jobId=${jobId}`,
         );
@@ -67,7 +68,7 @@ export class QueueService {
     const existing = await this.rescoreQueue.getJob(jobId);
     if (existing) {
       const state = await existing.getState();
-      if (state === "active" || state === "waiting" || state === "delayed") {
+      if (ACTIVE_JOB_STATES.has(state)) {
         this.logger.log(
           `rescore job already ${state}, skipping repositoryId=${repositoryId} jobId=${jobId}`,
         );

@@ -35,4 +35,31 @@ export class CacheService {
       this.logger.warn(`cache.del failed key=${key}: ${String(err)}`);
     }
   }
+
+  /** Delete all keys matching `prefix*` using SCAN (non-blocking). */
+  async delByPrefix(prefix: string): Promise<number> {
+    let deleted = 0;
+    let cursor = "0";
+    try {
+      do {
+        const [next, keys] = await this.redis.scan(
+          cursor,
+          "MATCH",
+          `${prefix}*`,
+          "COUNT",
+          100,
+        );
+        cursor = next;
+        if (keys.length > 0) {
+          await this.redis.del(...keys);
+          deleted += keys.length;
+        }
+      } while (cursor !== "0");
+    } catch (err) {
+      this.logger.warn(
+        `cache.delByPrefix failed prefix=${prefix}: ${String(err)}`,
+      );
+    }
+    return deleted;
+  }
 }
