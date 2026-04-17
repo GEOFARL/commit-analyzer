@@ -76,25 +76,11 @@ export const createCommitRepository = (
     async upsertScores(scores: UpsertScoreInput[]): Promise<void> {
       if (scores.length === 0) return;
       const scoreRepo = dataSource.getRepository(CommitQualityScore);
-      await scoreRepo
-        .createQueryBuilder()
-        .insert()
-        .into(CommitQualityScore)
-        .values(scores as never)
-        .orUpdate(
-          [
-            "is_conventional",
-            "cc_type",
-            "cc_scope",
-            "subject_length",
-            "has_body",
-            "has_footer",
-            "overall_score",
-            "details",
-          ],
-          ["commit_id"],
-        )
-        .execute();
+      // TypeORM's _QueryDeepPartialEntity wraps jsonb Record<string,unknown>
+      // columns in a way that prevents direct assignment. Cast through the
+      // parameter type to avoid silencing the compiler entirely.
+      type UpsertArg = Parameters<typeof scoreRepo.upsert>[0];
+      await scoreRepo.upsert(scores as unknown as UpsertArg, ["commitId"]);
     },
   };
   return base.extend(extensions) as CommitRepository;

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RepoSyncedEvent } from "./events/repo-synced.event.js";
 import { SyncFailedEvent } from "./events/sync-failed.event.js";
 import { SyncProgressEvent } from "./events/sync-progress.event.js";
+import { SyncStartedEvent } from "./events/sync-started.event.js";
 import { SyncProcessor } from "./processors/sync.processor.js";
 import type { SyncJobData } from "./queues/sync.queue.js";
 
@@ -41,9 +42,18 @@ const FIXTURE_COMMITS = [
   makeGithubCommit("sha5", "docs(readme): add setup guide"),
 ];
 
+/** Build a paginate.iterator mock that yields the given pages in order. */
+function makeIterator(pages: typeof FIXTURE_COMMITS[]) {
+  return vi.fn().mockImplementation(function* () {
+    for (const pageData of pages) {
+      yield { data: pageData };
+    }
+  });
+}
+
 describe("SyncProcessor", () => {
   let processor: SyncProcessor;
-  let reposMock: ReturnType<typeof vi.fn>;
+  let reposMock: { findOne: ReturnType<typeof vi.fn> };
   let syncJobsMock: {
     createJob: ReturnType<typeof vi.fn>;
     markRunning: ReturnType<typeof vi.fn>;
@@ -55,21 +65,20 @@ describe("SyncProcessor", () => {
     upsertBatch: ReturnType<typeof vi.fn>;
     upsertScores: ReturnType<typeof vi.fn>;
   };
+  let paginateIteratorMock: ReturnType<typeof vi.fn>;
   let octokitFactoryMock: { forUser: ReturnType<typeof vi.fn> };
   let eventBusMock: { publish: ReturnType<typeof vi.fn> };
-  let listCommitsMock: ReturnType<typeof vi.fn>;
+
+  function setPages(pages: typeof FIXTURE_COMMITS[]) {
+    paginateIteratorMock = makeIterator(pages);
+    octokitFactoryMock.forUser.mockResolvedValue({
+      rest: { repos: { listCommits: vi.fn() } },
+      paginate: { iterator: paginateIteratorMock },
+    });
+  }
 
   beforeEach(() => {
-    listCommitsMock = vi.fn();
-    octokitFactoryMock = {
-      forUser: vi.fn().mockResolvedValue({
-        rest: {
-          repos: {
-            listCommits: listCommitsMock,
-          },
-        },
-      }),
-    };
+    paginateIteratorMock = makeIterator([FIXTURE_COMMITS]);
 
     reposMock = {
       findOne: vi.fn().mockResolvedValue({
@@ -77,7 +86,7 @@ describe("SyncProcessor", () => {
         fullName: "octocat/hello-world",
         userId: USER_ID,
       }),
-    } as unknown as ReturnType<typeof vi.fn>;
+    };
 
     syncJobsMock = {
       createJob: vi.fn().mockResolvedValue({
@@ -103,6 +112,13 @@ describe("SyncProcessor", () => {
 
     eventBusMock = { publish: vi.fn() };
 
+    octokitFactoryMock = {
+      forUser: vi.fn().mockResolvedValue({
+        rest: { repos: { listCommits: vi.fn() } },
+        paginate: { iterator: paginateIteratorMock },
+      }),
+    };
+
     processor = new SyncProcessor(
       reposMock as never,
       syncJobsMock as never,
@@ -113,34 +129,30 @@ describe("SyncProcessor", () => {
   });
 
   describe("happy path — single page", () => {
-    beforeEach(() => {
-      listCommitsMock.mockResolvedValue({ data: FIXTURE_COMMITS });
-    });
-
-    it("creates sync job and marks it running", async () => {
+    it("creates sync job, marks it running, emits sync.started", async () => {
       const job = makeJob();
       await processor.process(job);
 
       expect(syncJobsMock.createJob).toHaveBeenCalledWith(REPO_ID);
-      expect(syncJobsMock.markRunning).toHaveBeenCalledWith(
-        SYNC_JOB_ID,
-        expect.any(Date),
+      expect(syncJobsMock.markRunning).toHaveBeenCalledWith(SYNC_JOB_ID, expect.any(Date));
+
+      const started = eventBusMock.publish.mock.calls.find(
+        (args) => args[0] instanceof SyncStartedEvent,
       );
+      expect(started).toBeDefined();
     });
 
-    it("fetches commits with correct owner/repo", async () => {
+    it("calls paginate.iterator with correct owner/repo/per_page", async () => {
       const job = makeJob();
       await processor.process(job);
 
-      expect(listCommitsMock).toHaveBeenCalledWith({
-        owner: "octocat",
-        repo: "hello-world",
-        per_page: 100,
-        page: 1,
-      });
+      expect(paginateIteratorMock).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({ owner: "octocat", repo: "hello-world", per_page: 100 }),
+      );
     });
 
-    it("upserts commits batch", async () => {
+    it("upserts all commits from page", async () => {
       const job = makeJob();
       await processor.process(job);
 
@@ -169,14 +181,23 @@ describe("SyncProcessor", () => {
       expect(nonCC?.overallScore).toBe(0);
     });
 
+    it("scores are upserted in the same batch as their commits (no double parse)", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      // upsertBatch and upsertScores called once each, in order
+      expect(commitsMock.upsertBatch).toHaveBeenCalledOnce();
+      expect(commitsMock.upsertScores).toHaveBeenCalledOnce();
+      const batchCallOrder = commitsMock.upsertBatch.mock.invocationCallOrder[0]!;
+      const scoresCallOrder = commitsMock.upsertScores.mock.invocationCallOrder[0]!;
+      expect(batchCallOrder).toBeLessThan(scoresCallOrder);
+    });
+
     it("marks sync job completed and emits repo.synced", async () => {
       const job = makeJob();
       await processor.process(job);
 
-      expect(syncJobsMock.markCompleted).toHaveBeenCalledWith(
-        SYNC_JOB_ID,
-        expect.any(Date),
-      );
+      expect(syncJobsMock.markCompleted).toHaveBeenCalledWith(SYNC_JOB_ID, expect.any(Date));
 
       const synced = eventBusMock.publish.mock.calls.find(
         (args) => args[0] instanceof RepoSyncedEvent,
@@ -188,7 +209,7 @@ describe("SyncProcessor", () => {
       expect(event.commitsProcessed).toBe(5);
     });
 
-    it("emits sync.progress after fetching the page", async () => {
+    it("emits sync.progress after each page", async () => {
       const job = makeJob();
       await processor.process(job);
 
@@ -210,8 +231,7 @@ describe("SyncProcessor", () => {
   });
 
   describe("multi-page pagination", () => {
-    it("fetches all pages until partial page", async () => {
-      // page 1: full 100, page 2: 3 commits (partial)
+    it("processes all pages and reports correct total", async () => {
       const fullPage = Array.from({ length: 100 }, (_, i) =>
         makeGithubCommit(`sha-p1-${String(i)}`, `feat: commit ${String(i)}`),
       );
@@ -221,9 +241,7 @@ describe("SyncProcessor", () => {
         makeGithubCommit("sha-p2-2", "docs: update"),
       ];
 
-      listCommitsMock
-        .mockResolvedValueOnce({ data: fullPage })
-        .mockResolvedValueOnce({ data: partialPage });
+      setPages([fullPage, partialPage]);
 
       commitsMock.upsertBatch.mockImplementation(
         (batch: Array<{ sha: string; repositoryId: string }>) =>
@@ -232,10 +250,6 @@ describe("SyncProcessor", () => {
 
       const job = makeJob();
       await processor.process(job);
-
-      expect(listCommitsMock).toHaveBeenCalledTimes(2);
-      expect(listCommitsMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ page: 1 }));
-      expect(listCommitsMock).toHaveBeenNthCalledWith(2, expect.objectContaining({ page: 2 }));
 
       const synced = eventBusMock.publish.mock.calls.find(
         (args) => args[0] instanceof RepoSyncedEvent,
@@ -243,14 +257,11 @@ describe("SyncProcessor", () => {
       expect(synced.commitsProcessed).toBe(103);
     });
 
-    it("stops at empty page without re-fetching", async () => {
-      // full page 1 (100 commits), then empty page 2
+    it("emits progress event for each page", async () => {
       const fullPage = Array.from({ length: 100 }, (_, i) =>
-        makeGithubCommit(`sha-ep-${String(i)}`, `feat: commit ${String(i)}`),
+        makeGithubCommit(`sha-mp-${String(i)}`, `feat: commit ${String(i)}`),
       );
-      listCommitsMock
-        .mockResolvedValueOnce({ data: fullPage })
-        .mockResolvedValueOnce({ data: [] });
+      setPages([fullPage, FIXTURE_COMMITS]);
 
       commitsMock.upsertBatch.mockImplementation(
         (batch: Array<{ sha: string; repositoryId: string }>) =>
@@ -260,27 +271,44 @@ describe("SyncProcessor", () => {
       const job = makeJob();
       await processor.process(job);
 
-      // page 1 full → fetches page 2, gets empty → stops
-      expect(listCommitsMock).toHaveBeenCalledTimes(2);
+      const progress = eventBusMock.publish.mock.calls.filter(
+        (args) => args[0] instanceof SyncProgressEvent,
+      );
+      expect(progress.length).toBe(2);
+    });
+
+    it("handles empty repo (no commits)", async () => {
+      setPages([]);
+
+      const job = makeJob();
+      await processor.process(job);
+
+      expect(commitsMock.upsertBatch).not.toHaveBeenCalled();
+      expect(commitsMock.upsertScores).not.toHaveBeenCalled();
+
+      const synced = eventBusMock.publish.mock.calls.find(
+        (args) => args[0] instanceof RepoSyncedEvent,
+      )![0] as RepoSyncedEvent;
+      expect(synced.commitsProcessed).toBe(0);
     });
   });
 
   describe("idempotency", () => {
     it("upserts on conflict so re-running is safe", async () => {
-      listCommitsMock.mockResolvedValue({ data: FIXTURE_COMMITS });
-      commitsMock.upsertBatch.mockImplementation(
-        (batch: Array<{ sha: string; repositoryId: string }>) =>
-          Promise.resolve(batch.map((c) => ({ id: `commit-${c.sha}`, sha: c.sha, repositoryId: c.repositoryId }))),
-      );
-
       const job = makeJob();
-      // run twice — should succeed both times without error
       await processor.process(job);
+
       syncJobsMock.createJob.mockResolvedValue({
         id: "sync-job-2",
         repositoryId: REPO_ID,
         status: "queued",
       });
+      paginateIteratorMock = makeIterator([FIXTURE_COMMITS]);
+      octokitFactoryMock.forUser.mockResolvedValue({
+        rest: { repos: { listCommits: vi.fn() } },
+        paginate: { iterator: paginateIteratorMock },
+      });
+
       await processor.process(job);
 
       expect(syncJobsMock.markCompleted).toHaveBeenCalledTimes(2);
@@ -289,7 +317,7 @@ describe("SyncProcessor", () => {
 
   describe("error handling", () => {
     it("marks job failed when repository not found", async () => {
-      (reposMock as unknown as { findOne: ReturnType<typeof vi.fn> }).findOne.mockResolvedValue(null);
+      reposMock.findOne.mockResolvedValue(null);
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow(/repository not found/);
@@ -301,8 +329,17 @@ describe("SyncProcessor", () => {
       );
     });
 
+    it("marks job failed on malformed fullName", async () => {
+      reposMock.findOne.mockResolvedValue({ id: REPO_ID, fullName: "invalid", userId: USER_ID });
+
+      const job = makeJob();
+      await expect(processor.process(job)).rejects.toThrow(/malformed/);
+
+      expect(syncJobsMock.markFailed).toHaveBeenCalled();
+    });
+
     it("emits sync.failed when repository not found", async () => {
-      (reposMock as unknown as { findOne: ReturnType<typeof vi.fn> }).findOne.mockResolvedValue(null);
+      reposMock.findOne.mockResolvedValue(null);
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow();
@@ -317,7 +354,14 @@ describe("SyncProcessor", () => {
     });
 
     it("marks job failed on github api error", async () => {
-      listCommitsMock.mockRejectedValue(new Error("github 503"));
+      paginateIteratorMock = vi.fn().mockImplementation(function* () {
+        throw new Error("github 503");
+        yield; // make it a generator
+      });
+      octokitFactoryMock.forUser.mockResolvedValue({
+        rest: { repos: { listCommits: vi.fn() } },
+        paginate: { iterator: paginateIteratorMock },
+      });
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow("github 503");
@@ -330,8 +374,15 @@ describe("SyncProcessor", () => {
       expect(syncJobsMock.markCompleted).not.toHaveBeenCalled();
     });
 
-    it("does not upsert scores when commit fetch fails", async () => {
-      listCommitsMock.mockRejectedValue(new Error("timeout"));
+    it("does not upsert when commit fetch fails", async () => {
+      paginateIteratorMock = vi.fn().mockImplementation(function* () {
+        throw new Error("timeout");
+        yield;
+      });
+      octokitFactoryMock.forUser.mockResolvedValue({
+        rest: { repos: { listCommits: vi.fn() } },
+        paginate: { iterator: paginateIteratorMock },
+      });
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow();

@@ -15,16 +15,22 @@ import {
   REPOSITORY_REPOSITORY,
   SYNC_JOB_REPOSITORY,
 } from "../../../common/database/tokens.js";
-import { parseConventionalCommit } from "../../../shared/cc-parser.js";
+import { type ParsedCC, parseConventionalCommit } from "../../../shared/cc-parser.js";
 import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { OctokitFactory } from "../../octokit/octokit-factory.service.js";
 import { RepoSyncedEvent } from "../events/repo-synced.event.js";
 import { SyncFailedEvent } from "../events/sync-failed.event.js";
 import { SyncProgressEvent } from "../events/sync-progress.event.js";
+import { SyncStartedEvent } from "../events/sync-started.event.js";
 import { SYNC_QUEUE, type SyncJobData } from "../queues/sync.queue.js";
 
 const COMMITS_PER_PAGE = 100;
 const UPSERT_BATCH_SIZE = 500;
+
+type CommitEntry = {
+  input: UpsertCommitInput;
+  parsed: ParsedCC;
+};
 
 @Processor(SYNC_QUEUE)
 export class SyncProcessor extends WorkerHost {
@@ -52,27 +58,29 @@ export class SyncProcessor extends WorkerHost {
     const syncJob = await this.syncJobs.createJob(repositoryId);
     await this.syncJobs.markRunning(syncJob.id, new Date());
 
+    this.eventBus.publish(new SyncStartedEvent(repositoryId, userId, syncJob.id));
+
     try {
       const repo = await this.repos.findOne({ where: { id: repositoryId } });
       if (!repo) {
         throw new Error(`repository not found: ${repositoryId}`);
       }
 
-      const [owner, repoName] = repo.fullName.split("/") as [string, string];
+      const parts = repo.fullName.split("/");
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        throw new Error(`malformed repository fullName: ${repo.fullName}`);
+      }
+      const [owner, repoName] = parts as [string, string];
+
       const octokit = await this.octokitFactory.forUser(userId);
 
-      const allCommits: UpsertCommitInput[] = [];
-      let page = 1;
+      const allEntries: CommitEntry[] = [];
 
-      while (true) {
-        const { data: pageData } = await octokit.rest.repos.listCommits({
-          owner,
-          repo: repoName,
-          per_page: COMMITS_PER_PAGE,
-          page,
-        });
-
-        if (pageData.length === 0) break;
+      for await (const page of octokit.paginate.iterator(
+        octokit.rest.repos.listCommits,
+        { owner, repo: repoName, per_page: COMMITS_PER_PAGE },
+      )) {
+        const pageData = page.data;
 
         for (const c of pageData) {
           const authorName =
@@ -88,55 +96,58 @@ export class SyncProcessor extends WorkerHost {
           const body = parsed.ok ? (parsed.body ?? null) : null;
           const footer = parsed.ok ? (parsed.footer ?? null) : null;
 
-          allCommits.push({
-            repositoryId,
-            sha: c.sha,
-            authorName,
-            authorEmail,
-            message,
-            subject,
-            body,
-            footer,
-            insertions: 0,
-            deletions: 0,
-            filesChanged: 0,
-            authoredAt,
+          allEntries.push({
+            parsed,
+            input: {
+              repositoryId,
+              sha: c.sha,
+              authorName,
+              authorEmail,
+              message,
+              subject,
+              body,
+              footer,
+              // TODO: listCommits does not return diff stats; per-commit fetch
+              // needed for accurate counts — deferred to a future task.
+              insertions: 0,
+              deletions: 0,
+              filesChanged: 0,
+              authoredAt,
+            },
           });
         }
 
-        const totalEstimate = page * COMMITS_PER_PAGE;
         await this.syncJobs.updateProgress(
           syncJob.id,
-          allCommits.length,
-          totalEstimate,
+          allEntries.length,
+          // estimate: may overshoot by <100 on the last partial page;
+          // the final updateProgress call below corrects to exact total.
+          allEntries.length + (pageData.length === COMMITS_PER_PAGE ? COMMITS_PER_PAGE : 0),
         );
         this.eventBus.publish(
           new SyncProgressEvent(
             repositoryId,
             syncJob.id,
-            allCommits.length,
-            totalEstimate,
+            allEntries.length,
+            allEntries.length,
           ),
         );
-
-        if (pageData.length < COMMITS_PER_PAGE) break;
-        page += 1;
       }
 
-      const scoreInputs: UpsertScoreInput[] = [];
-      for (let i = 0; i < allCommits.length; i += UPSERT_BATCH_SIZE) {
-        const batch = allCommits.slice(i, i + UPSERT_BATCH_SIZE);
-        const saved = await this.commits.upsertBatch(batch);
+      // upsert commits + scores per-batch so each batch is consistent
+      for (let i = 0; i < allEntries.length; i += UPSERT_BATCH_SIZE) {
+        const batch = allEntries.slice(i, i + UPSERT_BATCH_SIZE);
+        const saved = await this.commits.upsertBatch(batch.map((e) => e.input));
 
+        const scoreInputs: UpsertScoreInput[] = [];
         for (const savedCommit of saved) {
-          const original = batch.find((b) => b.sha === savedCommit.sha);
-          if (!original) continue;
-          const parsed = parseConventionalCommit(original.message);
-          const scored = scoreCommit(parsed, {
-            message: original.message,
-            subject: original.subject,
-            body: original.body,
-            footer: original.footer,
+          const entry = batch.find((e) => e.input.sha === savedCommit.sha);
+          if (!entry) continue;
+          const scored = scoreCommit(entry.parsed, {
+            message: entry.input.message,
+            subject: entry.input.subject,
+            body: entry.input.body,
+            footer: entry.input.footer,
           });
           scoreInputs.push({
             commitId: savedCommit.id,
@@ -150,11 +161,10 @@ export class SyncProcessor extends WorkerHost {
             details: scored.details as unknown as Record<string, unknown>,
           });
         }
+        await this.commits.upsertScores(scoreInputs);
       }
 
-      await this.commits.upsertScores(scoreInputs);
-
-      const total = allCommits.length;
+      const total = allEntries.length;
       await this.syncJobs.updateProgress(syncJob.id, total, total);
       await this.syncJobs.markCompleted(syncJob.id, new Date());
 
