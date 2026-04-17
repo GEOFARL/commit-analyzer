@@ -1,15 +1,16 @@
 import type { AnalyticsCacheKind } from "./analytics-cache.types.js";
 
-export const ANALYTICS_CACHE_TTL_SECONDS = 600; // 10 minutes
 export const ANALYTICS_CACHE_PREFIX = "analytics";
 
-/** Per-query TTL overrides (seconds). Falls back to ANALYTICS_CACHE_TTL_SECONDS. */
+const TEN_MINUTES = 600;
+
+/** Per-query TTL (seconds). Defaults to 10 min; override per kind as needed. */
 export const ANALYTICS_CACHE_TTL: Record<AnalyticsCacheKind, number> = {
-  timeline: ANALYTICS_CACHE_TTL_SECONDS,
-  heatmap: ANALYTICS_CACHE_TTL_SECONDS,
-  qualityScores: ANALYTICS_CACHE_TTL_SECONDS,
-  qualityTrends: ANALYTICS_CACHE_TTL_SECONDS,
-  contributors: ANALYTICS_CACHE_TTL_SECONDS,
-  fileFrequency: ANALYTICS_CACHE_TTL_SECONDS,
-  summary: ANALYTICS_CACHE_TTL_SECONDS,
+  timeline: TEN_MINUTES,
+  heatmap: TEN_MINUTES,
+  qualityScores: TEN_MINUTES,
+  qualityTrends: TEN_MINUTES,
+  contributors: TEN_MINUTES,
+  fileFrequency: TEN_MINUTES,
+  summary: TEN_MINUTES,
 };
