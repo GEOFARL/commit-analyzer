@@ -36,6 +36,25 @@ export class CacheService {
     }
   }
 
+  async incr(key: string): Promise<number> {
+    try {
+      return await this.redis.incr(key);
+    } catch (err) {
+      this.logger.warn(`cache.incr failed key=${key}: ${String(err)}`);
+      return 0;
+    }
+  }
+
+  async getNumber(key: string): Promise<number> {
+    try {
+      const raw = await this.redis.get(key);
+      return raw ? Number(raw) : 0;
+    } catch (err) {
+      this.logger.warn(`cache.getNumber failed key=${key}: ${String(err)}`);
+      return 0;
+    }
+  }
+
   /** Delete all keys matching a glob `pattern` using SCAN (non-blocking). */
   async delByPattern(pattern: string): Promise<number> {
     let deleted = 0;

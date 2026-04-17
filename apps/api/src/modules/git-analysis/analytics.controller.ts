@@ -1,5 +1,5 @@
 import { analyticsContract, type Summary } from "@commit-analyzer/contracts";
-import { Controller, UseGuards } from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
 import { QueryBus } from "@nestjs/cqrs";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
@@ -14,12 +14,21 @@ import { GetQualityScoresQuery } from "./queries/get-quality-scores.query.js";
 import { GetQualityTrendsQuery } from "./queries/get-quality-trends.query.js";
 import { GetSummaryQuery } from "./queries/get-summary.query.js";
 import { GetTimelineQuery } from "./queries/get-timeline.query.js";
+import { AnalyticsCacheService } from "./services/analytics-cache.service.js";
 
 @Controller()
 @UseGuards(SupabaseAuthGuard)
 @ThrottleTierDecorator("analytics")
 export class AnalyticsController {
-  constructor(private readonly queryBus: QueryBus) {}
+  constructor(
+    private readonly queryBus: QueryBus,
+    private readonly analyticsCache: AnalyticsCacheService,
+  ) {}
+
+  @Get("analytics/cache-metrics")
+  cacheMetrics(): Promise<{ hits: number; misses: number; hitRate: number }> {
+    return this.analyticsCache.metrics();
+  }
 
   @TsRestHandler(analyticsContract.timeline)
   timeline(@CurrentUser() userId: string): unknown {

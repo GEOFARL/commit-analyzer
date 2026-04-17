@@ -48,6 +48,7 @@ const noopRedis = {
   set: vi.fn(() => Promise.resolve("OK")),
   del: vi.fn(() => Promise.resolve(0)),
   scan: vi.fn(() => Promise.resolve(["0", []])),
+  incr: vi.fn(() => Promise.resolve(1)),
 };
 
 describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
