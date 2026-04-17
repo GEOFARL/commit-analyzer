@@ -50,7 +50,8 @@ export class SyncGateway implements OnGatewayInit, OnGatewayConnection, OnModule
     // leaves the socket.io Server partially initialized.
     if (getServerEnv().NODE_ENV === "test") return;
     const { REDIS_URL } = getServerEnv();
-    this.pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as never });
+    const family = REDIS_URL.includes(".railway.internal") ? 6 : 0;
+    this.pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as never, family });
     this.sub = this.pub.duplicate();
     server.adapter(createAdapter(this.pub, this.sub));
     this.logger.log("ws.adapter redis attached");
