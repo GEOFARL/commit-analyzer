@@ -1,5 +1,13 @@
 import type { ParsedCC } from "./cc-parser.js";
 
+/** Minimal raw-commit fields the scorer may use in future criteria (e.g. diff size). */
+export type RawCommit = {
+  message: string;
+  subject?: string | null;
+  body?: string | null;
+  footer?: string | null;
+};
+
 export type ScoreDetail = {
   component: string;
   weight: number;
@@ -38,7 +46,7 @@ function subjectLengthPoints(len: number): number {
   return 5;
 }
 
-export function scoreCommit(parsed: ParsedCC): Score {
+export function scoreCommit(parsed: ParsedCC, _commit?: RawCommit): Score {
   const isConventional = parsed.ok;
 
   const ccType = parsed.ok ? parsed.type : undefined;

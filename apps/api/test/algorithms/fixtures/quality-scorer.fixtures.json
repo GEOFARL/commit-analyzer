@@ -21,6 +21,26 @@
     }
   },
   {
+    "name": "mid-range commit — valid type, short subject, no scope/body/footer",
+    "input": "feat: add dark mode toggle",
+    "expected": {
+      "isConventional": true,
+      "ccType": "feat",
+      "subjectLength": 20,
+      "hasBody": false,
+      "hasFooter": false,
+      "overallScore": 60,
+      "details": [
+        { "component": "is_conventional", "weight": 30, "got": 30 },
+        { "component": "type_valid",      "weight": 10, "got": 10 },
+        { "component": "scope_present",   "weight": 10, "got": 0  },
+        { "component": "subject_length",  "weight": 20, "got": 20 },
+        { "component": "body_present",    "weight": 15, "got": 0  },
+        { "component": "footer_present",  "weight": 15, "got": 0  }
+      ]
+    }
+  },
+  {
     "name": "bad commit — plain message no colon",
     "input": "wip",
     "expected": {

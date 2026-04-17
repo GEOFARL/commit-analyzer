@@ -1,13 +1,14 @@
-import { createRequire } from "node:module";
-
 import { describe, expect, it } from "vitest";
+
+import fixturesJson from "../../test/algorithms/fixtures/quality-scorer.fixtures.json" with {
+  type: "json",
+};
 
 import { parseConventionalCommit } from "./cc-parser.js";
 import { scoreCommit } from "./quality-scorer.js";
 import type { Score } from "./quality-scorer.js";
 
-const require = createRequire(import.meta.url);
-const fixtures = require("../../test/algorithms/fixtures/quality-scorer.fixtures.json") as Array<{
+const fixtures = fixturesJson as Array<{
   name: string;
   input: string;
   expected: Score;
