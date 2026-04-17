@@ -48,7 +48,11 @@ export const QualityTrendChart = ({
       ) : data.length === 0 ? (
         <ChartEmpty message={t("qualityTrend.empty")} />
       ) : (
-        <div className="h-64 w-full">
+        <div
+          role="img"
+          aria-label={t("qualityTrend.ariaLabel", { count: data.length })}
+          className="h-64 w-full"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}

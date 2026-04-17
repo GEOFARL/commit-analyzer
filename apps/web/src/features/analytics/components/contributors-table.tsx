@@ -67,10 +67,12 @@ export const ContributorsTable = ({
                     "hover:bg-muted/40",
                   )}
                 >
-                  <td className="py-2">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{c.authorName}</span>
-                      <span className="text-xs text-muted-foreground">
+                  <td className="max-w-0 py-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium">
+                        {c.authorName}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
                         {c.authorEmail}
                       </span>
                     </div>

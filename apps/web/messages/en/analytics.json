@@ -5,6 +5,7 @@
   "title": "{repo}",
   "subtitle": "Commit activity, quality trends, and contributor insights.",
   "breadcrumb": {
+    "label": "Breadcrumb",
     "repositories": "Repositories"
   },
   "error": {
@@ -21,13 +22,17 @@
   "timeline": {
     "title": "Commit timeline",
     "description": "Commits per day.",
-    "empty": "No commits recorded yet."
+    "empty": "No commits recorded yet.",
+    "ariaLabel": "Line chart of commits per day across {count} data points"
   },
   "heatmap": {
     "title": "Activity heatmap",
     "description": "Day of week × hour of day.",
     "empty": "No activity to plot yet.",
     "ariaLabel": "Commit activity by day of week and hour",
+    "dayHeader": "Day of week",
+    "hourLabel": "{hour}:00",
+    "legend": "Cell intensity scales with commit count from none to most.",
     "less": "Less",
     "more": "More",
     "cellTitle": "{day} {hour}:00 — {count}",
@@ -45,6 +50,7 @@
     "title": "Quality distribution",
     "description": "Commits grouped by quality score bucket.",
     "empty": "No quality scores recorded yet.",
+    "ariaLabel": "Bar chart of commit counts grouped into good, average, and poor quality buckets",
     "buckets": {
       "good": "Good",
       "average": "Average",
@@ -54,7 +60,8 @@
   "qualityTrend": {
     "title": "Quality trend",
     "description": "Rolling average quality over time.",
-    "empty": "No quality trend data yet."
+    "empty": "No quality trend data yet.",
+    "ariaLabel": "Line chart of rolling average quality across {count} data points"
   },
   "contributors": {
     "title": "Top contributors",

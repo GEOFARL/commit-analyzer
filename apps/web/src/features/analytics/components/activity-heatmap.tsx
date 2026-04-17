@@ -80,72 +80,80 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
         <ChartEmpty message={t("heatmap.empty")} />
       ) : (
         <div className="overflow-x-auto">
-          <div
-            role="table"
+          <table
             aria-label={t("heatmap.ariaLabel")}
-            className="inline-flex min-w-full flex-col gap-1"
+            className="min-w-full border-separate border-spacing-1"
           >
-            <div
-              role="row"
-              className="ml-10 grid grid-cols-[repeat(24,minmax(12px,1fr))] gap-1 text-[10px] text-muted-foreground"
-            >
-              {Array.from({ length: HOURS }).map((_, h) => (
-                <span
-                  role="columnheader"
-                  key={h}
-                  className="text-center tabular-nums"
-                >
-                  {h % 3 === 0 ? h : ""}
-                </span>
-              ))}
-            </div>
-            {DAY_KEYS.map((dayKey, day) => {
-              const row = grid[day] ?? [];
-              const dayLabel = t(`heatmap.days.${dayKey}`);
-              return (
-                <div
-                  role="row"
-                  key={dayKey}
-                  className="grid grid-cols-[2.5rem_repeat(24,minmax(12px,1fr))] items-center gap-1"
-                >
-                  <span
-                    role="rowheader"
-                    className="text-right text-[10px] text-muted-foreground"
+            <thead>
+              <tr>
+                <th scope="col" className="w-10">
+                  <span className="sr-only">{t("heatmap.dayHeader")}</span>
+                </th>
+                {Array.from({ length: HOURS }).map((_, h) => (
+                  <th
+                    key={h}
+                    scope="col"
+                    className="text-center text-[10px] font-normal text-muted-foreground tabular-nums"
                   >
-                    {dayLabel}
-                  </span>
-                  {row.map((count, hour) => {
-                    const bucket = bucketFor(count, max);
-                    return (
-                      <div
-                        role="cell"
-                        key={hour}
-                        title={t("heatmap.cellTitle", {
-                          day: dayLabel,
-                          hour,
-                          count,
-                        })}
-                        className={cn(
-                          "aspect-square rounded-sm",
-                          BUCKET_BG[bucket],
-                        )}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })}
-            <div className="ml-10 mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-              <span>{t("heatmap.less")}</span>
+                    <span aria-hidden="true">{h % 3 === 0 ? h : ""}</span>
+                    <span className="sr-only">
+                      {t("heatmap.hourLabel", { hour: h })}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {DAY_KEYS.map((dayKey, day) => {
+                const row = grid[day] ?? [];
+                const dayLabel = t(`heatmap.days.${dayKey}`);
+                return (
+                  <tr key={dayKey}>
+                    <th
+                      scope="row"
+                      className="pr-2 text-right text-[10px] font-normal text-muted-foreground"
+                    >
+                      {dayLabel}
+                    </th>
+                    {row.map((count, hour) => {
+                      const bucket = bucketFor(count, max);
+                      const label = t("heatmap.cellTitle", {
+                        day: dayLabel,
+                        hour,
+                        count,
+                      });
+                      return (
+                        <td
+                          key={hour}
+                          aria-label={label}
+                          title={label}
+                          className={cn(
+                            "aspect-square rounded-sm",
+                            BUCKET_BG[bucket],
+                          )}
+                        />
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="ml-10 mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span aria-hidden="true">{t("heatmap.less")}</span>
+            <span
+              aria-hidden="true"
+              className="flex items-center gap-1"
+            >
               {BUCKET_BG.map((bg, i) => (
                 <span
                   key={i}
-                  aria-hidden="true"
                   className={cn("h-3 w-3 rounded-sm", bg)}
                 />
               ))}
-              <span>{t("heatmap.more")}</span>
-            </div>
+            </span>
+            <span aria-hidden="true">{t("heatmap.more")}</span>
+            <span className="sr-only">{t("heatmap.legend")}</span>
           </div>
         </div>
       )}

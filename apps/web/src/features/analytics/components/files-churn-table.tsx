@@ -56,7 +56,11 @@ export const FilesChurnTable = ({
                   key={`${f.filePath}-${i}`}
                   className={cn("border-b last:border-0", "hover:bg-muted/40")}
                 >
-                  <td className="py-2 font-mono text-xs">{f.filePath}</td>
+                  <td className="max-w-0 py-2 font-mono text-xs">
+                    <span className="block truncate" title={f.filePath}>
+                      {f.filePath}
+                    </span>
+                  </td>
                   <td className="py-2 text-right tabular-nums">
                     {numberFmt.format(f.changeCount)}
                   </td>

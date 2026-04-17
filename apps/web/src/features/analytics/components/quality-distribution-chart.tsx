@@ -27,7 +27,7 @@ const BUCKET_ORDER = ["good", "average", "poor"] as const;
 
 const BUCKET_COLOR: Record<(typeof BUCKET_ORDER)[number], string> = {
   good: "var(--primary)",
-  average: "var(--muted-foreground)",
+  average: "color-mix(in srgb, var(--foreground) 40%, transparent)",
   poor: "var(--destructive)",
 };
 
@@ -60,7 +60,11 @@ export const QualityDistributionChart = ({
       ) : total === 0 ? (
         <ChartEmpty message={t("quality.empty")} />
       ) : (
-        <div className="h-56 w-full">
+        <div
+          role="img"
+          aria-label={t("quality.ariaLabel")}
+          className="h-56 w-full"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}

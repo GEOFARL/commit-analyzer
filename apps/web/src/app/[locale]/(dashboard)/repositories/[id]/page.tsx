@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AnalyticsView } from "@/features/analytics/components/analytics-view";
 import { getAnalyticsPageData } from "@/features/analytics/server";
+import { Link } from "@/i18n/navigation";
 
 type PageParams = { locale: Locale; id: string };
 
@@ -32,17 +32,21 @@ export default async function RepositoryAnalyticsPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <nav className="text-xs text-muted-foreground">
-          <Link
-            href={`/${locale}/repositories`}
-            className="hover:text-foreground"
-          >
-            {t("breadcrumb.repositories")}
-          </Link>
-          <span aria-hidden="true" className="mx-2">
-            /
-          </span>
-          <span className="text-foreground">{data.repo.fullName}</span>
+        <nav aria-label={t("breadcrumb.label")} className="text-xs">
+          <ol className="flex items-center gap-2 text-muted-foreground">
+            <li>
+              <Link
+                href="/repositories"
+                className="rounded hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {t("breadcrumb.repositories")}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="truncate text-foreground" aria-current="page">
+              {data.repo.fullName}
+            </li>
+          </ol>
         </nav>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-wrap-balance">
           {t("title", { repo: data.repo.fullName })}
