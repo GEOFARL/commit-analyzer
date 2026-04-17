@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "title": "Repository analytics"
+  },
+  "title": "{repo}",
+  "subtitle": "Commit activity, quality trends, and contributor insights.",
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "repositories": "Repositories"
+  },
+  "error": {
+    "load": "Failed to load this chart. Try again."
+  },
+  "summary": {
+    "title": "Overview",
+    "description": "Totals for this repository.",
+    "totalCommits": "Total commits",
+    "totalContributors": "Contributors",
+    "avgQuality": "Avg quality",
+    "ccCompliance": "CC compliance"
+  },
+  "timeline": {
+    "title": "Commit timeline",
+    "description": "Commits per day.",
+    "empty": "No commits recorded yet.",
+    "ariaLabel": "Line chart of commits per day across {count} data points"
+  },
+  "heatmap": {
+    "title": "Activity heatmap",
+    "description": "Day of week × hour of day.",
+    "empty": "No activity to plot yet.",
+    "ariaLabel": "Commit activity by day of week and hour",
+    "dayHeader": "Day of week",
+    "hourLabel": "{hour}:00",
+    "legend": "Cell intensity scales with commit count from none to most.",
+    "less": "Less",
+    "more": "More",
+    "cellTitle": "{day} {hour}:00 — {count}",
+    "days": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    }
+  },
+  "quality": {
+    "title": "Quality distribution",
+    "description": "Commits grouped by quality score bucket.",
+    "empty": "No quality scores recorded yet.",
+    "ariaLabel": "Bar chart of commit counts grouped into good, average, and poor quality buckets",
+    "buckets": {
+      "good": "Good",
+      "average": "Average",
+      "poor": "Poor"
+    }
+  },
+  "qualityTrend": {
+    "title": "Quality trend",
+    "description": "Rolling average quality over time.",
+    "empty": "No quality trend data yet.",
+    "ariaLabel": "Line chart of rolling average quality across {count} data points"
+  },
+  "contributors": {
+    "title": "Top contributors",
+    "description": "Authors ranked by commit count.",
+    "empty": "No contributors yet.",
+    "columns": {
+      "author": "Author",
+      "commits": "Commits",
+      "avgQuality": "Avg quality"
+    }
+  },
+  "files": {
+    "title": "Top files by churn",
+    "description": "Files with the most changes.",
+    "empty": "No file activity yet.",
+    "columns": {
+      "path": "Path",
+      "changes": "Changes"
+    }
+  },
+  "actions": {
+    "viewAnalytics": "View analytics"
+  }
+}

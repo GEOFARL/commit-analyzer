@@ -1,0 +1,97 @@
+"use client";
+
+import {
+  BadgeCheck,
+  GitCommit,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
+
+import { useSummaryQuery } from "../hooks";
+import type { AnalyticsPageData } from "../types";
+
+import { ChartCard, ChartError } from "./chart-card";
+
+type SummaryCardsProps = {
+  repoId: string;
+  initial: AnalyticsPageData["initialSummary"];
+};
+
+const formatNumber = (n: number) =>
+  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
+
+const formatScore = (n: number) =>
+  new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(n);
+
+const formatPercent = (n: number) =>
+  new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 0,
+  }).format(n);
+
+export const SummaryCards = ({ repoId, initial }: SummaryCardsProps) => {
+  const t = useTranslations("analytics");
+  const query = useSummaryQuery(repoId, initial);
+  const data = query.data?.body ?? initial;
+
+  return (
+    <ChartCard
+      title={t("summary.title")}
+      description={t("summary.description")}
+    >
+      {query.isError ? (
+        <ChartError message={t("error.load")} />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <SummaryTile
+            icon={<GitCommit className="h-4 w-4" aria-hidden="true" />}
+            label={t("summary.totalCommits")}
+            value={formatNumber(data.totalCommits)}
+          />
+          <SummaryTile
+            icon={<Users className="h-4 w-4" aria-hidden="true" />}
+            label={t("summary.totalContributors")}
+            value={formatNumber(data.totalContributors)}
+          />
+          <SummaryTile
+            icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}
+            label={t("summary.avgQuality")}
+            value={formatScore(data.avgQuality)}
+          />
+          <SummaryTile
+            icon={<BadgeCheck className="h-4 w-4" aria-hidden="true" />}
+            label={t("summary.ccCompliance")}
+            value={`${formatPercent(data.ccCompliancePercent)}%`}
+          />
+        </div>
+      )}
+    </ChartCard>
+  );
+};
+
+const SummaryTile = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) => (
+  <div className="relative flex flex-col gap-1 rounded-2xl border bg-card p-4">
+    <span
+      aria-hidden="true"
+      className="absolute right-3 top-3 text-muted-foreground/60"
+    >
+      {icon}
+    </span>
+    <p className="text-3xl font-semibold tabular-nums leading-none tracking-tight">
+      {value}
+    </p>
+    <p className="text-xs text-muted-foreground">{label}</p>
+  </div>
+);
