@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Suspense } from "react";
 
 import { AnalyticsView } from "@/features/analytics/components/analytics-view";
 import { getAnalyticsPageData } from "@/features/analytics/server";
@@ -50,9 +49,7 @@ export default async function RepositoryAnalyticsPage({
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
-      <Suspense fallback={null}>
-        <AnalyticsView {...data} />
-      </Suspense>
+      <AnalyticsView {...data} />
     </div>
   );
 }

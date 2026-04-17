@@ -13,6 +13,19 @@ import {
 } from "./constants";
 import type { AnalyticsPageData } from "./types";
 
+type OkBody<Res> = Res extends { status: 200; body: infer B } ? B : never;
+
+const unwrap = <Res extends { status: number; body: unknown }>(
+  label: string,
+  res: Res,
+): OkBody<Res> => {
+  if (res.status === 404) notFound();
+  if (res.status !== 200) {
+    throw new Error(`Failed to load ${label} (status ${res.status})`);
+  }
+  return res.body as OkBody<Res>;
+};
+
 export const getAnalyticsPageData = async (
   repoId: string,
 ): Promise<AnalyticsPageData> => {
@@ -54,59 +67,24 @@ export const getAnalyticsPageData = async (
     }),
   ]);
 
-  if (connectedRes.status !== 200) {
-    throw new Error(
-      `Failed to load connected repositories (status ${connectedRes.status})`,
-    );
-  }
-
-  const repo: ConnectedRepo | undefined = connectedRes.body.items.find(
+  const connectedBody = unwrap("connected repositories", connectedRes);
+  const repo: ConnectedRepo | undefined = connectedBody.items.find(
     (r) => r.id === repoId,
   );
   if (!repo) notFound();
-
-  if (summaryRes.status === 404) notFound();
-  if (summaryRes.status !== 200) {
-    throw new Error(`Failed to load analytics summary (status ${summaryRes.status})`);
-  }
-  if (timelineRes.status !== 200) {
-    throw new Error(`Failed to load timeline (status ${timelineRes.status})`);
-  }
-  if (heatmapRes.status !== 200) {
-    throw new Error(`Failed to load heatmap (status ${heatmapRes.status})`);
-  }
-  if (qualityRes.status !== 200) {
-    throw new Error(
-      `Failed to load quality distribution (status ${qualityRes.status})`,
-    );
-  }
-  if (trendsRes.status !== 200) {
-    throw new Error(
-      `Failed to load quality trends (status ${trendsRes.status})`,
-    );
-  }
-  if (contributorsRes.status !== 200) {
-    throw new Error(
-      `Failed to load contributors (status ${contributorsRes.status})`,
-    );
-  }
-  if (filesRes.status !== 200) {
-    throw new Error(
-      `Failed to load files churn (status ${filesRes.status})`,
-    );
-  }
 
   return {
     repo,
     granularity: DEFAULT_GRANULARITY,
     contributorsLimit: CONTRIBUTORS_LIMIT,
     fileFrequencyLimit: FILE_FREQUENCY_LIMIT,
-    initialSummary: summaryRes.body,
-    initialTimeline: timelineRes.body.items,
-    initialHeatmap: heatmapRes.body.items,
-    initialQualityDistribution: qualityRes.body.items,
-    initialQualityTrend: trendsRes.body.items,
-    initialContributors: contributorsRes.body.items,
-    initialFileFrequency: filesRes.body.items,
+    initialSummary: unwrap("analytics summary", summaryRes),
+    initialTimeline: unwrap("timeline", timelineRes).items,
+    initialHeatmap: unwrap("heatmap", heatmapRes).items,
+    initialQualityDistribution: unwrap("quality distribution", qualityRes)
+      .items,
+    initialQualityTrend: unwrap("quality trends", trendsRes).items,
+    initialContributors: unwrap("contributors", contributorsRes).items,
+    initialFileFrequency: unwrap("files churn", filesRes).items,
   };
 };

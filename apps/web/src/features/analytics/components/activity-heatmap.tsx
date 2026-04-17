@@ -99,38 +99,42 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                 </span>
               ))}
             </div>
-            {grid.map((row, day) => (
-              <div
-                role="row"
-                key={day}
-                className="grid grid-cols-[2.5rem_repeat(24,minmax(12px,1fr))] items-center gap-1"
-              >
-                <span
-                  role="rowheader"
-                  className="text-right text-[10px] text-muted-foreground"
+            {DAY_KEYS.map((dayKey, day) => {
+              const row = grid[day] ?? [];
+              const dayLabel = t(`heatmap.days.${dayKey}`);
+              return (
+                <div
+                  role="row"
+                  key={dayKey}
+                  className="grid grid-cols-[2.5rem_repeat(24,minmax(12px,1fr))] items-center gap-1"
                 >
-                  {t(`heatmap.days.${DAY_KEYS[day] ?? "sun"}`)}
-                </span>
-                {row.map((count, hour) => {
-                  const bucket = bucketFor(count, max);
-                  return (
-                    <div
-                      role="cell"
-                      key={hour}
-                      title={t("heatmap.cellTitle", {
-                        day: t(`heatmap.days.${DAY_KEYS[day] ?? "sun"}`),
-                        hour,
-                        count,
-                      })}
-                      className={cn(
-                        "aspect-square rounded-sm",
-                        BUCKET_BG[bucket],
-                      )}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+                  <span
+                    role="rowheader"
+                    className="text-right text-[10px] text-muted-foreground"
+                  >
+                    {dayLabel}
+                  </span>
+                  {row.map((count, hour) => {
+                    const bucket = bucketFor(count, max);
+                    return (
+                      <div
+                        role="cell"
+                        key={hour}
+                        title={t("heatmap.cellTitle", {
+                          day: dayLabel,
+                          hour,
+                          count,
+                        })}
+                        className={cn(
+                          "aspect-square rounded-sm",
+                          BUCKET_BG[bucket],
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
             <div className="ml-10 mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
               <span>{t("heatmap.less")}</span>
               {BUCKET_BG.map((bg, i) => (

@@ -11,6 +11,8 @@
     "load": "Failed to load this chart. Try again."
   },
   "summary": {
+    "title": "Overview",
+    "description": "Totals for this repository.",
     "totalCommits": "Total commits",
     "totalContributors": "Contributors",
     "avgQuality": "Avg quality",

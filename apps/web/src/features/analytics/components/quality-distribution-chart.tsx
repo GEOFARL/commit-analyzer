@@ -27,7 +27,7 @@ const BUCKET_ORDER = ["good", "average", "poor"] as const;
 
 const BUCKET_COLOR: Record<(typeof BUCKET_ORDER)[number], string> = {
   good: "var(--primary)",
-  average: "var(--chart-2, oklch(0.75 0.13 85))",
+  average: "var(--muted-foreground)",
   poor: "var(--destructive)",
 };
 
