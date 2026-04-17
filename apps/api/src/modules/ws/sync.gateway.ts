@@ -50,7 +50,6 @@ export class SyncGateway implements OnGatewayInit, OnGatewayConnection, OnModule
     // leaves the socket.io Server partially initialized.
     if (getServerEnv().NODE_ENV === "test") return;
     const { REDIS_URL } = getServerEnv();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as never });
     this.sub = this.pub.duplicate();
     server.adapter(createAdapter(this.pub, this.sub));
