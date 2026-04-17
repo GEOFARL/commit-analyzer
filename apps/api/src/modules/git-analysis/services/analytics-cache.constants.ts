@@ -1,6 +1,8 @@
 import type { AnalyticsCacheKind } from "./analytics-cache.types.js";
 
 export const ANALYTICS_CACHE_PREFIX = "analytics";
+export const ANALYTICS_CACHE_STATS_HITS = "analytics:stats:hits";
+export const ANALYTICS_CACHE_STATS_MISSES = "analytics:stats:misses";
 
 const TEN_MINUTES = 600;
 
@@ -11,6 +13,5 @@ export const ANALYTICS_CACHE_TTL: Record<AnalyticsCacheKind, number> = {
   qualityScores: TEN_MINUTES,
   qualityTrends: TEN_MINUTES,
   contributors: TEN_MINUTES,
-  fileFrequency: TEN_MINUTES,
   summary: TEN_MINUTES,
 };

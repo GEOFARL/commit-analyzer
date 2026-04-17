@@ -24,6 +24,9 @@ class NoopRedis {
   scan(): Promise<[string, string[]]> {
     return Promise.resolve(["0", []]);
   }
+  incr(): Promise<number> {
+    return Promise.resolve(0);
+  }
   on(): void {}
   quit(): Promise<"OK"> {
     return Promise.resolve("OK");

@@ -4,5 +4,4 @@ export type AnalyticsCacheKind =
   | "qualityScores"
   | "qualityTrends"
   | "contributors"
-  | "fileFrequency"
   | "summary";

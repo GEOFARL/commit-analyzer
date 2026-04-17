@@ -4,6 +4,8 @@ import { CacheService } from "../../../common/cache/cache.service.js";
 
 import {
   ANALYTICS_CACHE_PREFIX,
+  ANALYTICS_CACHE_STATS_HITS,
+  ANALYTICS_CACHE_STATS_MISSES,
   ANALYTICS_CACHE_TTL,
 } from "./analytics-cache.constants.js";
 import type { AnalyticsCacheKind } from "./analytics-cache.types.js";
@@ -11,8 +13,6 @@ import type { AnalyticsCacheKind } from "./analytics-cache.types.js";
 @Injectable()
 export class AnalyticsCacheService {
   private readonly logger = new Logger(AnalyticsCacheService.name);
-  private hits = 0;
-  private misses = 0;
 
   constructor(private readonly cache: CacheService) {}
 
@@ -25,7 +25,8 @@ export class AnalyticsCacheService {
   /**
    * Read-through helper: returns cached value if present, otherwise calls
    * `loader`, stores the result under `analytics:<repoId>:<kind>[:<suffix>]`
-   * with the per-query TTL, and returns it.
+   * with the per-query TTL, and returns it. Hit/miss tallies are INCR'd in
+   * Redis so `metrics()` aggregates across instances.
    */
   async getOrSet<T>(
     kind: AnalyticsCacheKind,
@@ -36,24 +37,25 @@ export class AnalyticsCacheService {
     const k = this.key(repoId, kind, suffix);
     const cached = await this.cache.getJson<T>(k);
     if (cached !== null) {
-      this.hits++;
-      this.logger.debug(
-        `cache hit  key=${k} hits=${this.hits} misses=${this.misses}`,
-      );
+      const hits = await this.cache.incr(ANALYTICS_CACHE_STATS_HITS);
+      this.logger.debug(`cache hit  key=${k} hits=${hits}`);
       return cached;
     }
-    this.misses++;
-    this.logger.debug(
-      `cache miss key=${k} hits=${this.hits} misses=${this.misses}`,
-    );
+    const misses = await this.cache.incr(ANALYTICS_CACHE_STATS_MISSES);
+    this.logger.debug(`cache miss key=${k} misses=${misses}`);
     const result = await loader();
     await this.cache.setJson(k, result, ANALYTICS_CACHE_TTL[kind]);
     return result;
   }
 
-  /** Hit/miss counters for debugging (e.g. health endpoint or logs). */
-  metrics(): { hits: number; misses: number } {
-    return { hits: this.hits, misses: this.misses };
+  /** Cross-instance hit/miss counters (read from Redis). */
+  async metrics(): Promise<{ hits: number; misses: number; hitRate: number }> {
+    const [hits, misses] = await Promise.all([
+      this.cache.getNumber(ANALYTICS_CACHE_STATS_HITS),
+      this.cache.getNumber(ANALYTICS_CACHE_STATS_MISSES),
+    ]);
+    const total = hits + misses;
+    return { hits, misses, hitRate: total === 0 ? 0 : hits / total };
   }
 
   async invalidateRepo(repoId: string): Promise<number> {
