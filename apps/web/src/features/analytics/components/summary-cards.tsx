@@ -82,13 +82,16 @@ const SummaryTile = ({
   label: string;
   value: string;
 }) => (
-  <div className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+  <div className="relative flex flex-col gap-1 rounded-2xl border bg-card p-4">
+    <span
+      aria-hidden="true"
+      className="absolute right-3 top-3 text-muted-foreground/60"
+    >
       {icon}
-      <span>{label}</span>
-    </div>
-    <p className="text-2xl font-semibold tabular-nums tracking-tight">
+    </span>
+    <p className="text-3xl font-semibold tabular-nums leading-none tracking-tight">
       {value}
     </p>
+    <p className="text-xs text-muted-foreground">{label}</p>
   </div>
 );

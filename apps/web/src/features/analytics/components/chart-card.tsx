@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Inbox } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -45,9 +45,13 @@ type ChartStateProps = {
 
 export const ChartEmpty = ({ message }: ChartStateProps) => (
   <div
-    className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-8 text-center"
+    className="flex min-h-40 flex-col items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-8 text-center"
     role="status"
   >
+    <Inbox
+      aria-hidden="true"
+      className="h-8 w-8 text-muted-foreground/60"
+    />
     <p className="text-sm text-muted-foreground">{message}</p>
   </div>
 );

@@ -122,16 +122,22 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                         hour,
                         count,
                       });
+                      const showCount = bucket >= 3;
                       return (
                         <td
                           key={hour}
                           aria-label={label}
                           title={label}
                           className={cn(
-                            "aspect-square rounded-sm",
+                            "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none",
+                            bucket >= 3
+                              ? "text-primary-foreground"
+                              : "text-transparent",
                             BUCKET_BG[bucket],
                           )}
-                        />
+                        >
+                          {showCount ? count : null}
+                        </td>
                       );
                     })}
                   </tr>
@@ -139,8 +145,8 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
               })}
             </tbody>
           </table>
-          <div className="ml-10 mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span aria-hidden="true">{t("heatmap.less")}</span>
+          <div className="ml-10 mt-2 flex items-center gap-2 text-[10px] tabular-nums text-muted-foreground">
+            <span aria-hidden="true">0</span>
             <span
               aria-hidden="true"
               className="flex items-center gap-1"
@@ -152,7 +158,10 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                 />
               ))}
             </span>
-            <span aria-hidden="true">{t("heatmap.more")}</span>
+            <span aria-hidden="true">{max}</span>
+            <span aria-hidden="true" className="ml-2 uppercase tracking-wide">
+              {t("heatmap.more")}
+            </span>
             <span className="sr-only">{t("heatmap.legend")}</span>
           </div>
         </div>

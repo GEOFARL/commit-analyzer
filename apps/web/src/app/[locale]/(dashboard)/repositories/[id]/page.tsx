@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -42,7 +43,9 @@ export default async function RepositoryAnalyticsPage({
                 {t("breadcrumb.repositories")}
               </Link>
             </li>
-            <li aria-hidden="true">/</li>
+            <li aria-hidden="true" className="flex items-center">
+              <ChevronRight className="h-3.5 w-3.5" />
+            </li>
             <li className="truncate text-foreground" aria-current="page">
               {data.repo.fullName}
             </li>
