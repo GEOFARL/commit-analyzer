@@ -16,9 +16,25 @@ import {
   type StartedPostgreSqlContainer,
 } from "@testcontainers/postgresql";
 import { DataSource } from "typeorm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { AnalyticsService } from "./analytics.service.js";
+import { CacheService } from "../../common/cache/cache.service.js";
+
+import { GetContributorsHandler } from "./queries/get-contributors.handler.js";
+import { GetContributorsQuery } from "./queries/get-contributors.query.js";
+import { GetFileFrequencyHandler } from "./queries/get-file-frequency.handler.js";
+import { GetFileFrequencyQuery } from "./queries/get-file-frequency.query.js";
+import { GetHeatmapHandler } from "./queries/get-heatmap.handler.js";
+import { GetHeatmapQuery } from "./queries/get-heatmap.query.js";
+import { GetQualityScoresHandler } from "./queries/get-quality-scores.handler.js";
+import { GetQualityScoresQuery } from "./queries/get-quality-scores.query.js";
+import { GetQualityTrendsHandler } from "./queries/get-quality-trends.handler.js";
+import { GetQualityTrendsQuery } from "./queries/get-quality-trends.query.js";
+import { GetSummaryHandler } from "./queries/get-summary.handler.js";
+import { GetSummaryQuery } from "./queries/get-summary.query.js";
+import { GetTimelineHandler } from "./queries/get-timeline.handler.js";
+import { GetTimelineQuery } from "./queries/get-timeline.query.js";
+import { AnalyticsCacheService } from "./services/analytics-cache.service.js";
 
 const SKIP = process.env.SKIP_INTEGRATION === "1";
 
@@ -26,10 +42,26 @@ const USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const OTHER_USER_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const REPO_ID = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
-describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
+/** Noop Redis stub — cache always misses so handlers hit SQL every time. */
+const noopRedis = {
+  get: vi.fn(() => Promise.resolve(null)),
+  set: vi.fn(() => Promise.resolve("OK")),
+  del: vi.fn(() => Promise.resolve(0)),
+  scan: vi.fn(() => Promise.resolve(["0", []])),
+};
+
+describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
   let container: StartedPostgreSqlContainer;
   let ds: DataSource;
-  let service: AnalyticsService;
+  let cache: AnalyticsCacheService;
+
+  let timelineHandler: GetTimelineHandler;
+  let heatmapHandler: GetHeatmapHandler;
+  let qualityScoresHandler: GetQualityScoresHandler;
+  let qualityTrendsHandler: GetQualityTrendsHandler;
+  let contributorsHandler: GetContributorsHandler;
+  let fileFrequencyHandler: GetFileFrequencyHandler;
+  let summaryHandler: GetSummaryHandler;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:16").start();
@@ -131,7 +163,16 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
       );
     }
 
-    service = new AnalyticsService(ds);
+    const cacheService = new CacheService(noopRedis as never);
+    cache = new AnalyticsCacheService(cacheService);
+
+    timelineHandler = new GetTimelineHandler(ds, cache);
+    heatmapHandler = new GetHeatmapHandler(ds, cache);
+    qualityScoresHandler = new GetQualityScoresHandler(ds, cache);
+    qualityTrendsHandler = new GetQualityTrendsHandler(ds, cache);
+    contributorsHandler = new GetContributorsHandler(ds, cache);
+    fileFrequencyHandler = new GetFileFrequencyHandler(ds, cache);
+    summaryHandler = new GetSummaryHandler(ds, cache);
   }, 120_000);
 
   afterAll(async () => {
@@ -142,8 +183,10 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
   // ── Timeline ─────────────────────────────────────────────────
 
   it("timeline returns commits per day", async () => {
-    const items = await service.timeline(REPO_ID, USER_ID, "day");
-    expect(items.length).toBe(3); // Jan 6, 7, 8
+    const items = await timelineHandler.execute(
+      new GetTimelineQuery(REPO_ID, USER_ID, "day"),
+    );
+    expect(items.length).toBe(3);
     expect(items[0]!.date).toBe("2025-01-06");
     expect(items[0]!.count).toBe(2);
     expect(items[1]!.count).toBe(2);
@@ -151,7 +194,9 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
   });
 
   it("timeline groups by week", async () => {
-    const items = await service.timeline(REPO_ID, USER_ID, "week");
+    const items = await timelineHandler.execute(
+      new GetTimelineQuery(REPO_ID, USER_ID, "week"),
+    );
     expect(items.length).toBeGreaterThanOrEqual(1);
     const total = items.reduce((sum, p) => sum + p.count, 0);
     expect(total).toBe(5);
@@ -160,7 +205,9 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
   // ── Heatmap ──────────────────────────────────────────────────
 
   it("heatmap returns day × hour cells", async () => {
-    const items = await service.heatmap(REPO_ID, USER_ID);
+    const items = await heatmapHandler.execute(
+      new GetHeatmapQuery(REPO_ID, USER_ID),
+    );
     expect(items.length).toBeGreaterThanOrEqual(1);
     for (const cell of items) {
       expect(cell.day).toBeGreaterThanOrEqual(0);
@@ -171,34 +218,37 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
     }
   });
 
-  // ── Quality distribution ─────────────────────────────────────
+  // ── Quality scores ───────────────────────────────────────────
 
-  it("quality distribution returns score buckets", async () => {
-    const items = await service.qualityDistribution(REPO_ID, USER_ID);
+  it("quality scores returns score buckets", async () => {
+    const items = await qualityScoresHandler.execute(
+      new GetQualityScoresQuery(REPO_ID, USER_ID),
+    );
     expect(items.length).toBeGreaterThanOrEqual(1);
 
     const byBucket = Object.fromEntries(items.map((b) => [b.bucket, b.count]));
-    // good: 85, 90 = 2; average: 70, 55 = 2; poor: 40 = 1
     expect(byBucket["good"]).toBe(2);
     expect(byBucket["average"]).toBe(2);
     expect(byBucket["poor"]).toBe(1);
   });
 
-  // ── Quality trend ────────────────────────────────────────────
+  // ── Quality trends ───────────────────────────────────────────
 
-  it("quality trend returns avg score per day", async () => {
-    const items = await service.qualityTrend(REPO_ID, USER_ID, "day");
+  it("quality trends returns avg score per day", async () => {
+    const items = await qualityTrendsHandler.execute(
+      new GetQualityTrendsQuery(REPO_ID, USER_ID, "day"),
+    );
     expect(items.length).toBe(3);
-    // Jan 6: avg(85,70) = 77.5
     expect(items[0]!.avgScore).toBeCloseTo(77.5, 1);
   });
 
   // ── Contributors ─────────────────────────────────────────────
 
   it("contributors returns top authors", async () => {
-    const items = await service.contributors(REPO_ID, USER_ID, 10);
+    const items = await contributorsHandler.execute(
+      new GetContributorsQuery(REPO_ID, USER_ID, 10),
+    );
     expect(items.length).toBe(2);
-    // Alice has 3 commits, Bob has 2
     expect(items[0]!.authorName).toBe("Alice");
     expect(items[0]!.commitCount).toBe(3);
     expect(items[0]!.avgQuality).toBeGreaterThan(0);
@@ -206,21 +256,24 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
     expect(items[1]!.commitCount).toBe(2);
   });
 
-  // ── Files churn ──────────────────────────────────────────────
+  // ── File frequency ───────────────────────────────────────────
 
-  it("files churn returns empty (no file-level data yet)", async () => {
-    const items = await service.filesChurn(REPO_ID, USER_ID, 10);
+  it("file frequency returns empty (no file-level data yet)", async () => {
+    const items = await fileFrequencyHandler.execute(
+      new GetFileFrequencyQuery(REPO_ID, USER_ID, 10),
+    );
     expect(items).toEqual([]);
   });
 
   // ── Summary ──────────────────────────────────────────────────
 
   it("summary returns aggregate totals", async () => {
-    const result = await service.summary(REPO_ID, USER_ID);
+    const result = await summaryHandler.execute(
+      new GetSummaryQuery(REPO_ID, USER_ID),
+    );
     expect(result.totalCommits).toBe(5);
     expect(result.totalContributors).toBe(2);
     expect(result.avgQuality).toBeGreaterThan(0);
-    // 4 out of 5 are conventional = 80%
     expect(result.ccCompliancePercent).toBe(80);
   });
 
@@ -228,7 +281,9 @@ describe.skipIf(SKIP)("AnalyticsService (integration)", () => {
 
   it("throws 404 for repo not owned by user", async () => {
     await expect(
-      service.timeline(REPO_ID, OTHER_USER_ID, "day"),
+      timelineHandler.execute(
+        new GetTimelineQuery(REPO_ID, OTHER_USER_ID, "day"),
+      ),
     ).rejects.toThrow("repository not found");
   });
 });

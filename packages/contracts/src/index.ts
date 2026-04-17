@@ -45,7 +45,7 @@ export {
 export { analyticsContract } from "./analytics.contract.js";
 export type {
   Contributor,
-  FileChurn,
+  FileFrequency,
   Granularity,
   HeatmapCell,
   QualityBucket,
@@ -55,7 +55,7 @@ export type {
 } from "./analytics.contract.js";
 export {
   contributorSchema,
-  fileChurnSchema,
+  fileFrequencySchema,
   granularitySchema,
   heatmapCellSchema,
   qualityBucketSchema,

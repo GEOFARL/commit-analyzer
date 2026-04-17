@@ -7,7 +7,7 @@ const c = initContract();
 
 // ── Query params ───────────────────────────────────────────────
 
-export const granularitySchema = z.enum(["day", "week"]);
+export const granularitySchema = z.enum(["day", "week", "month"]);
 export type Granularity = z.infer<typeof granularitySchema>;
 
 const repoIdParam = z.object({ repoId: z.string().uuid() });
@@ -28,7 +28,7 @@ export const heatmapCellSchema = z.object({
 export type HeatmapCell = z.infer<typeof heatmapCellSchema>;
 
 export const qualityBucketSchema = z.object({
-  bucket: z.string(),
+  bucket: z.enum(["good", "average", "poor"]),
   count: z.number().int().nonnegative(),
 });
 export type QualityBucket = z.infer<typeof qualityBucketSchema>;
@@ -47,17 +47,17 @@ export const contributorSchema = z.object({
 });
 export type Contributor = z.infer<typeof contributorSchema>;
 
-export const fileChurnSchema = z.object({
+export const fileFrequencySchema = z.object({
   filePath: z.string(),
   changeCount: z.number().int().nonnegative(),
 });
-export type FileChurn = z.infer<typeof fileChurnSchema>;
+export type FileFrequency = z.infer<typeof fileFrequencySchema>;
 
 export const summarySchema = z.object({
   totalCommits: z.number().int().nonnegative(),
   totalContributors: z.number().int().nonnegative(),
   avgQuality: z.number().nonnegative(),
-  ccCompliancePercent: z.number().nonnegative(),
+  ccCompliancePercent: z.number().min(0).max(100),
 });
 export type Summary = z.infer<typeof summarySchema>;
 
@@ -77,7 +77,7 @@ export const analyticsContract = c.router(
         401: errorEnvelopeSchema,
         404: errorEnvelopeSchema,
       },
-      summary: "Commits per day or week",
+      summary: "Commits per day, week, or month",
       metadata: { auth: "jwt", rateLimit: "analytics" } as const,
     },
     heatmap: {
@@ -92,7 +92,7 @@ export const analyticsContract = c.router(
       summary: "Day-of-week × hour heatmap",
       metadata: { auth: "jwt", rateLimit: "analytics" } as const,
     },
-    qualityDistribution: {
+    qualityScores: {
       method: "GET",
       path: "/repos/:repoId/analytics/quality",
       pathParams: repoIdParam,
@@ -104,7 +104,7 @@ export const analyticsContract = c.router(
       summary: "Quality score distribution in buckets",
       metadata: { auth: "jwt", rateLimit: "analytics" } as const,
     },
-    qualityTrend: {
+    qualityTrends: {
       method: "GET",
       path: "/repos/:repoId/analytics/quality/trends",
       pathParams: repoIdParam,
@@ -134,7 +134,7 @@ export const analyticsContract = c.router(
       summary: "Top authors by commit count with avg quality",
       metadata: { auth: "jwt", rateLimit: "analytics" } as const,
     },
-    filesChurn: {
+    fileFrequency: {
       method: "GET",
       path: "/repos/:repoId/analytics/files",
       pathParams: repoIdParam,
@@ -142,7 +142,7 @@ export const analyticsContract = c.router(
         limit: z.coerce.number().int().min(1).max(100).default(10),
       }),
       responses: {
-        200: z.object({ items: z.array(fileChurnSchema) }),
+        200: z.object({ items: z.array(fileFrequencySchema) }),
         401: errorEnvelopeSchema,
         404: errorEnvelopeSchema,
       },
