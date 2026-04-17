@@ -12,7 +12,7 @@ import { RedisIoAdapter } from "./modules/ws/redis-io.adapter.js";
 export const createApp = async (): Promise<NestExpressApplication> => {
   const env = getServerEnv();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: false,
+    logger: ["log", "error", "warn"],
   });
 
   if (env.NODE_ENV === "test") {
