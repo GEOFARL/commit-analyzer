@@ -1,7 +1,7 @@
 import type { DataSource, Repository as OrmRepository } from "typeorm";
 
-import { Commit } from "../entities/commit.entity.js";
 import { CommitQualityScore } from "../entities/commit-quality-score.entity.js";
+import { Commit } from "../entities/commit.entity.js";
 
 export interface UpsertCommitInput {
   repositoryId: string;
@@ -63,7 +63,6 @@ export const createCommitRepository = (
           ["repository_id", "sha"],
         )
         .execute();
-      const shas = commits.map((c) => c.sha);
       return base.find({
         where: commits.map((c) => ({
           repositoryId: c.repositoryId,
@@ -71,7 +70,7 @@ export const createCommitRepository = (
         })),
         select: { id: true, sha: true, repositoryId: true },
         order: { authoredAt: "DESC" },
-      }) as Promise<Commit[]>;
+      });
     },
 
     async upsertScores(scores: UpsertScoreInput[]): Promise<void> {
