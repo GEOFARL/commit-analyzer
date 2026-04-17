@@ -3,6 +3,9 @@ export const name = "@commit-analyzer/api";
 export { parseConventionalCommit } from "./shared/cc-parser.js";
 export type { ParsedCC } from "./shared/cc-parser.js";
 
+export { scoreCommit } from "./shared/quality-scorer.js";
+export type { Score, ScoreDetail } from "./shared/quality-scorer.js";
+
 export { getServerEnv } from "./common/config.js";
 export { createLogger, REDACT_PATHS } from "./common/logger.js";
 export {

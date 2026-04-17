@@ -1,0 +1,42 @@
+[
+  {
+    "name": "great commit — all criteria met",
+    "input": "feat(auth): add oauth2 login flow\n\nImplements Google and GitHub OAuth2 providers.\nUsers can now sign in without a password.\n\nCloses #42",
+    "expected": {
+      "isConventional": true,
+      "ccType": "feat",
+      "ccScope": "auth",
+      "subjectLength": 21,
+      "hasBody": true,
+      "hasFooter": true,
+      "overallScore": 100,
+      "details": [
+        { "component": "is_conventional", "weight": 30, "got": 30 },
+        { "component": "type_valid",      "weight": 10, "got": 10 },
+        { "component": "scope_present",   "weight": 10, "got": 10 },
+        { "component": "subject_length",  "weight": 20, "got": 20 },
+        { "component": "body_present",    "weight": 15, "got": 15 },
+        { "component": "footer_present",  "weight": 15, "got": 15 }
+      ]
+    }
+  },
+  {
+    "name": "bad commit — plain message no colon",
+    "input": "wip",
+    "expected": {
+      "isConventional": false,
+      "subjectLength": 0,
+      "hasBody": false,
+      "hasFooter": false,
+      "overallScore": 0,
+      "details": [
+        { "component": "is_conventional", "weight": 30, "got": 0 },
+        { "component": "type_valid",      "weight": 10, "got": 0 },
+        { "component": "scope_present",   "weight": 10, "got": 0 },
+        { "component": "subject_length",  "weight": 20, "got": 0 },
+        { "component": "body_present",    "weight": 15, "got": 0 },
+        { "component": "footer_present",  "weight": 15, "got": 0 }
+      ]
+    }
+  }
+]
