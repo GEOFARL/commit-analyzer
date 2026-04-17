@@ -1,5 +1,6 @@
 import { initContract } from "@ts-rest/core";
 
+import { analyticsContract } from "./analytics.contract.js";
 import { auditContract } from "./audit.contract.js";
 import { authContract } from "./auth.contract.js";
 import { reposContract } from "./repos.contract.js";
@@ -9,6 +10,7 @@ const c = initContract();
 export const contracts = c.router({
   auth: authContract,
   audit: auditContract,
+  analytics: analyticsContract,
   repos: reposContract,
 });
 
@@ -39,6 +41,28 @@ export {
   auditEventTypeSchema,
   auditEventTypes,
 } from "./audit.contract.js";
+
+export { analyticsContract } from "./analytics.contract.js";
+export type {
+  Contributor,
+  FileFrequency,
+  Granularity,
+  HeatmapCell,
+  QualityBucket,
+  QualityTrendPoint,
+  Summary,
+  TimelinePoint,
+} from "./analytics.contract.js";
+export {
+  contributorSchema,
+  fileFrequencySchema,
+  granularitySchema,
+  heatmapCellSchema,
+  qualityBucketSchema,
+  qualityTrendPointSchema,
+  summarySchema,
+  timelinePointSchema,
+} from "./analytics.contract.js";
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";

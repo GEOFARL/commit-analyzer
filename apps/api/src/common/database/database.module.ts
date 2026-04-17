@@ -1,8 +1,11 @@
 import {
   createApiKeyRepository,
   createAuditEventRepository,
+  createCommitQualityScoreRepository,
+  createCommitRepository,
   createDataSource,
   createRepositoryRepository,
+  createSyncJobRepository,
   createUserRepository,
   type DataSource,
 } from "@commit-analyzer/database";
@@ -14,8 +17,11 @@ import { getServerEnv } from "../config.js";
 import {
   API_KEY_REPOSITORY,
   AUDIT_EVENT_REPOSITORY,
+  COMMIT_QUALITY_SCORE_REPOSITORY,
+  COMMIT_REPOSITORY,
   DATA_SOURCE,
   REPOSITORY_REPOSITORY,
+  SYNC_JOB_REPOSITORY,
   USER_REPOSITORY,
 } from "./tokens.js";
 import { TransactionalInterceptor } from "./transactional.interceptor.js";
@@ -65,6 +71,21 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createAuditEventRepository(ds),
     },
     {
+      provide: COMMIT_QUALITY_SCORE_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createCommitQualityScoreRepository(ds),
+    },
+    {
+      provide: COMMIT_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createCommitRepository(ds),
+    },
+    {
+      provide: SYNC_JOB_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createSyncJobRepository(ds),
+    },
+    {
       provide: APP_INTERCEPTOR,
       useClass: TransactionalInterceptor,
     },
@@ -73,8 +94,11 @@ const dbLogger = new Logger("DatabaseModule");
     DATA_SOURCE,
     API_KEY_REPOSITORY,
     AUDIT_EVENT_REPOSITORY,
+    COMMIT_QUALITY_SCORE_REPOSITORY,
     USER_REPOSITORY,
     REPOSITORY_REPOSITORY,
+    COMMIT_REPOSITORY,
+    SYNC_JOB_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

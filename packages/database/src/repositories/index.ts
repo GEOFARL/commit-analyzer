@@ -1,5 +1,18 @@
 export { createApiKeyRepository } from "./api-key.repository.js";
 export type { ApiKeyRepository } from "./api-key.repository.js";
+export { createCommitQualityScoreRepository } from "./commit-quality-score.repository.js";
+export type {
+  CommitQualityScoreRepository,
+  UpsertScoreRow,
+} from "./commit-quality-score.repository.js";
+export { createCommitRepository } from "./commit.repository.js";
+export type {
+  CommitRepository,
+  UpsertCommitInput,
+  UpsertScoreInput,
+} from "./commit.repository.js";
+export { createSyncJobRepository } from "./sync-job.repository.js";
+export type { SyncJobRepository } from "./sync-job.repository.js";
 export { createAuditEventRepository } from "./audit-event.repository.js";
 export type {
   AuditEventListOptions,
