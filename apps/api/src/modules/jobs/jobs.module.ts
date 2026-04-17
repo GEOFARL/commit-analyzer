@@ -19,8 +19,7 @@ import { QueueService } from "./services/queue.service.js";
     BullModule.forRootAsync({
       useFactory: () => {
         const { REDIS_URL } = getServerEnv();
-        const family = REDIS_URL.includes(".railway.internal") ? 6 : 0;
-        const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true, family });
+        const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
         return { connection };
       },
     }),
