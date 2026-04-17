@@ -24,10 +24,13 @@
     "@nestjs/core": "^11",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/platform-express": "^11",
+    "@nestjs/platform-socket.io": "^11.1.19",
     "@nestjs/throttler": "^6.5.0",
+    "@nestjs/websockets": "^11.1.19",
     "@octokit/plugin-retry": "^8.1.0",
     "@octokit/plugin-throttling": "^11.0.3",
     "@octokit/rest": "^22.0.1",
+    "@socket.io/redis-adapter": "^8.3.0",
     "@supabase/supabase-js": "^2.103.0",
     "@ts-rest/nest": "^3.51.0",
     "argon2": "^0.44.0",
@@ -38,6 +41,7 @@
     "pino": "^9.5.0",
     "reflect-metadata": "^0.2",
     "rxjs": "^7",
+    "socket.io": "^4.8.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {

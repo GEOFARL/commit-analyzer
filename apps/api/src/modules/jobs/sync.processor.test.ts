@@ -3,10 +3,11 @@ import "reflect-metadata";
 import type { Job } from "bullmq";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RepoSyncedEvent } from "./events/repo-synced.event.js";
-import { SyncFailedEvent } from "./events/sync-failed.event.js";
-import { SyncProgressEvent } from "./events/sync-progress.event.js";
-import { SyncStartedEvent } from "./events/sync-started.event.js";
+import { RepoSyncedEvent } from "../../shared/events/repo-synced.event.js";
+import { SyncFailedEvent } from "../../shared/events/sync-failed.event.js";
+import { SyncProgressEvent } from "../../shared/events/sync-progress.event.js";
+import { SyncStartedEvent } from "../../shared/events/sync-started.event.js";
+
 import { SyncProcessor } from "./processors/sync.processor.js";
 import type { SyncJobData } from "./queues/sync.queue.js";
 

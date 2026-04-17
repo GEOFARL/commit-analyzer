@@ -16,12 +16,12 @@ import {
   SYNC_JOB_REPOSITORY,
 } from "../../../common/database/tokens.js";
 import { type ParsedCC, parseConventionalCommit } from "../../../shared/cc-parser.js";
+import { RepoSyncedEvent } from "../../../shared/events/repo-synced.event.js";
+import { SyncFailedEvent } from "../../../shared/events/sync-failed.event.js";
+import { SyncProgressEvent } from "../../../shared/events/sync-progress.event.js";
+import { SyncStartedEvent } from "../../../shared/events/sync-started.event.js";
 import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { OctokitFactory } from "../../octokit/octokit-factory.service.js";
-import { RepoSyncedEvent } from "../events/repo-synced.event.js";
-import { SyncFailedEvent } from "../events/sync-failed.event.js";
-import { SyncProgressEvent } from "../events/sync-progress.event.js";
-import { SyncStartedEvent } from "../events/sync-started.event.js";
 import { SYNC_QUEUE, type SyncJobData } from "../queues/sync.queue.js";
 
 const COMMITS_PER_PAGE = 100;

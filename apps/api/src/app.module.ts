@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthController } from "./modules/health/health.controller.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { ReposModule } from "./modules/repos/repos.module.js";
+import { WsModule } from "./modules/ws/ws.module.js";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ReposModule } from "./modules/repos/repos.module.js";
     AuditModule,
     ReposModule,
     JobsModule,
+    WsModule,
   ],
   controllers: [HealthController],
 })
