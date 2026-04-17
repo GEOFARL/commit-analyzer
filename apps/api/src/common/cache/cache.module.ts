@@ -41,11 +41,9 @@ class NoopRedis {
         if (env.NODE_ENV === "test") {
           return new NoopRedis() as unknown as Redis;
         }
-        const family = env.REDIS_URL.includes(".railway.internal") ? 6 : 0;
         const client = new Redis(env.REDIS_URL, {
           maxRetriesPerRequest: 3,
           enableOfflineQueue: false,
-          family,
         });
         client.on("error", (err: Error) => {
           logger.warn(`redis error: ${err.message}`);

@@ -12,9 +12,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets";
-import { createAdapter } from "@socket.io/redis-adapter";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Redis } from "ioredis";
 import type { Server, Socket } from "socket.io";
 
 import { getServerEnv } from "../../common/config.js";
@@ -37,28 +35,17 @@ export class SyncGateway implements OnGatewayInit, OnGatewayConnection, OnModule
   @WebSocketServer()
   server!: Server;
 
-  private pub: Redis | null = null;
-  private sub: Redis | null = null;
-
   constructor(
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
     @Inject(REPOSITORY_REPOSITORY) private readonly repos: RepositoryRepository,
   ) {}
 
-  afterInit(server: Server): void {
-    // Skip Redis adapter when running in tests: app.init() without app.listen()
-    // leaves the socket.io Server partially initialized.
-    if (getServerEnv().NODE_ENV === "test") return;
-    const { REDIS_URL } = getServerEnv();
-    const family = REDIS_URL.includes(".railway.internal") ? 6 : 0;
-    this.pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as never, family });
-    this.sub = this.pub.duplicate();
-    server.adapter(createAdapter(this.pub, this.sub));
-    this.logger.log("ws.adapter redis attached");
+  afterInit(): void {
+    this.logger.log("ws.gateway initialized");
   }
 
   async onModuleDestroy(): Promise<void> {
-    await Promise.all([this.pub?.quit(), this.sub?.quit()]);
+    // Redis pub/sub clients are owned by RedisIoAdapter; its close() handles cleanup.
   }
 
   async handleConnection(client: Socket): Promise<void> {
