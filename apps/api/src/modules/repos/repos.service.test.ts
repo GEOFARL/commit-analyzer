@@ -4,7 +4,8 @@ import type { Repository as RepoEntity } from "@commit-analyzer/database";
 import { HttpStatus } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RepoConnectedEvent } from "./events/repo-connected.event.js";
+import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
+
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
 import {
   GithubUpstreamError,
