@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
+import { Redis } from "ioredis";
 
 import { getServerEnv } from "../../common/config.js";
 import { OctokitModule } from "../octokit/octokit.module.js";
@@ -18,7 +19,8 @@ import { QueueService } from "./services/queue.service.js";
     BullModule.forRootAsync({
       useFactory: () => {
         const { REDIS_URL } = getServerEnv();
-        return { connection: { lazyConnect: true, maxRetriesPerRequest: null }, url: REDIS_URL };
+        const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
+        return { connection };
       },
     }),
     BullModule.registerQueue({ name: SYNC_QUEUE }),
