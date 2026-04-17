@@ -16,9 +16,9 @@ describe("QueueService", () => {
   let rescoreGetJobMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    addMock = vi.fn().mockResolvedValue({ id: "sync:repo-1" });
+    addMock = vi.fn().mockResolvedValue({ id: "sync-repo-1" });
     getJobMock = vi.fn().mockResolvedValue(null);
-    rescoreAddMock = vi.fn().mockResolvedValue({ id: "rescore:repo-1" });
+    rescoreAddMock = vi.fn().mockResolvedValue({ id: "rescore-repo-1" });
     rescoreGetJobMock = vi.fn().mockResolvedValue(null);
 
     const syncQueue = {
@@ -48,13 +48,13 @@ describe("QueueService", () => {
   it("enqueues a sync job and returns the job id", async () => {
     const id = await service.enqueueSync("repo-1", "user-1");
 
-    expect(id).toBe("sync:repo-1");
+    expect(id).toBe("sync-repo-1");
     expect(addMock).toHaveBeenCalledOnce();
     expect(addMock).toHaveBeenCalledWith(
       "sync-repo",
       { repositoryId: "repo-1", userId: "user-1" },
       expect.objectContaining({
-        jobId: "sync:repo-1",
+        jobId: "sync-repo-1",
         attempts: 3,
         backoff: { type: "exponential", delay: 2_000 },
       }),
@@ -63,19 +63,19 @@ describe("QueueService", () => {
 
   it("skips duplicate when job is already active", async () => {
     getJobMock.mockResolvedValue({
-      id: "sync:repo-1",
+      id: "sync-repo-1",
       getState: vi.fn().mockResolvedValue("active"),
     });
 
     const id = await service.enqueueSync("repo-1", "user-1");
 
-    expect(id).toBe("sync:repo-1");
+    expect(id).toBe("sync-repo-1");
     expect(addMock).not.toHaveBeenCalled();
   });
 
   it("skips duplicate when job is waiting", async () => {
     getJobMock.mockResolvedValue({
-      id: "sync:repo-1",
+      id: "sync-repo-1",
       getState: vi.fn().mockResolvedValue("waiting"),
     });
 
@@ -86,7 +86,7 @@ describe("QueueService", () => {
 
   it("skips duplicate when job is delayed", async () => {
     getJobMock.mockResolvedValue({
-      id: "sync:repo-1",
+      id: "sync-repo-1",
       getState: vi.fn().mockResolvedValue("delayed"),
     });
 
@@ -97,7 +97,7 @@ describe("QueueService", () => {
 
   it("re-enqueues when a prior job completed", async () => {
     getJobMock.mockResolvedValue({
-      id: "sync:repo-1",
+      id: "sync-repo-1",
       getState: vi.fn().mockResolvedValue("completed"),
     });
 
@@ -110,13 +110,13 @@ describe("QueueService", () => {
     it("enqueues a rescore job and returns the job id", async () => {
       const id = await service.enqueueRescore("repo-1");
 
-      expect(id).toBe("rescore:repo-1");
+      expect(id).toBe("rescore-repo-1");
       expect(rescoreAddMock).toHaveBeenCalledOnce();
       expect(rescoreAddMock).toHaveBeenCalledWith(
         "rescore-repo",
         { repositoryId: "repo-1" },
         expect.objectContaining({
-          jobId: "rescore:repo-1",
+          jobId: "rescore-repo-1",
           attempts: 1,
         }),
       );
@@ -128,7 +128,7 @@ describe("QueueService", () => {
       expect(rescoreAddMock).toHaveBeenCalledWith(
         "rescore-repo",
         { repositoryId: "repo-1", batchSize: 200 },
-        expect.objectContaining({ jobId: "rescore:repo-1" }),
+        expect.objectContaining({ jobId: "rescore-repo-1" }),
       );
     });
 
@@ -136,20 +136,20 @@ describe("QueueService", () => {
       "skips duplicate when rescore job is %s",
       async (state) => {
         rescoreGetJobMock.mockResolvedValue({
-          id: "rescore:repo-1",
+          id: "rescore-repo-1",
           getState: vi.fn().mockResolvedValue(state),
         });
 
         const id = await service.enqueueRescore("repo-1");
 
-        expect(id).toBe("rescore:repo-1");
+        expect(id).toBe("rescore-repo-1");
         expect(rescoreAddMock).not.toHaveBeenCalled();
       },
     );
 
     it("re-enqueues when prior rescore job completed", async () => {
       rescoreGetJobMock.mockResolvedValue({
-        id: "rescore:repo-1",
+        id: "rescore-repo-1",
         getState: vi.fn().mockResolvedValue("completed"),
       });
 

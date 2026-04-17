@@ -32,7 +32,7 @@ export class QueueService {
    * delayed, no duplicate is added.  Returns the existing job id in that case.
    */
   async enqueueSync(repositoryId: string, userId: string): Promise<string> {
-    const jobId = `sync:${repositoryId}`;
+    const jobId = `sync-${repositoryId}`;
 
     const existing = await this.syncQueue.getJob(jobId);
     if (existing) {
@@ -63,7 +63,7 @@ export class QueueService {
     repositoryId: string,
     batchSize?: number,
   ): Promise<string> {
-    const jobId = `rescore:${repositoryId}`;
+    const jobId = `rescore-${repositoryId}`;
 
     const existing = await this.rescoreQueue.getJob(jobId);
     if (existing) {

@@ -10,7 +10,7 @@ describe("OnRepoConnectedHandler", () => {
   let handler: OnRepoConnectedHandler;
 
   beforeEach(() => {
-    enqueueSync = vi.fn().mockResolvedValue("sync:repo-1");
+    enqueueSync = vi.fn().mockResolvedValue("sync-repo-1");
     const queues = { enqueueSync } as unknown as QueueService;
     handler = new OnRepoConnectedHandler(queues);
   });
