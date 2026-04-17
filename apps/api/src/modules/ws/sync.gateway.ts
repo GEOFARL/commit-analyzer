@@ -2,6 +2,7 @@ import type { RepositoryRepository } from "@commit-analyzer/database";
 import {
   Inject,
   Logger,
+  OnModuleDestroy,
   UnauthorizedException,
 } from "@nestjs/common";
 import {
@@ -20,12 +21,24 @@ import { getServerEnv } from "../../common/config.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
 import { SUPABASE_CLIENT } from "../auth/supabase-auth.guard.js";
 
-@WebSocketGateway({ namespace: "/sync", cors: { origin: "*", credentials: true } })
-export class SyncGateway implements OnGatewayInit, OnGatewayConnection {
+@WebSocketGateway({
+  namespace: "/sync",
+  cors: {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      const { WEB_ORIGIN } = getServerEnv();
+      callback(null, !origin || origin === WEB_ORIGIN);
+    },
+    credentials: true,
+  },
+})
+export class SyncGateway implements OnGatewayInit, OnGatewayConnection, OnModuleDestroy {
   private readonly logger = new Logger(SyncGateway.name);
 
   @WebSocketServer()
   server!: Server;
+
+  private pub: Redis | null = null;
+  private sub: Redis | null = null;
 
   constructor(
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
@@ -33,12 +46,19 @@ export class SyncGateway implements OnGatewayInit, OnGatewayConnection {
   ) {}
 
   afterInit(server: Server): void {
-    if (typeof server.adapter !== "function") return;
+    // Skip Redis adapter when running in tests: app.init() without app.listen()
+    // leaves the socket.io Server partially initialized.
+    if (getServerEnv().NODE_ENV === "test") return;
     const { REDIS_URL } = getServerEnv();
-    const pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as unknown as null });
-    const sub = pub.duplicate();
-    server.adapter(createAdapter(pub, sub));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.pub = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null as never });
+    this.sub = this.pub.duplicate();
+    server.adapter(createAdapter(this.pub, this.sub));
     this.logger.log("ws.adapter redis attached");
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await Promise.all([this.pub?.quit(), this.sub?.quit()]);
   }
 
   async handleConnection(client: Socket): Promise<void> {
