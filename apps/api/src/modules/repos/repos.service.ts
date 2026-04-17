@@ -7,9 +7,9 @@ import { EventBus } from "@nestjs/cqrs";
 
 import { CacheService } from "../../common/cache/cache.service.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
+import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
 import { OctokitFactory } from "../octokit/octokit-factory.service.js";
 
-import { RepoConnectedEvent } from "./events/repo-connected.event.js";
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
 import { GithubService } from "./github.service.js";
 import {
