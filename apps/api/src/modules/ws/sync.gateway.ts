@@ -20,9 +20,7 @@ import { getServerEnv } from "../../common/config.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
 import { SUPABASE_CLIENT } from "../auth/supabase-auth.guard.js";
 
-export const SYNC_NAMESPACE = "/sync";
-
-@WebSocketGateway({ namespace: SYNC_NAMESPACE, cors: { origin: "*", credentials: true } })
+@WebSocketGateway({ namespace: "/sync", cors: { origin: "*", credentials: true } })
 export class SyncGateway implements OnGatewayInit, OnGatewayConnection {
   private readonly logger = new Logger(SyncGateway.name);
 
