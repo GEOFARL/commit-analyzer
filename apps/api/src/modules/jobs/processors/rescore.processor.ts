@@ -4,22 +4,19 @@ import type {
 } from "@commit-analyzer/database";
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Logger } from "@nestjs/common";
+import { EventBus } from "@nestjs/cqrs";
 import type { Job } from "bullmq";
 import type { DataSource } from "typeorm";
 
-import { CacheService } from "../../../common/cache/cache.service.js";
 import {
   COMMIT_QUALITY_SCORE_REPOSITORY,
   DATA_SOURCE,
 } from "../../../common/database/tokens.js";
 import { parseConventionalCommit } from "../../../shared/cc-parser.js";
+import { RepoRescoredEvent } from "../../../shared/events/repo-rescored.event.js";
 import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { RESCORE_QUEUE, type RescoreJobData } from "../queues/rescore.queue.js";
 import { DEFAULT_RESCORE_BATCH_SIZE } from "../services/queue.constants.js";
-
-/** Glob matching all analytics keys for a repo (spec: `analytics:{type}:{repoId}…`). */
-const ANALYTICS_CACHE_PATTERN = (repoId: string) =>
-  `analytics:*:${repoId}*`;
 
 @Processor(RESCORE_QUEUE)
 export class RescoreProcessor extends WorkerHost {
@@ -29,7 +26,7 @@ export class RescoreProcessor extends WorkerHost {
     @Inject(DATA_SOURCE) private readonly dataSource: DataSource,
     @Inject(COMMIT_QUALITY_SCORE_REPOSITORY)
     private readonly qualityScoreRepo: CommitQualityScoreRepository,
-    private readonly cacheService: CacheService,
+    private readonly eventBus: EventBus,
   ) {
     super();
   }
@@ -82,10 +79,8 @@ export class RescoreProcessor extends WorkerHost {
     }
 
     if (processed > 0) {
-      const pattern = ANALYTICS_CACHE_PATTERN(repositoryId);
-      const deleted = await this.cacheService.delByPattern(pattern);
-      this.logger.log(
-        `rescore cache invalidated repositoryId=${repositoryId} keys=${deleted}`,
+      this.eventBus.publish(
+        new RepoRescoredEvent(repositoryId, String(job.id), processed),
       );
     }
 
