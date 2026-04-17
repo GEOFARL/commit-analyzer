@@ -2,9 +2,18 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import type { Queue } from "bullmq";
 
+import {
+  RESCORE_QUEUE,
+  type RescoreJobData,
+} from "../queues/rescore.queue.js";
 import { SYNC_QUEUE, type SyncJobData } from "../queues/sync.queue.js";
 
-import { SYNC_JOB_NAME, SYNC_JOB_OPTS } from "./queue.constants.js";
+import {
+  RESCORE_JOB_NAME,
+  RESCORE_JOB_OPTS,
+  SYNC_JOB_NAME,
+  SYNC_JOB_OPTS,
+} from "./queue.constants.js";
 
 @Injectable()
 export class QueueService {
@@ -12,6 +21,8 @@ export class QueueService {
 
   constructor(
     @InjectQueue(SYNC_QUEUE) private readonly syncQueue: Queue<SyncJobData>,
+    @InjectQueue(RESCORE_QUEUE)
+    private readonly rescoreQueue: Queue<RescoreJobData>,
   ) {}
 
   /**
@@ -39,6 +50,42 @@ export class QueueService {
     });
 
     this.logger.log(`sync job enqueued repositoryId=${repositoryId} jobId=${jobId}`);
+    return jobId;
+  }
+
+  /**
+   * Enqueue a rescore job for the given repository.
+   * Recomputes quality scores for all commits without re-fetching from GitHub.
+   * Idempotent: skips if a rescore job is already in progress.
+   */
+  async enqueueRescore(
+    repositoryId: string,
+    batchSize?: number,
+  ): Promise<string> {
+    const jobId = `rescore:${repositoryId}`;
+
+    const existing = await this.rescoreQueue.getJob(jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (state === "active" || state === "waiting" || state === "delayed") {
+        this.logger.log(
+          `rescore job already ${state}, skipping repositoryId=${repositoryId} jobId=${jobId}`,
+        );
+        return jobId;
+      }
+    }
+
+    const data: RescoreJobData = { repositoryId };
+    if (batchSize !== undefined) data.batchSize = batchSize;
+
+    await this.rescoreQueue.add(RESCORE_JOB_NAME, data, {
+      ...RESCORE_JOB_OPTS,
+      jobId,
+    });
+
+    this.logger.log(
+      `rescore job enqueued repositoryId=${repositoryId} jobId=${jobId}`,
+    );
     return jobId;
   }
 }

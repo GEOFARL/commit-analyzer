@@ -1,5 +1,10 @@
 export { createApiKeyRepository } from "./api-key.repository.js";
 export type { ApiKeyRepository } from "./api-key.repository.js";
+export { createCommitQualityScoreRepository } from "./commit-quality-score.repository.js";
+export type {
+  CommitQualityScoreRepository,
+  UpsertScoreRow,
+} from "./commit-quality-score.repository.js";
 export { createCommitRepository } from "./commit.repository.js";
 export type {
   CommitRepository,

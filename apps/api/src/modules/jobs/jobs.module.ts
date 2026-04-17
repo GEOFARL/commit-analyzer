@@ -5,7 +5,9 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { getServerEnv } from "../../common/config.js";
 import { OctokitModule } from "../octokit/octokit.module.js";
 
+import { RescoreProcessor } from "./processors/rescore.processor.js";
 import { SyncProcessor } from "./processors/sync.processor.js";
+import { RESCORE_QUEUE } from "./queues/rescore.queue.js";
 import { SYNC_QUEUE } from "./queues/sync.queue.js";
 import { QueueService } from "./services/queue.service.js";
 
@@ -20,8 +22,9 @@ import { QueueService } from "./services/queue.service.js";
       },
     }),
     BullModule.registerQueue({ name: SYNC_QUEUE }),
+    BullModule.registerQueue({ name: RESCORE_QUEUE }),
   ],
-  providers: [SyncProcessor, QueueService],
+  providers: [SyncProcessor, RescoreProcessor, QueueService],
   exports: [QueueService],
 })
 export class JobsModule {}
