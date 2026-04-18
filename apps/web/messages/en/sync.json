@@ -1,0 +1,25 @@
+{
+  "stage": {
+    "starting": "Starting sync…",
+    "syncing": "Syncing commits"
+  },
+  "progress": {
+    "counts": "{done} of {total}",
+    "ariaLabel": "Sync progress",
+    "valueText": "{percent}% — {done} of {total} commits"
+  },
+  "failed": {
+    "title": "Sync failed",
+    "subtitle": "The last sync run did not complete."
+  },
+  "retry": {
+    "label": "Retry sync",
+    "pending": "Queuing…"
+  },
+  "toast": {
+    "completed": "Sync completed",
+    "failed": "Sync failed. Try again.",
+    "retryQueued": "Sync re-enqueued",
+    "retryError": "Could not enqueue sync. Try again."
+  }
+}

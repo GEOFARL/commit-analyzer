@@ -5,6 +5,7 @@ import { HttpStatus } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
+import { SyncRequestedEvent } from "../../shared/events/sync-requested.event.js";
 
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
 import {
@@ -227,6 +228,39 @@ describe("ReposService", () => {
       );
       await expect(
         service.disconnect(USER_ID, REPO_ID),
+      ).rejects.toBeInstanceOf(RepoNotFoundError);
+      expect(publish).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("resync", () => {
+    it("publishes SyncRequestedEvent for a connected repo", async () => {
+      repos.findByIdForUser.mockResolvedValue(repoEntity());
+
+      await service.resync(USER_ID, REPO_ID);
+
+      expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
+      expect(publish).toHaveBeenCalledTimes(1);
+      const event = publish.mock.calls[0]?.[0] as SyncRequestedEvent;
+      expect(event).toBeInstanceOf(SyncRequestedEvent);
+      expect(event.repositoryId).toBe(REPO_ID);
+      expect(event.userId).toBe(USER_ID);
+    });
+
+    it("throws 404 when repo not owned by user", async () => {
+      repos.findByIdForUser.mockResolvedValue(null);
+      await expect(
+        service.resync(USER_ID, REPO_ID),
+      ).rejects.toBeInstanceOf(RepoNotFoundError);
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("throws 404 when repo is disconnected", async () => {
+      repos.findByIdForUser.mockResolvedValue(
+        repoEntity({ isConnected: false }),
+      );
+      await expect(
+        service.resync(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
       expect(publish).not.toHaveBeenCalled();
     });

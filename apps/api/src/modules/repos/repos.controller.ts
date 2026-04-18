@@ -61,4 +61,12 @@ export class ReposController {
       }) as never,
     );
   }
+
+  @TsRestHandler(reposContract.resync)
+  resync(@CurrentUser() userId: string): unknown {
+    return tsRestHandler(reposContract.resync, async ({ params }) => {
+      await this.repos.resync(userId, params.repoId);
+      return { status: 202, body: {} };
+    });
+  }
 }

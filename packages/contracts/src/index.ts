@@ -68,3 +68,16 @@ export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";
 
 export type { RateLimitTier, RouteMetadata } from "./shared/metadata.js";
+
+export {
+  SYNC_EVENT_NAMES,
+  SYNC_WS_NAMESPACE,
+  syncCompletedPayloadSchema,
+  syncFailedPayloadSchema,
+  syncProgressPayloadSchema,
+} from "./shared/sync-events.js";
+export type {
+  SyncCompletedPayload,
+  SyncFailedPayload,
+  SyncProgressPayload,
+} from "./shared/sync-events.js";

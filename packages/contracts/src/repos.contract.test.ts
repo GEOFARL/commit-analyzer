@@ -72,6 +72,8 @@ describe("reposContract", () => {
     expect(reposContract.connect.path).toBe("/repos/:githubRepoId/connect");
     expect(reposContract.disconnect.method).toBe("DELETE");
     expect(reposContract.disconnect.path).toBe("/repos/:repoId");
+    expect(reposContract.resync.method).toBe("POST");
+    expect(reposContract.resync.path).toBe("/repos/:repoId/resync");
   });
 
   it("tags every repo endpoint with jwt", () => {
@@ -79,5 +81,6 @@ describe("reposContract", () => {
     expect(reposContract.listConnected.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
     expect(reposContract.connect.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
     expect(reposContract.disconnect.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+    expect(reposContract.resync.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
   });
 });

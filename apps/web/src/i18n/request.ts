@@ -13,6 +13,7 @@ import en_metadata from "../../messages/en/metadata.json";
 import en_nav from "../../messages/en/nav.json";
 import en_placeholders from "../../messages/en/placeholders.json";
 import en_repositories from "../../messages/en/repositories.json";
+import en_sync from "../../messages/en/sync.json";
 import en_userMenu from "../../messages/en/userMenu.json";
 import uk_analytics from "../../messages/uk/analytics.json";
 import uk_apiKeys from "../../messages/uk/apiKeys.json";
@@ -26,6 +27,7 @@ import uk_metadata from "../../messages/uk/metadata.json";
 import uk_nav from "../../messages/uk/nav.json";
 import uk_placeholders from "../../messages/uk/placeholders.json";
 import uk_repositories from "../../messages/uk/repositories.json";
+import uk_sync from "../../messages/uk/sync.json";
 import uk_userMenu from "../../messages/uk/userMenu.json";
 
 import { routing } from "./routing";
@@ -44,6 +46,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     nav: en_nav,
     placeholders: en_placeholders,
     repositories: en_repositories,
+    sync: en_sync,
     userMenu: en_userMenu,
   },
   uk: {
@@ -59,6 +62,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     nav: uk_nav,
     placeholders: uk_placeholders,
     repositories: uk_repositories,
+    sync: uk_sync,
     userMenu: uk_userMenu,
   },
 };
