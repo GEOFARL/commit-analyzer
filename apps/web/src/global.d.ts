@@ -10,6 +10,7 @@ import type metadata from "../messages/en/metadata.json";
 import type nav from "../messages/en/nav.json";
 import type placeholders from "../messages/en/placeholders.json";
 import type repositories from "../messages/en/repositories.json";
+import type sync from "../messages/en/sync.json";
 import type userMenu from "../messages/en/userMenu.json";
 
 import type { routing } from "./i18n/routing";
@@ -27,6 +28,7 @@ type Messages = {
   nav: typeof nav;
   placeholders: typeof placeholders;
   repositories: typeof repositories;
+  sync: typeof sync;
   userMenu: typeof userMenu;
 };
 

@@ -8,6 +8,7 @@ import { EventBus } from "@nestjs/cqrs";
 import { CacheService } from "../../common/cache/cache.service.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
 import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
+import { SyncRequestedEvent } from "../../shared/events/sync-requested.event.js";
 import { OctokitFactory } from "../octokit/octokit-factory.service.js";
 
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
@@ -83,6 +84,15 @@ export class ReposService {
     );
 
     return saved;
+  }
+
+  async syncNow(userId: string, repoId: string): Promise<void> {
+    const existing = await this.repos.findByIdForUser(repoId, userId);
+    if (!existing || !existing.isConnected) {
+      throw new RepoNotFoundError();
+    }
+
+    this.eventBus.publish(new SyncRequestedEvent(existing.id, userId));
   }
 
   async disconnect(userId: string, repoId: string): Promise<void> {

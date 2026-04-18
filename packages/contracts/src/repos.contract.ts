@@ -86,6 +86,19 @@ export const reposContract = c.router(
       summary: "Disconnect a repository",
       metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
+    syncNow: {
+      method: "POST",
+      path: "/repos/:repoId/sync",
+      pathParams: z.object({ repoId: z.string().uuid() }),
+      body: z.object({}).strict(),
+      responses: {
+        202: z.object({}),
+        401: errorEnvelopeSchema,
+        404: errorEnvelopeSchema,
+      },
+      summary: "Request a sync run for a connected repository",
+      metadata: { auth: "jwt", rateLimit: "default" } as const,
+    },
   },
   { strictStatusCodes: true },
 );

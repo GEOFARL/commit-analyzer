@@ -61,4 +61,12 @@ export class ReposController {
       }) as never,
     );
   }
+
+  @TsRestHandler(reposContract.syncNow)
+  syncNow(@CurrentUser() userId: string): unknown {
+    return tsRestHandler(reposContract.syncNow, async ({ params }) => {
+      await this.repos.syncNow(userId, params.repoId);
+      return { status: 202, body: {} };
+    });
+  }
 }

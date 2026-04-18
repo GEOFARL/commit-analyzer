@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AnalyticsView } from "@/features/analytics/components/analytics-view";
 import { getAnalyticsPageData } from "@/features/analytics/server";
+import { SyncProgressBanner } from "@/features/sync/components/sync-progress-banner";
 import { Link } from "@/i18n/navigation";
 
 type PageParams = { locale: Locale; id: string };
@@ -56,6 +57,7 @@ export default async function RepositoryAnalyticsPage({
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
+      <SyncProgressBanner repoId={data.repo.id} />
       <AnalyticsView {...data} />
     </div>
   );
