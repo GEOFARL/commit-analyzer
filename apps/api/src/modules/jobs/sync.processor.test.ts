@@ -92,6 +92,7 @@ describe("SyncProcessor", () => {
   let commitFilesMock: {
     replaceForCommits: ReturnType<typeof vi.fn>;
   };
+  let dsMock: { transaction: ReturnType<typeof vi.fn> };
   let paginateIteratorMock: ReturnType<typeof vi.fn>;
   let getCommitMock: ReturnType<typeof vi.fn>;
   let octokitFactoryMock: { forUser: ReturnType<typeof vi.fn> };
@@ -156,6 +157,15 @@ describe("SyncProcessor", () => {
       replaceForCommits: vi.fn().mockResolvedValue(undefined),
     };
 
+    // ds.transaction(cb) executes the callback with a pass-through manager
+    // so the processor's mock repos see the "manager" arg but behave
+    // identically to the non-tx path.
+    dsMock = {
+      transaction: vi.fn().mockImplementation(
+        async (cb: (m: unknown) => Promise<unknown>) => cb({} as unknown),
+      ),
+    };
+
     eventBusMock = { publish: vi.fn() };
 
     octokitFactoryMock = {
@@ -163,6 +173,7 @@ describe("SyncProcessor", () => {
     };
 
     processor = new SyncProcessor(
+      dsMock as never,
       reposMock as never,
       syncJobsMock as never,
       commitsMock as never,
@@ -203,7 +214,7 @@ describe("SyncProcessor", () => {
       expect(commitsMock.upsertBatch).toHaveBeenCalledOnce();
       const [batch] = commitsMock.upsertBatch.mock.calls[0] as [Array<{ sha: string }>];
       expect(batch).toHaveLength(5);
-      expect(batch.map((c) => c.sha).sort()).toEqual(["sha1", "sha2", "sha3", "sha4", "sha5"]);
+      expect(batch.map((c) => c.sha)).toEqual(["sha1", "sha2", "sha3", "sha4", "sha5"]);
     });
 
     it("enriches each commit with per-SHA getCommit stats", async () => {
@@ -245,6 +256,42 @@ describe("SyncProcessor", () => {
         expect(f.filePath).toMatch(/^src\//);
         expect(f.status).toBe("modified");
       }
+    });
+
+    it("wraps commits + scores + files in one ds.transaction per batch", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      // 5 commits fit a single UPSERT_BATCH_SIZE=500 chunk → one tx.
+      expect(dsMock.transaction).toHaveBeenCalledOnce();
+
+      // all three upsert methods got the pass-through manager object
+      const txArg = (commitsMock.upsertBatch.mock.calls[0] as unknown[])[1];
+      expect(txArg).toBeDefined();
+      expect((commitsMock.upsertScores.mock.calls[0] as unknown[])[1]).toBe(txArg);
+      expect(
+        (commitFilesMock.replaceForCommits.mock.calls[0] as unknown[])[2],
+      ).toBe(txArg);
+    });
+
+    it("emits progress during enrichment for large repos", async () => {
+      const big = Array.from({ length: 105 }, (_, i) =>
+        makeGithubCommit(`sha-big-${String(i)}`, `feat: commit ${String(i)}`),
+      );
+      setPages([big]);
+
+      const job = makeJob();
+      await processor.process(job);
+
+      const progress = eventBusMock.publish.mock.calls
+        .map((args: unknown[]) => args[0])
+        .filter((e): e is SyncProgressEvent => e instanceof SyncProgressEvent);
+      // at least two enrichment-phase emissions (50, 100) plus the final
+      // post-enrichment total. Per-page emission is one additional event.
+      const enrichmentValues = progress.map((e) => e.commitsProcessed);
+      expect(enrichmentValues).toContain(50);
+      expect(enrichmentValues).toContain(100);
+      expect(enrichmentValues).toContain(105);
     });
 
     it("upserts quality scores for all commits", async () => {
@@ -356,10 +403,15 @@ describe("SyncProcessor", () => {
       const job = makeJob();
       await processor.process(job);
 
+      // Pagination emits once per page (2) plus enrichment emits every 50
+      // SHAs + the final total. 105 commits → at least the 2 pagination
+      // events + 50/100/105 enrichment events = 5. Assert ≥2 to keep the
+      // original intent (per-page visibility) decoupled from the exact
+      // enrichment cadence.
       const progress = eventBusMock.publish.mock.calls.filter(
         (args) => args[0] instanceof SyncProgressEvent,
       );
-      expect(progress.length).toBe(2);
+      expect(progress.length).toBeGreaterThanOrEqual(2);
     });
 
     it("handles empty repo (no commits)", async () => {
