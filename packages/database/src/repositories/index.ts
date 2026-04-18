@@ -11,6 +11,11 @@ export type {
   UpsertCommitInput,
   UpsertScoreInput,
 } from "./commit.repository.js";
+export { createCommitFileRepository } from "./commit-file.repository.js";
+export type {
+  CommitFileRepository,
+  UpsertCommitFileInput,
+} from "./commit-file.repository.js";
 export { createSyncJobRepository } from "./sync-job.repository.js";
 export type { SyncJobRepository } from "./sync-job.repository.js";
 export { createAuditEventRepository } from "./audit-event.repository.js";

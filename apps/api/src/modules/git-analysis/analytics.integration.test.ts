@@ -4,6 +4,7 @@ import {
   ApiKey,
   AuditEvent,
   Commit,
+  CommitFile,
   CommitQualityScore,
   LLMApiKey,
   Repository,
@@ -76,6 +77,7 @@ describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
         AuditEvent,
         ApiKey,
         Commit,
+        CommitFile,
         CommitQualityScore,
         LLMApiKey,
         Repository,
@@ -105,6 +107,7 @@ describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
       "llm_api_keys",
       "audit_events",
       "commits",
+      "commit_files",
       "commit_quality_scores",
       "sync_jobs",
     ]) {
@@ -161,6 +164,31 @@ describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
            FROM commits c
           WHERE c.sha = $1 AND c.repository_id = $5`,
         [s.sha, s.conventional, s.type, s.score, REPO_ID],
+      );
+    }
+
+    // Seed commit_files — path frequencies used by file-churn query:
+    //   src/app.ts      → 3 commits (aaa1, bbb1, ccc1)
+    //   src/auth.ts     → 2 commits (aaa1, bbb1)
+    //   README.md       → 2 commits (aaa2, bbb2)
+    //   src/lib/util.ts → 1 commit  (ccc1)
+    const files: Array<{ sha: string; path: string; status: string }> = [
+      { sha: "aaa1", path: "src/app.ts", status: "modified" },
+      { sha: "aaa1", path: "src/auth.ts", status: "added" },
+      { sha: "aaa2", path: "README.md", status: "modified" },
+      { sha: "bbb1", path: "src/app.ts", status: "modified" },
+      { sha: "bbb1", path: "src/auth.ts", status: "modified" },
+      { sha: "bbb2", path: "README.md", status: "modified" },
+      { sha: "ccc1", path: "src/app.ts", status: "modified" },
+      { sha: "ccc1", path: "src/lib/util.ts", status: "added" },
+    ];
+    for (const f of files) {
+      await ds.query(
+        `INSERT INTO commit_files (commit_id, file_path, additions, deletions, status)
+         SELECT c.id, $2, 5, 1, $3
+           FROM commits c
+          WHERE c.sha = $1 AND c.repository_id = $4`,
+        [f.sha, f.path, f.status, REPO_ID],
       );
     }
 
@@ -259,11 +287,29 @@ describe.skipIf(SKIP)("Git-analysis query handlers (integration)", () => {
 
   // ── File frequency ───────────────────────────────────────────
 
-  it("file frequency returns empty (no file-level data yet)", async () => {
+  it("file frequency returns top files by change count desc", async () => {
     const items = await fileFrequencyHandler.execute(
       new GetFileFrequencyQuery(REPO_ID, USER_ID, 10),
     );
-    expect(items).toEqual([]);
+    expect(items.map((i) => i.filePath)).toEqual([
+      "src/app.ts",
+      "README.md",
+      "src/auth.ts",
+      "src/lib/util.ts",
+    ]);
+    const byPath = Object.fromEntries(items.map((i) => [i.filePath, i.changeCount]));
+    expect(byPath["src/app.ts"]).toBe(3);
+    expect(byPath["README.md"]).toBe(2);
+    expect(byPath["src/auth.ts"]).toBe(2);
+    expect(byPath["src/lib/util.ts"]).toBe(1);
+  });
+
+  it("file frequency respects the limit", async () => {
+    const items = await fileFrequencyHandler.execute(
+      new GetFileFrequencyQuery(REPO_ID, USER_ID, 2),
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]!.filePath).toBe("src/app.ts");
   });
 
   // ── Summary ──────────────────────────────────────────────────

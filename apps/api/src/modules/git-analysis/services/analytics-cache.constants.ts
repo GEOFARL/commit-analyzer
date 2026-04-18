@@ -13,5 +13,6 @@ export const ANALYTICS_CACHE_TTL: Record<AnalyticsCacheKind, number> = {
   qualityScores: TEN_MINUTES,
   qualityTrends: TEN_MINUTES,
   contributors: TEN_MINUTES,
+  files: TEN_MINUTES,
   summary: TEN_MINUTES,
 };

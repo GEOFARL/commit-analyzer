@@ -1,6 +1,7 @@
 import {
   createApiKeyRepository,
   createAuditEventRepository,
+  createCommitFileRepository,
   createCommitQualityScoreRepository,
   createCommitRepository,
   createDataSource,
@@ -17,6 +18,7 @@ import { getServerEnv } from "../config.js";
 import {
   API_KEY_REPOSITORY,
   AUDIT_EVENT_REPOSITORY,
+  COMMIT_FILE_REPOSITORY,
   COMMIT_QUALITY_SCORE_REPOSITORY,
   COMMIT_REPOSITORY,
   DATA_SOURCE,
@@ -81,6 +83,11 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createCommitRepository(ds),
     },
     {
+      provide: COMMIT_FILE_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createCommitFileRepository(ds),
+    },
+    {
       provide: SYNC_JOB_REPOSITORY,
       inject: [DATA_SOURCE],
       useFactory: (ds: DataSource) => createSyncJobRepository(ds),
@@ -98,6 +105,7 @@ const dbLogger = new Logger("DatabaseModule");
     USER_REPOSITORY,
     REPOSITORY_REPOSITORY,
     COMMIT_REPOSITORY,
+    COMMIT_FILE_REPOSITORY,
     SYNC_JOB_REPOSITORY,
   ],
 })
