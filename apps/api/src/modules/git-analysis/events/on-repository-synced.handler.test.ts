@@ -67,8 +67,10 @@ describe("OnRepositorySyncedHandler", () => {
       "analytics:repo-1:summary": "{}",
       "analytics:repo-1:timeline": "[]",
       "analytics:repo-1:heatmap:day": "[]",
+      "analytics:repo-1:files:10": "[]",
       "analytics:repo-2:summary": "{}",
       "analytics:repo-2:timeline": "[]",
+      "analytics:repo-2:files:10": "[]",
       "analytics:stats:hits": "5",
       "analytics:stats:misses": "3",
       "unrelated:repo-1": "keep",
@@ -87,9 +89,11 @@ describe("OnRepositorySyncedHandler", () => {
     expect(remaining).not.toContain("analytics:repo-1:summary");
     expect(remaining).not.toContain("analytics:repo-1:timeline");
     expect(remaining).not.toContain("analytics:repo-1:heatmap:day");
+    expect(remaining).not.toContain("analytics:repo-1:files:10");
 
     expect(remaining).toContain("analytics:repo-2:summary");
     expect(remaining).toContain("analytics:repo-2:timeline");
+    expect(remaining).toContain("analytics:repo-2:files:10");
     expect(remaining).toContain("unrelated:repo-1");
   });
 
@@ -121,6 +125,6 @@ describe("OnRepositorySyncedHandler", () => {
     );
 
     const remaining = (redis as unknown as { keys(): string[] }).keys();
-    expect(remaining).toHaveLength(8);
+    expect(remaining).toHaveLength(10);
   });
 });

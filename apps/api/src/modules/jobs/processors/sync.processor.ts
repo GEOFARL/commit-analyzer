@@ -1,7 +1,10 @@
 import type {
+  CommitFileRepository,
   CommitRepository,
+  DataSource,
   RepositoryRepository,
   SyncJobRepository,
+  UpsertCommitFileInput,
   UpsertCommitInput,
   UpsertScoreInput,
 } from "@commit-analyzer/database";
@@ -11,7 +14,9 @@ import { EventBus } from "@nestjs/cqrs";
 import type { Job } from "bullmq";
 
 import {
+  COMMIT_FILE_REPOSITORY,
   COMMIT_REPOSITORY,
+  DATA_SOURCE,
   REPOSITORY_REPOSITORY,
   SYNC_JOB_REPOSITORY,
 } from "../../../common/database/tokens.js";
@@ -23,13 +28,30 @@ import { SyncStartedEvent } from "../../../shared/events/sync-started.event.js";
 import { scoreCommit } from "../../../shared/quality-scorer.js";
 import { OctokitFactory } from "../../octokit/octokit-factory.service.js";
 import { SYNC_QUEUE, type SyncJobData } from "../queues/sync.queue.js";
+import { type CommitFileStats, mapGithubFileStatus } from "../utils/commit-file-stats.js";
+import { runWithConcurrency } from "../utils/concurrency.js";
 
 const COMMITS_PER_PAGE = 100;
 const UPSERT_BATCH_SIZE = 500;
+const PER_COMMIT_FETCH_CONCURRENCY = 5;
+const ENRICHMENT_PROGRESS_INTERVAL = 50;
 
 type CommitEntry = {
   input: UpsertCommitInput;
   parsed: ParsedCC;
+  files: UpsertCommitFileInput[];
+};
+
+type PendingEntry = {
+  sha: string;
+  authorName: string;
+  authorEmail: string;
+  authoredAt: Date;
+  message: string;
+  parsed: ParsedCC;
+  subject: string | null;
+  body: string | null;
+  footer: string | null;
 };
 
 @Processor(SYNC_QUEUE)
@@ -37,12 +59,16 @@ export class SyncProcessor extends WorkerHost {
   private readonly logger = new Logger(SyncProcessor.name);
 
   constructor(
+    @Inject(DATA_SOURCE)
+    private readonly ds: DataSource,
     @Inject(REPOSITORY_REPOSITORY)
     private readonly repos: RepositoryRepository,
     @Inject(SYNC_JOB_REPOSITORY)
     private readonly syncJobs: SyncJobRepository,
     @Inject(COMMIT_REPOSITORY)
     private readonly commits: CommitRepository,
+    @Inject(COMMIT_FILE_REPOSITORY)
+    private readonly commitFiles: CommitFileRepository,
     private readonly octokitFactory: OctokitFactory,
     private readonly eventBus: EventBus,
   ) {
@@ -74,7 +100,7 @@ export class SyncProcessor extends WorkerHost {
 
       const octokit = await this.octokitFactory.forUser(userId);
 
-      const allEntries: CommitEntry[] = [];
+      const pending: PendingEntry[] = [];
 
       for await (const page of octokit.paginate.iterator(
         octokit.rest.repos.listCommits,
@@ -92,79 +118,148 @@ export class SyncProcessor extends WorkerHost {
           const authoredAt = authoredAtRaw ? new Date(authoredAtRaw) : new Date();
           const message = c.commit.message;
           const parsed = parseConventionalCommit(message);
-          const subject = parsed.ok ? parsed.subject : null;
-          const body = parsed.ok ? (parsed.body ?? null) : null;
-          const footer = parsed.ok ? (parsed.footer ?? null) : null;
 
-          allEntries.push({
+          pending.push({
+            sha: c.sha,
+            authorName,
+            authorEmail,
+            authoredAt,
+            message,
             parsed,
-            input: {
-              repositoryId,
-              sha: c.sha,
-              authorName,
-              authorEmail,
-              message,
-              subject,
-              body,
-              footer,
-              // TODO: listCommits does not return diff stats; per-commit fetch
-              // needed for accurate counts — deferred to a future task.
-              insertions: 0,
-              deletions: 0,
-              filesChanged: 0,
-              authoredAt,
-            },
+            subject: parsed.ok ? parsed.subject : null,
+            body: parsed.ok ? (parsed.body ?? null) : null,
+            footer: parsed.ok ? (parsed.footer ?? null) : null,
           });
         }
 
         await this.syncJobs.updateProgress(
           syncJob.id,
-          allEntries.length,
+          pending.length,
           // estimate: may overshoot by <100 on the last partial page;
           // the final updateProgress call below corrects to exact total.
-          allEntries.length + (pageData.length === COMMITS_PER_PAGE ? COMMITS_PER_PAGE : 0),
+          pending.length + (pageData.length === COMMITS_PER_PAGE ? COMMITS_PER_PAGE : 0),
         );
         this.eventBus.publish(
           new SyncProgressEvent(
             repositoryId,
             syncJob.id,
-            allEntries.length,
-            allEntries.length,
+            pending.length,
+            pending.length,
           ),
         );
       }
 
-      // upsert commits + scores per-batch so each batch is consistent
-      for (let i = 0; i < allEntries.length; i += UPSERT_BATCH_SIZE) {
-        const batch = allEntries.slice(i, i + UPSERT_BATCH_SIZE);
-        const saved = await this.commits.upsertBatch(batch.map((e) => e.input));
-
-        const scoreInputs: UpsertScoreInput[] = [];
-        for (const savedCommit of saved) {
-          const entry = batch.find((e) => e.input.sha === savedCommit.sha);
-          if (!entry) continue;
-          const scored = scoreCommit(entry.parsed, {
-            message: entry.input.message,
-            subject: entry.input.subject,
-            body: entry.input.body,
-            footer: entry.input.footer,
-          });
-          scoreInputs.push({
-            commitId: savedCommit.id,
-            isConventional: scored.isConventional,
-            ccType: scored.ccType ?? null,
-            ccScope: scored.ccScope ?? null,
-            subjectLength: scored.subjectLength,
-            hasBody: scored.hasBody,
-            hasFooter: scored.hasFooter,
-            overallScore: scored.overallScore,
-            details: scored.details as unknown as Record<string, unknown>,
-          });
+      // Per-SHA enrichment: `listCommits` omits diff stats and file lists,
+      // so every commit needs a `getCommit` call. Bounded concurrency keeps
+      // the burst inside Octokit's secondary rate limit and memory flat on
+      // large repos. Progress is emitted every
+      // ENRICHMENT_PROGRESS_INTERVAL commits so the T-2.13 sync banner
+      // keeps moving during this phase (60-90s for a 1k-commit repo).
+      const total = pending.length;
+      let enrichedCount = 0;
+      let lastProgressEmit = 0;
+      const emitEnrichmentProgress = async (): Promise<void> => {
+        if (
+          enrichedCount - lastProgressEmit < ENRICHMENT_PROGRESS_INTERVAL &&
+          enrichedCount !== total
+        ) {
+          return;
         }
-        await this.commits.upsertScores(scoreInputs);
+        lastProgressEmit = enrichedCount;
+        await this.syncJobs.updateProgress(syncJob.id, enrichedCount, total);
+        this.eventBus.publish(
+          new SyncProgressEvent(
+            repositoryId,
+            syncJob.id,
+            enrichedCount,
+            total,
+          ),
+        );
+      };
+
+      const enrichedEntries = await runWithConcurrency(
+        pending,
+        PER_COMMIT_FETCH_CONCURRENCY,
+        async (p): Promise<CommitEntry> => {
+          const stats = await this.fetchCommitFileStats(
+            octokit,
+            owner,
+            repoName,
+            p.sha,
+          );
+          const input: UpsertCommitInput = {
+            repositoryId,
+            sha: p.sha,
+            authorName: p.authorName,
+            authorEmail: p.authorEmail,
+            message: p.message,
+            subject: p.subject,
+            body: p.body,
+            footer: p.footer,
+            insertions: stats.additions,
+            deletions: stats.deletions,
+            filesChanged: stats.files.length,
+            authoredAt: p.authoredAt,
+          };
+          enrichedCount += 1;
+          await emitEnrichmentProgress();
+          return {
+            parsed: p.parsed,
+            input,
+            files: stats.files,
+          };
+        },
+      );
+
+      // upsert commits + scores + files per-batch inside a single
+      // transaction so a mid-batch failure can't leave commits without
+      // scores or files (T-2.15 §Scope.2).
+      for (let i = 0; i < enrichedEntries.length; i += UPSERT_BATCH_SIZE) {
+        const batch = enrichedEntries.slice(i, i + UPSERT_BATCH_SIZE);
+        await this.ds.transaction(async (manager) => {
+          const saved = await this.commits.upsertBatch(
+            batch.map((e) => e.input),
+            manager,
+          );
+
+          const scoreInputs: UpsertScoreInput[] = [];
+          const fileInputs: UpsertCommitFileInput[] = [];
+          const commitIds: string[] = [];
+
+          for (const savedCommit of saved) {
+            const entry = batch.find((e) => e.input.sha === savedCommit.sha);
+            if (!entry) continue;
+            commitIds.push(savedCommit.id);
+            const scored = scoreCommit(entry.parsed, {
+              message: entry.input.message,
+              subject: entry.input.subject,
+              body: entry.input.body,
+              footer: entry.input.footer,
+            });
+            scoreInputs.push({
+              commitId: savedCommit.id,
+              isConventional: scored.isConventional,
+              ccType: scored.ccType ?? null,
+              ccScope: scored.ccScope ?? null,
+              subjectLength: scored.subjectLength,
+              hasBody: scored.hasBody,
+              hasFooter: scored.hasFooter,
+              overallScore: scored.overallScore,
+              details: scored.details as unknown as Record<string, unknown>,
+            });
+            for (const f of entry.files) {
+              fileInputs.push({ ...f, commitId: savedCommit.id });
+            }
+          }
+          await this.commits.upsertScores(scoreInputs, manager);
+          await this.commitFiles.replaceForCommits(
+            commitIds,
+            fileInputs,
+            manager,
+          );
+        });
       }
 
-      const total = allEntries.length;
       await this.syncJobs.updateProgress(syncJob.id, total, total);
       await this.syncJobs.markCompleted(syncJob.id, new Date());
 
@@ -183,6 +278,33 @@ export class SyncProcessor extends WorkerHost {
       );
       throw err;
     }
+  }
+
+  private async fetchCommitFileStats(
+    octokit: Awaited<ReturnType<OctokitFactory["forUser"]>>,
+    owner: string,
+    repo: string,
+    sha: string,
+  ): Promise<CommitFileStats> {
+    const { data } = await octokit.rest.repos.getCommit({ owner, repo, ref: sha });
+    // GitHub omits `stats` and truncates `files` for commits touching
+    // >300 files; treat as zero but log so it's distinguishable from a
+    // genuine zero-delta commit during incident triage.
+    if (!data.stats) {
+      this.logger.warn(
+        `getCommit returned no stats sha=${sha} repo=${owner}/${repo}`,
+      );
+    }
+    const additions = data.stats?.additions ?? 0;
+    const deletions = data.stats?.deletions ?? 0;
+    const files: UpsertCommitFileInput[] = (data.files ?? []).map((f) => ({
+      commitId: "", // filled after commit upsert returns real ids
+      filePath: f.filename,
+      additions: f.additions ?? 0,
+      deletions: f.deletions ?? 0,
+      status: mapGithubFileStatus(f.status),
+    }));
+    return { additions, deletions, files };
   }
 
   @OnWorkerEvent("failed")

@@ -1,4 +1,8 @@
-import type { DataSource, Repository as OrmRepository } from "typeorm";
+import type {
+  DataSource,
+  EntityManager,
+  Repository as OrmRepository,
+} from "typeorm";
 
 import { CommitQualityScore } from "../entities/commit-quality-score.entity.js";
 import { Commit } from "../entities/commit.entity.js";
@@ -31,8 +35,19 @@ export interface UpsertScoreInput {
 }
 
 export interface CommitRepository extends OrmRepository<Commit> {
-  upsertBatch(commits: UpsertCommitInput[]): Promise<Commit[]>;
-  upsertScores(scores: UpsertScoreInput[]): Promise<void>;
+  /**
+   * Upsert commits. If `manager` is supplied, runs against that transaction
+   * (use this when the caller needs commits + scores + files persisted
+   * atomically — see `SyncProcessor`).
+   */
+  upsertBatch(
+    commits: UpsertCommitInput[],
+    manager?: EntityManager,
+  ): Promise<Commit[]>;
+  upsertScores(
+    scores: UpsertScoreInput[],
+    manager?: EntityManager,
+  ): Promise<void>;
 }
 
 export const createCommitRepository = (
@@ -40,9 +55,13 @@ export const createCommitRepository = (
 ): CommitRepository => {
   const base = dataSource.getRepository(Commit);
   const extensions: Pick<CommitRepository, "upsertBatch" | "upsertScores"> = {
-    async upsertBatch(commits: UpsertCommitInput[]): Promise<Commit[]> {
+    async upsertBatch(
+      commits: UpsertCommitInput[],
+      manager?: EntityManager,
+    ): Promise<Commit[]> {
       if (commits.length === 0) return [];
-      await base
+      const repo = manager ? manager.getRepository(Commit) : base;
+      await repo
         .createQueryBuilder()
         .insert()
         .into(Commit)
@@ -63,7 +82,7 @@ export const createCommitRepository = (
           ["repository_id", "sha"],
         )
         .execute();
-      return base.find({
+      return repo.find({
         where: commits.map((c) => ({
           repositoryId: c.repositoryId,
           sha: c.sha,
@@ -73,9 +92,14 @@ export const createCommitRepository = (
       });
     },
 
-    async upsertScores(scores: UpsertScoreInput[]): Promise<void> {
+    async upsertScores(
+      scores: UpsertScoreInput[],
+      manager?: EntityManager,
+    ): Promise<void> {
       if (scores.length === 0) return;
-      const scoreRepo = dataSource.getRepository(CommitQualityScore);
+      const scoreRepo = manager
+        ? manager.getRepository(CommitQualityScore)
+        : dataSource.getRepository(CommitQualityScore);
       // TypeORM's _QueryDeepPartialEntity wraps jsonb Record<string,unknown>
       // columns in a way that prevents direct assignment. Cast through the
       // parameter type to avoid silencing the compiler entirely.

@@ -35,6 +35,29 @@ function makeGithubCommit(sha: string, message: string) {
   };
 }
 
+function makeGetCommitResponse(
+  sha: string,
+  overrides: {
+    additions?: number;
+    deletions?: number;
+    files?: Array<{ filename: string; additions: number; deletions: number; status: string }>;
+  } = {},
+) {
+  const files =
+    overrides.files ??
+    [{ filename: `src/${sha}.ts`, additions: 10, deletions: 2, status: "modified" }];
+  return {
+    data: {
+      sha,
+      stats: {
+        additions: overrides.additions ?? files.reduce((a, f) => a + f.additions, 0),
+        deletions: overrides.deletions ?? files.reduce((a, f) => a + f.deletions, 0),
+      },
+      files,
+    },
+  };
+}
+
 const FIXTURE_COMMITS = [
   makeGithubCommit("sha1", "feat(auth): add login endpoint"),
   makeGithubCommit("sha2", "fix(api): handle null response"),
@@ -66,20 +89,39 @@ describe("SyncProcessor", () => {
     upsertBatch: ReturnType<typeof vi.fn>;
     upsertScores: ReturnType<typeof vi.fn>;
   };
+  let commitFilesMock: {
+    replaceForCommits: ReturnType<typeof vi.fn>;
+  };
+  let dsMock: { transaction: ReturnType<typeof vi.fn> };
   let paginateIteratorMock: ReturnType<typeof vi.fn>;
+  let getCommitMock: ReturnType<typeof vi.fn>;
   let octokitFactoryMock: { forUser: ReturnType<typeof vi.fn> };
   let eventBusMock: { publish: ReturnType<typeof vi.fn> };
 
+  function buildOctokit() {
+    return {
+      rest: {
+        repos: {
+          listCommits: vi.fn(),
+          getCommit: getCommitMock,
+        },
+      },
+      paginate: { iterator: paginateIteratorMock },
+    };
+  }
+
   function setPages(pages: typeof FIXTURE_COMMITS[]) {
     paginateIteratorMock = makeIterator(pages);
-    octokitFactoryMock.forUser.mockResolvedValue({
-      rest: { repos: { listCommits: vi.fn() } },
-      paginate: { iterator: paginateIteratorMock },
-    });
+    octokitFactoryMock.forUser.mockResolvedValue(buildOctokit());
   }
 
   beforeEach(() => {
     paginateIteratorMock = makeIterator([FIXTURE_COMMITS]);
+    getCommitMock = vi
+      .fn()
+      .mockImplementation(({ ref }: { ref: string }) =>
+        Promise.resolve(makeGetCommitResponse(ref)),
+      );
 
     reposMock = {
       findOne: vi.fn().mockResolvedValue({
@@ -111,19 +153,31 @@ describe("SyncProcessor", () => {
       upsertScores: vi.fn().mockResolvedValue(undefined),
     };
 
+    commitFilesMock = {
+      replaceForCommits: vi.fn().mockResolvedValue(undefined),
+    };
+
+    // ds.transaction(cb) executes the callback with a pass-through manager
+    // so the processor's mock repos see the "manager" arg but behave
+    // identically to the non-tx path.
+    dsMock = {
+      transaction: vi.fn().mockImplementation(
+        async (cb: (m: unknown) => Promise<unknown>) => cb({} as unknown),
+      ),
+    };
+
     eventBusMock = { publish: vi.fn() };
 
     octokitFactoryMock = {
-      forUser: vi.fn().mockResolvedValue({
-        rest: { repos: { listCommits: vi.fn() } },
-        paginate: { iterator: paginateIteratorMock },
-      }),
+      forUser: vi.fn().mockResolvedValue(buildOctokit()),
     };
 
     processor = new SyncProcessor(
+      dsMock as never,
       reposMock as never,
       syncJobsMock as never,
       commitsMock as never,
+      commitFilesMock as never,
       octokitFactoryMock as never,
       eventBusMock as never,
     );
@@ -161,6 +215,83 @@ describe("SyncProcessor", () => {
       const [batch] = commitsMock.upsertBatch.mock.calls[0] as [Array<{ sha: string }>];
       expect(batch).toHaveLength(5);
       expect(batch.map((c) => c.sha)).toEqual(["sha1", "sha2", "sha3", "sha4", "sha5"]);
+    });
+
+    it("enriches each commit with per-SHA getCommit stats", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      // one getCommit per sha
+      expect(getCommitMock).toHaveBeenCalledTimes(5);
+      for (const sha of ["sha1", "sha2", "sha3", "sha4", "sha5"]) {
+        expect(getCommitMock).toHaveBeenCalledWith(
+          expect.objectContaining({ owner: "octocat", repo: "hello-world", ref: sha }),
+        );
+      }
+
+      const [batch] = commitsMock.upsertBatch.mock.calls[0] as [
+        Array<{ sha: string; insertions: number; deletions: number; filesChanged: number }>,
+      ];
+      // makeGetCommitResponse defaults to one file with additions:10 deletions:2
+      for (const row of batch) {
+        expect(row.insertions).toBe(10);
+        expect(row.deletions).toBe(2);
+        expect(row.filesChanged).toBe(1);
+      }
+    });
+
+    it("persists commit_files rows via replaceForCommits", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      expect(commitFilesMock.replaceForCommits).toHaveBeenCalledOnce();
+      const [commitIds, files] = commitFilesMock.replaceForCommits.mock.calls[0] as [
+        string[],
+        Array<{ commitId: string; filePath: string; status: string }>,
+      ];
+      expect(commitIds).toHaveLength(5);
+      expect(files).toHaveLength(5);
+      for (const f of files) {
+        expect(f.commitId).toMatch(/^commit-sha/);
+        expect(f.filePath).toMatch(/^src\//);
+        expect(f.status).toBe("modified");
+      }
+    });
+
+    it("wraps commits + scores + files in one ds.transaction per batch", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      // 5 commits fit a single UPSERT_BATCH_SIZE=500 chunk → one tx.
+      expect(dsMock.transaction).toHaveBeenCalledOnce();
+
+      // all three upsert methods got the pass-through manager object
+      const txArg = (commitsMock.upsertBatch.mock.calls[0] as unknown[])[1];
+      expect(txArg).toBeDefined();
+      expect((commitsMock.upsertScores.mock.calls[0] as unknown[])[1]).toBe(txArg);
+      expect(
+        (commitFilesMock.replaceForCommits.mock.calls[0] as unknown[])[2],
+      ).toBe(txArg);
+    });
+
+    it("emits progress during enrichment for large repos", async () => {
+      const big = Array.from({ length: 105 }, (_, i) =>
+        makeGithubCommit(`sha-big-${String(i)}`, `feat: commit ${String(i)}`),
+      );
+      setPages([big]);
+
+      const job = makeJob();
+      await processor.process(job);
+
+      const progress = eventBusMock.publish.mock.calls
+        .map((args: unknown[]) => args[0])
+        .filter((e): e is SyncProgressEvent => e instanceof SyncProgressEvent);
+      // at least two enrichment-phase emissions (50, 100) plus the final
+      // post-enrichment total. Per-page emission is one additional event.
+      const enrichmentValues = progress.map((e) => e.commitsProcessed);
+      expect(enrichmentValues).toContain(50);
+      expect(enrichmentValues).toContain(100);
+      expect(enrichmentValues).toContain(105);
     });
 
     it("upserts quality scores for all commits", async () => {
@@ -272,10 +403,15 @@ describe("SyncProcessor", () => {
       const job = makeJob();
       await processor.process(job);
 
+      // Pagination emits once per page (2) plus enrichment emits every 50
+      // SHAs + the final total. 105 commits → at least the 2 pagination
+      // events + 50/100/105 enrichment events = 5. Assert ≥2 to keep the
+      // original intent (per-page visibility) decoupled from the exact
+      // enrichment cadence.
       const progress = eventBusMock.publish.mock.calls.filter(
         (args) => args[0] instanceof SyncProgressEvent,
       );
-      expect(progress.length).toBe(2);
+      expect(progress.length).toBeGreaterThanOrEqual(2);
     });
 
     it("handles empty repo (no commits)", async () => {
@@ -305,10 +441,7 @@ describe("SyncProcessor", () => {
         status: "queued",
       });
       paginateIteratorMock = makeIterator([FIXTURE_COMMITS]);
-      octokitFactoryMock.forUser.mockResolvedValue({
-        rest: { repos: { listCommits: vi.fn() } },
-        paginate: { iterator: paginateIteratorMock },
-      });
+      octokitFactoryMock.forUser.mockResolvedValue(buildOctokit());
 
       await processor.process(job);
 
@@ -359,10 +492,7 @@ describe("SyncProcessor", () => {
         throw new Error("github 503");
         yield; // make it a generator
       });
-      octokitFactoryMock.forUser.mockResolvedValue({
-        rest: { repos: { listCommits: vi.fn() } },
-        paginate: { iterator: paginateIteratorMock },
-      });
+      octokitFactoryMock.forUser.mockResolvedValue(buildOctokit());
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow("github 503");
@@ -380,16 +510,29 @@ describe("SyncProcessor", () => {
         throw new Error("timeout");
         yield;
       });
-      octokitFactoryMock.forUser.mockResolvedValue({
-        rest: { repos: { listCommits: vi.fn() } },
-        paginate: { iterator: paginateIteratorMock },
-      });
+      octokitFactoryMock.forUser.mockResolvedValue(buildOctokit());
 
       const job = makeJob();
       await expect(processor.process(job)).rejects.toThrow();
 
       expect(commitsMock.upsertBatch).not.toHaveBeenCalled();
       expect(commitsMock.upsertScores).not.toHaveBeenCalled();
+    });
+
+    it("fails the whole job if a single getCommit fetch errors", async () => {
+      getCommitMock.mockImplementation(({ ref }: { ref: string }) => {
+        if (ref === "sha3") {
+          return Promise.reject(new Error("github 502 on sha3"));
+        }
+        return Promise.resolve(makeGetCommitResponse(ref));
+      });
+
+      const job = makeJob();
+      await expect(processor.process(job)).rejects.toThrow(/sha3/);
+
+      expect(commitsMock.upsertBatch).not.toHaveBeenCalled();
+      expect(commitFilesMock.replaceForCommits).not.toHaveBeenCalled();
+      expect(syncJobsMock.markFailed).toHaveBeenCalled();
     });
 
     it("onFailed logs the error with attempt count", () => {
