@@ -5,7 +5,8 @@
   },
   "progress": {
     "counts": "{done} of {total}",
-    "ariaLabel": "Sync progress"
+    "ariaLabel": "Sync progress",
+    "valueText": "{percent}% — {done} of {total} commits"
   },
   "failed": {
     "title": "Sync failed",

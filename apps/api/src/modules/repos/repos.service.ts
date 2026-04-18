@@ -86,7 +86,7 @@ export class ReposService {
     return saved;
   }
 
-  async syncNow(userId: string, repoId: string): Promise<void> {
+  async resync(userId: string, repoId: string): Promise<void> {
     const existing = await this.repos.findByIdForUser(repoId, userId);
     if (!existing || !existing.isConnected) {
       throw new RepoNotFoundError();

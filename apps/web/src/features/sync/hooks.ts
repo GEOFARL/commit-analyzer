@@ -13,6 +13,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 
+import { tsr } from "@/lib/api/tsr";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type SyncStatus = "idle" | "syncing" | "completed" | "failed";
@@ -33,12 +34,17 @@ const INITIAL_STATE: SyncProgressState = {
   syncJobId: null,
 };
 
-/**
- * Resolves the base URL for the WS connection. Socket.io connects to the same
- * origin by default; we need to point at the NestJS API origin.
- */
 const resolveWsBaseUrl = (): string => {
   const raw = process.env.NEXT_PUBLIC_API_URL ?? "";
+  if (!raw && process.env.NODE_ENV !== "production") {
+    // Without an explicit API URL the client defaults to same-origin, which
+    // silently breaks in dev where web (:3000) and api (:3001) run on
+    // different ports. Surface this rather than letting the user watch a
+    // banner that never progresses.
+    console.warn(
+      "[sync] NEXT_PUBLIC_API_URL is not set; WebSocket will fall back to same-origin.",
+    );
+  }
   return raw.replace(/\/+$/, "");
 };
 
@@ -49,8 +55,8 @@ interface UseSyncProgressOptions {
 
 /**
  * Subscribes to sync events for a single repository over the `/sync` Socket.io
- * namespace. Auto-reconnects on network drop and re-joins the room so the
- * client keeps receiving events without a page reload.
+ * namespace. Re-joins the repo room automatically on reconnect and resets
+ * state when `repoId` changes so a previous repo's banner doesn't leak.
  */
 export const useSyncProgress = (
   repoId: string,
@@ -62,6 +68,8 @@ export const useSyncProgress = (
 
   useEffect(() => {
     if (!repoId) return;
+
+    setState(INITIAL_STATE);
 
     let disposed = false;
     let socket: Socket | null = null;
@@ -147,3 +155,5 @@ export const useSyncProgress = (
 
   return state;
 };
+
+export const useResyncRepoMutation = () => tsr.repos.resync.useMutation();

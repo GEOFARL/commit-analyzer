@@ -6,19 +6,14 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { analyticsQueryKeyPrefix } from "@/lib/query-keys/analytics";
 import { cn } from "@/lib/utils";
 
-import { useSyncNowMutation } from "../use-sync-now";
 import {
+  useResyncRepoMutation,
   useSyncProgress,
   type SyncProgressState,
-} from "../use-sync-progress";
-
-// Analytics react-query keys are built under the `["analytics", repoId, ...]`
-// prefix (see features/analytics/queries.ts `analyticsQueryKeys`). We can't
-// import across feature boundaries, so we invalidate by prefix here.
-const analyticsQueryKeyPrefix = (repoId: string) =>
-  ["analytics", repoId] as const;
+} from "../hooks";
 
 interface SyncProgressBannerProps {
   repoId: string;
@@ -37,7 +32,7 @@ export const SyncProgressBanner = ({
 }: SyncProgressBannerProps) => {
   const t = useTranslations("sync");
   const queryClient = useQueryClient();
-  const syncNow = useSyncNowMutation();
+  const resync = useResyncRepoMutation();
 
   const state = useSyncProgress(repoId, {
     onCompleted: () => {
@@ -57,7 +52,7 @@ export const SyncProgressBanner = ({
 
   if (state.status === "failed") {
     const retry = () => {
-      syncNow.mutate(
+      resync.mutate(
         { params: { repoId }, body: {} },
         {
           onSuccess: () => {
@@ -103,23 +98,30 @@ export const SyncProgressBanner = ({
           variant="outline"
           size="sm"
           onClick={retry}
-          disabled={syncNow.isPending}
+          disabled={resync.isPending}
           className="self-start sm:self-center"
         >
           <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" />
-          {syncNow.isPending ? t("retry.pending") : t("retry.label")}
+          {resync.isPending ? t("retry.pending") : t("retry.label")}
         </Button>
       </div>
     );
   }
 
   const percent = computePercent(state);
-  const stage = state.totalCommits > 0 ? t("stage.syncing") : t("stage.starting");
+  const stage =
+    state.totalCommits > 0 ? t("stage.syncing") : t("stage.starting");
+  const valueText =
+    state.totalCommits > 0
+      ? t("progress.valueText", {
+          percent,
+          done: state.commitsProcessed,
+          total: state.totalCommits,
+        })
+      : t("stage.starting");
 
   return (
     <div
-      role="status"
-      aria-live="polite"
       className={cn(
         "flex flex-col gap-3 rounded-md border bg-muted/40 p-4 text-sm",
         className,
@@ -153,6 +155,7 @@ export const SyncProgressBanner = ({
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-valuetext={valueText}
         aria-label={t("progress.ariaLabel")}
         className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
       >

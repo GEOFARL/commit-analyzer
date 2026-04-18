@@ -233,11 +233,11 @@ describe("ReposService", () => {
     });
   });
 
-  describe("syncNow", () => {
+  describe("resync", () => {
     it("publishes SyncRequestedEvent for a connected repo", async () => {
       repos.findByIdForUser.mockResolvedValue(repoEntity());
 
-      await service.syncNow(USER_ID, REPO_ID);
+      await service.resync(USER_ID, REPO_ID);
 
       expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
       expect(publish).toHaveBeenCalledTimes(1);
@@ -250,7 +250,7 @@ describe("ReposService", () => {
     it("throws 404 when repo not owned by user", async () => {
       repos.findByIdForUser.mockResolvedValue(null);
       await expect(
-        service.syncNow(USER_ID, REPO_ID),
+        service.resync(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
       expect(publish).not.toHaveBeenCalled();
     });
@@ -260,7 +260,7 @@ describe("ReposService", () => {
         repoEntity({ isConnected: false }),
       );
       await expect(
-        service.syncNow(USER_ID, REPO_ID),
+        service.resync(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
       expect(publish).not.toHaveBeenCalled();
     });

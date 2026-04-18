@@ -86,9 +86,9 @@ export const reposContract = c.router(
       summary: "Disconnect a repository",
       metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
-    syncNow: {
+    resync: {
       method: "POST",
-      path: "/repos/:repoId/sync",
+      path: "/repos/:repoId/resync",
       pathParams: z.object({ repoId: z.string().uuid() }),
       body: z.object({}).strict(),
       responses: {
