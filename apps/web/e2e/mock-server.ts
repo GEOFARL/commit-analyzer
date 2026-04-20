@@ -182,8 +182,30 @@ const drivePendingSync = (
 
 // ─── HTTP helpers ───────────────────────────────────────────────────────────
 
-const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
-  res.writeHead(status, { "Content-Type": "application/json" });
+// The browser makes authenticated cross-origin requests from the Next.js dev
+// server (localhost:3000) to this mock (127.0.0.1:54321). Without permissive
+// CORS headers + OPTIONS preflight support, React Query's client-side
+// refetches and the Connect POST fail silently.
+const corsHeaders = (req: IncomingMessage): Record<string, string> => ({
+  "Access-Control-Allow-Origin": req.headers.origin ?? "*",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers":
+    req.headers["access-control-request-headers"] ??
+    "authorization, content-type",
+  "Access-Control-Max-Age": "600",
+});
+
+const sendJson = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+): void => {
+  res.writeHead(status, {
+    "Content-Type": "application/json",
+    ...corsHeaders(req),
+  });
   res.end(JSON.stringify(body));
 };
 
@@ -213,6 +235,12 @@ const handleRequest = async (
   const url = new URL(req.url ?? "/", `http://127.0.0.1:${MOCK_PORT}`);
   const { pathname, searchParams } = url;
 
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, corsHeaders(req));
+    res.end();
+    return;
+  }
+
   // ── Auth ─────────────────────────────────────────────────────────────────
   if (
     req.method === "POST" &&
@@ -229,13 +257,13 @@ const handleRequest = async (
       user: MOCK_USER,
     };
     req.resume();
-    sendJson(res, 200, session);
+    sendJson(req, res, 200, session);
     return;
   }
 
   if (req.method === "GET" && pathname === "/auth/v1/user") {
-    if (isAuthorized(req)) sendJson(res, 200, MOCK_USER);
-    else sendJson(res, 401, { message: "not authenticated" });
+    if (isAuthorized(req)) sendJson(req, res, 200, MOCK_USER);
+    else sendJson(req, res, 401, { message: "not authenticated" });
     return;
   }
 
@@ -244,14 +272,14 @@ const handleRequest = async (
     (pathname === "/auth/sync" || pathname === "/auth/sign-in-event")
   ) {
     await drainBody(req);
-    sendJson(res, 200, { ok: true });
+    sendJson(req, res, 200, { ok: true });
     return;
   }
 
   // ── Repositories ─────────────────────────────────────────────────────────
   if (req.method === "GET" && pathname === "/repos/github") {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
     // Reflect current connection state so the UI sees freshly-connected repos.
@@ -261,37 +289,37 @@ const handleRequest = async (
         (c) => c.githubRepoId === repo.githubRepoId,
       ),
     }));
-    sendJson(res, 200, { items });
+    sendJson(req, res, 200, { items });
     return;
   }
 
   if (req.method === "GET" && pathname === "/repos") {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
-    sendJson(res, 200, { items: Array.from(connectedRepos.values()) });
+    sendJson(req, res, 200, { items: Array.from(connectedRepos.values()) });
     return;
   }
 
   const connectMatch = /^\/repos\/(\d+)\/connect$/.exec(pathname);
   if (req.method === "POST" && connectMatch) {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
     await drainBody(req);
     const githubRepoId = Number(connectMatch[1]);
     const source = GITHUB_REPOS.find((r) => r.githubRepoId === githubRepoId);
     if (!source) {
-      sendJson(res, 404, { message: "not found" });
+      sendJson(req, res, 404, { message: "not found" });
       return;
     }
     const existing = Array.from(connectedRepos.values()).find(
       (r) => r.githubRepoId === githubRepoId,
     );
     if (existing) {
-      sendJson(res, 409, { message: "already connected" });
+      sendJson(req, res, 409, { message: "already connected" });
       return;
     }
     const connected: ConnectedRepoFixture = {
@@ -309,39 +337,39 @@ const handleRequest = async (
     // always observes the full progress → completed sequence regardless of
     // navigation timing between list and analytics pages.
     pendingSyncs.set(connected.id, { syncJobId: `mock-sync-${connected.id}` });
-    sendJson(res, 201, connected);
+    sendJson(req, res, 201, connected);
     return;
   }
 
   const resyncMatch = /^\/repos\/([0-9a-fA-F-]+)\/resync$/.exec(pathname);
   if (req.method === "POST" && resyncMatch) {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
     await drainBody(req);
     const repoId = resyncMatch[1] as string;
     if (!connectedRepos.has(repoId)) {
-      sendJson(res, 404, { message: "not found" });
+      sendJson(req, res, 404, { message: "not found" });
       return;
     }
     pendingSyncs.set(repoId, { syncJobId: `mock-sync-${repoId}-${Date.now()}` });
-    sendJson(res, 202, {});
+    sendJson(req, res, 202, {});
     return;
   }
 
   const disconnectMatch = /^\/repos\/([0-9a-fA-F-]+)$/.exec(pathname);
   if (req.method === "DELETE" && disconnectMatch) {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
     const repoId = disconnectMatch[1] as string;
     if (!connectedRepos.delete(repoId)) {
-      sendJson(res, 404, { message: "not found" });
+      sendJson(req, res, 404, { message: "not found" });
       return;
     }
-    res.writeHead(204);
+    res.writeHead(204, corsHeaders(req));
     res.end();
     return;
   }
@@ -352,43 +380,43 @@ const handleRequest = async (
   );
   if (req.method === "GET" && analyticsMatch) {
     if (!isAuthorized(req)) {
-      sendJson(res, 401, { message: "unauthorized" });
+      sendJson(req, res, 401, { message: "unauthorized" });
       return;
     }
     const repoId = analyticsMatch[1] as string;
     const sub = analyticsMatch[2] as string;
     if (!connectedRepos.has(repoId)) {
-      sendJson(res, 404, { message: "not found" });
+      sendJson(req, res, 404, { message: "not found" });
       return;
     }
     switch (sub) {
       case "summary":
-        sendJson(res, 200, ANALYTICS_SUMMARY);
+        sendJson(req, res, 200, ANALYTICS_SUMMARY);
         return;
       case "timeline":
-        sendJson(res, 200, { items: ANALYTICS_TIMELINE });
+        sendJson(req, res, 200, { items: ANALYTICS_TIMELINE });
         return;
       case "heatmap":
-        sendJson(res, 200, { items: ANALYTICS_HEATMAP });
+        sendJson(req, res, 200, { items: ANALYTICS_HEATMAP });
         return;
       case "quality":
-        sendJson(res, 200, { items: ANALYTICS_QUALITY_DIST });
+        sendJson(req, res, 200, { items: ANALYTICS_QUALITY_DIST });
         return;
       case "quality/trends":
-        sendJson(res, 200, { items: ANALYTICS_QUALITY_TREND });
+        sendJson(req, res, 200, { items: ANALYTICS_QUALITY_TREND });
         return;
       case "contributors":
-        sendJson(res, 200, { items: ANALYTICS_CONTRIBUTORS });
+        sendJson(req, res, 200, { items: ANALYTICS_CONTRIBUTORS });
         return;
       case "files":
-        sendJson(res, 200, { items: ANALYTICS_FILES });
+        sendJson(req, res, 200, { items: ANALYTICS_FILES });
         return;
     }
-    sendJson(res, 404, { message: "not found" });
+    sendJson(req, res, 404, { message: "not found" });
     return;
   }
 
-  res.writeHead(404);
+  res.writeHead(404, corsHeaders(req));
   res.end();
 };
 
@@ -414,7 +442,7 @@ export const startMockServer = (): Promise<void> =>
     resetState();
     server = createServer((req, res) => {
       void handleRequest(req, res).catch(() => {
-        if (!res.headersSent) sendJson(res, 500, { message: "mock error" });
+        if (!res.headersSent) sendJson(req, res, 500, { message: "mock error" });
       });
     });
 
