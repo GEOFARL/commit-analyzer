@@ -1,6 +1,6 @@
 import type { RuleFn } from "./types.js";
 
-export type AllowedScopesValue =
+type AllowedScopesValue =
   | { kind: "list"; values: string[] }
   | { kind: "regex"; pattern: string };
 
@@ -15,6 +15,8 @@ export const allowedScopes: RuleFn<AllowedScopesValue> = (parsed, value) => {
     };
   }
 
+  // Pattern validity is enforced on policy create/update (D-policy-engine §7);
+  // validator trusts input and will surface SyntaxError on malformed regex.
   if (new RegExp(value.pattern).test(scope)) return { passed: true };
   return {
     passed: false,

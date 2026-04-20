@@ -15,10 +15,4 @@ export const RULE_REGISTRY: Record<PolicyRuleType, RuleFn> = {
   footerRequired: footerRequired as RuleFn,
 };
 
-export { allowedScopes } from "./allowed-scopes.rule.js";
-export type { AllowedScopesValue } from "./allowed-scopes.rule.js";
-export { allowedTypes } from "./allowed-types.rule.js";
-export { bodyRequired } from "./body-required.rule.js";
-export { footerRequired } from "./footer-required.rule.js";
-export { maxSubjectLength } from "./max-subject-length.rule.js";
-export * from "./types.js";
+export { UnknownPolicyRuleError } from "./types.js";
