@@ -18,16 +18,18 @@ test.describe("repositories — connect & sync", () => {
       .first();
     await freshGithubCard.getByRole("button", { name: "Connect" }).click();
 
-    await expect(page.getByText("Repository connected")).toBeVisible();
-
     // The newly connected repo appears in the connected section with a
     // "View analytics" link — open it so the sync banner mounts and joins
-    // the WebSocket room for this repo.
+    // the WebSocket room for this repo. The "Repository connected" toast
+    // auto-dismisses, so asserting on the durable UI change instead.
     const connectedCard = page
       .locator("div.group")
       .filter({ hasText: "acme/fresh-repo" })
       .filter({ has: page.getByRole("link", { name: "View analytics" }) })
       .first();
+    await expect(
+      connectedCard.getByRole("link", { name: "View analytics" }),
+    ).toBeVisible();
     await connectedCard.getByRole("link", { name: "View analytics" }).click();
 
     await expect(page).toHaveURL(/\/repositories\/[0-9a-f-]{36}$/);
