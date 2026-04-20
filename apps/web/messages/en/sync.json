@@ -16,9 +16,20 @@
     "label": "Retry sync",
     "pending": "Queuing…"
   },
+  "syncNow": {
+    "label": "Sync now",
+    "pending": "Syncing…",
+    "ariaLabel": "Sync this repository now"
+  },
+  "lastSynced": {
+    "label": "Last synced {time}",
+    "never": "Not synced yet"
+  },
   "toast": {
     "completed": "Sync completed",
     "failed": "Sync failed. Try again.",
+    "queued": "Sync queued",
+    "queueError": "Could not queue sync. Try again.",
     "retryQueued": "Sync re-enqueued",
     "retryError": "Could not enqueue sync. Try again."
   }
