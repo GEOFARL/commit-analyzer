@@ -2,8 +2,8 @@ import "reflect-metadata";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { PolicyActivatedEvent } from "../../../shared/events/policy-activated.event.js";
 import { AuditService } from "../audit.service.js";
-import { PolicyActivatedEvent } from "../events/policy-activated.event.js";
 
 import { OnPolicyActivatedHandler } from "./on-policy-activated.handler.js";
 

@@ -9,6 +9,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { GitAnalysisModule } from "./modules/git-analysis/git-analysis.module.js";
 import { HealthController } from "./modules/health/health.controller.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
+import { PolicyModule } from "./modules/policy/policy.module.js";
 import { ReposModule } from "./modules/repos/repos.module.js";
 import { WsModule } from "./modules/ws/ws.module.js";
 
@@ -22,6 +23,7 @@ import { WsModule } from "./modules/ws/ws.module.js";
     AuditModule,
     GitAnalysisModule,
     ReposModule,
+    PolicyModule,
     JobsModule,
     WsModule,
   ],
