@@ -15,7 +15,7 @@ export class ApplyDefaultPolicyOnRepoConnected
   private readonly logger = new Logger(ApplyDefaultPolicyOnRepoConnected.name);
 
   constructor(
-    private readonly defaults: DefaultPolicyService,
+    @Inject(DefaultPolicyService) private readonly defaults: DefaultPolicyService,
     @Inject(POLICY_REPOSITORY) private readonly policies: PolicyRepository,
   ) {}
 
