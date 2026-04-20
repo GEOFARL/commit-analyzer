@@ -19,6 +19,13 @@ export interface UserRepository extends OrmRepository<User> {
   findByAuthId(id: string): Promise<User | null>;
   findByGithubId(githubId: string): Promise<User | null>;
   upsertFromAuth(input: UpsertUserFromAuthInput): Promise<User>;
+  getDefaultPolicyTemplate(
+    userId: string,
+  ): Promise<Record<string, unknown> | null>;
+  setDefaultPolicyTemplate(
+    userId: string,
+    template: Record<string, unknown> | null,
+  ): Promise<void>;
 }
 
 export const createUserRepository = (
@@ -65,5 +72,26 @@ export const createUserRepository = (
       }
 
       return this.save(entity);
+    },
+    async getDefaultPolicyTemplate(
+      this: OrmRepository<User>,
+      userId: string,
+    ): Promise<Record<string, unknown> | null> {
+      const row = await this.findOne({
+        where: { id: userId },
+        select: { id: true, defaultPolicyTemplate: true },
+      });
+      return row?.defaultPolicyTemplate ?? null;
+    },
+    async setDefaultPolicyTemplate(
+      this: OrmRepository<User>,
+      userId: string,
+      template: Record<string, unknown> | null,
+    ): Promise<void> {
+      await this.createQueryBuilder()
+        .update(User)
+        .set({ defaultPolicyTemplate: template as never })
+        .where("id = :id", { id: userId })
+        .execute();
     },
   }) as UserRepository;
