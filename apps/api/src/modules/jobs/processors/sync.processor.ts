@@ -264,8 +264,10 @@ export class SyncProcessor extends WorkerHost {
         });
       }
 
+      const finishedAt = new Date();
       await this.syncJobs.updateProgress(syncJob.id, total, total);
-      await this.syncJobs.markCompleted(syncJob.id, new Date());
+      await this.syncJobs.markCompleted(syncJob.id, finishedAt);
+      await this.repos.touchLastSyncedAt(repositoryId, finishedAt);
 
       this.eventBus.publish(
         new RepoSyncedEvent(repositoryId, userId, syncJob.id, total),

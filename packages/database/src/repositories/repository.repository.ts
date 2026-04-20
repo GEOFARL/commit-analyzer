@@ -15,6 +15,7 @@ export interface RepositoryRepository extends OrmRepository<Repository> {
   ): Promise<Repository | null>;
   findByIdForUser(id: string, userId: string): Promise<Repository | null>;
   setConnected(id: string, isConnected: boolean): Promise<void>;
+  touchLastSyncedAt(id: string, at: Date): Promise<void>;
   /**
    * Delete all commits for `id` (cascade drops commit_files + quality_scores)
    * and soft-reset the repo row (isConnected=false, lastSyncedAt=null) in one
@@ -33,6 +34,7 @@ export const createRepositoryRepository = (
     | "findByUserAndGithubId"
     | "findByIdForUser"
     | "setConnected"
+    | "touchLastSyncedAt"
     | "purge"
   > = {
     listConnectedByUser(userId: string): Promise<Repository[]> {
@@ -52,6 +54,9 @@ export const createRepositoryRepository = (
     },
     async setConnected(id: string, isConnected: boolean): Promise<void> {
       await base.update({ id }, { isConnected });
+    },
+    async touchLastSyncedAt(id: string, at: Date): Promise<void> {
+      await base.update({ id }, { lastSyncedAt: at });
     },
     async purge(id: string): Promise<PurgeResult> {
       return dataSource.transaction(async (m) => {
