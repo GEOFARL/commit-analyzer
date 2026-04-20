@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
 
+import { ApplyDefaultPolicyOnRepoConnected } from "./apply-default-policy.handler.js";
 import { DefaultPolicyService } from "./default-policy.service.js";
-import { OnRepoConnectedPolicyHandler } from "./on-repo-connected.handler.js";
 import type { DefaultPolicyTemplate } from "./policy.schemas.js";
 
 const USER_ID = "user-1";
@@ -28,22 +28,28 @@ const policy = (overrides: Partial<Policy> = {}): Policy =>
     ...overrides,
   }) as unknown as Policy;
 
-describe("OnRepoConnectedPolicyHandler", () => {
+describe("ApplyDefaultPolicyOnRepoConnected", () => {
   let getTemplate: ReturnType<typeof vi.fn>;
+  let listByRepository: ReturnType<typeof vi.fn>;
   let createWithRules: ReturnType<typeof vi.fn>;
   let activate: ReturnType<typeof vi.fn>;
-  let handler: OnRepoConnectedPolicyHandler;
+  let handler: ApplyDefaultPolicyOnRepoConnected;
 
   beforeEach(() => {
     getTemplate = vi.fn();
+    listByRepository = vi.fn().mockResolvedValue([]);
     createWithRules = vi.fn();
     activate = vi.fn();
 
     const defaults = {
       getDefaultPolicyTemplate: getTemplate,
     } as unknown as DefaultPolicyService;
-    const policies = { createWithRules, activate } as never;
-    handler = new OnRepoConnectedPolicyHandler(defaults, policies);
+    const policies = {
+      listByRepository,
+      createWithRules,
+      activate,
+    } as never;
+    handler = new ApplyDefaultPolicyOnRepoConnected(defaults, policies);
   });
 
   it("does nothing when the user has no template", async () => {
@@ -51,6 +57,7 @@ describe("OnRepoConnectedPolicyHandler", () => {
 
     await handler.handle(event());
 
+    expect(listByRepository).not.toHaveBeenCalled();
     expect(createWithRules).not.toHaveBeenCalled();
     expect(activate).not.toHaveBeenCalled();
   });
@@ -65,7 +72,7 @@ describe("OnRepoConnectedPolicyHandler", () => {
     expect(activate).not.toHaveBeenCalled();
   });
 
-  it("creates and activates a Default policy when the template is enabled", async () => {
+  it("creates and activates a Default policy when enabled and repo has no policies", async () => {
     const template: DefaultPolicyTemplate = {
       enabled: true,
       rules: [
@@ -81,6 +88,7 @@ describe("OnRepoConnectedPolicyHandler", () => {
     await handler.handle(event());
 
     expect(getTemplate).toHaveBeenCalledWith(USER_ID);
+    expect(listByRepository).toHaveBeenCalledWith(REPO_ID);
     expect(createWithRules).toHaveBeenCalledWith({
       repositoryId: REPO_ID,
       name: "Default",
@@ -103,6 +111,17 @@ describe("OnRepoConnectedPolicyHandler", () => {
       rules: [],
     });
     expect(activate).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips creation when the repo already has policies (idempotent on re-connect)", async () => {
+    const template: DefaultPolicyTemplate = { enabled: true, rules: [] };
+    getTemplate.mockResolvedValue(template);
+    listByRepository.mockResolvedValue([policy({ name: "custom" })]);
+
+    await handler.handle(event());
+
+    expect(createWithRules).not.toHaveBeenCalled();
+    expect(activate).not.toHaveBeenCalled();
   });
 
   it("swallows create errors so repo connect is not interrupted", async () => {

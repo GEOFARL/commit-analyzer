@@ -9,10 +9,10 @@ import { DefaultPolicyService } from "./default-policy.service.js";
 
 @Injectable()
 @EventsHandler(RepoConnectedEvent)
-export class OnRepoConnectedPolicyHandler
+export class ApplyDefaultPolicyOnRepoConnected
   implements IEventHandler<RepoConnectedEvent>
 {
-  private readonly logger = new Logger(OnRepoConnectedPolicyHandler.name);
+  private readonly logger = new Logger(ApplyDefaultPolicyOnRepoConnected.name);
 
   constructor(
     private readonly defaults: DefaultPolicyService,
@@ -22,6 +22,14 @@ export class OnRepoConnectedPolicyHandler
   async handle(event: RepoConnectedEvent): Promise<void> {
     const template = await this.defaults.getDefaultPolicyTemplate(event.userId);
     if (!template?.enabled) return;
+
+    const existing = await this.policies.listByRepository(event.repositoryId);
+    if (existing.length > 0) {
+      this.logger.log(
+        `skipping default policy: repo already has policies repositoryId=${event.repositoryId} userId=${event.userId} count=${existing.length}`,
+      );
+      return;
+    }
 
     try {
       const created = await this.policies.createWithRules({
