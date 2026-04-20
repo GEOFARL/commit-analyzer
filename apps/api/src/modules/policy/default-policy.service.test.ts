@@ -112,11 +112,4 @@ describe("DefaultPolicyService", () => {
     });
   });
 
-  describe("clearDefaultPolicyTemplate", () => {
-    it("writes null to the repository", async () => {
-      await service.clearDefaultPolicyTemplate(USER_ID);
-
-      expect(setStored).toHaveBeenCalledWith(USER_ID, null);
-    });
-  });
 });

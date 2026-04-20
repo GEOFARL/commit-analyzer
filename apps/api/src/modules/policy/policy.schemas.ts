@@ -43,7 +43,7 @@ const footerRequiredRule = z.object({
   ruleValue: z.boolean(),
 });
 
-export const policyRuleSchema = z.discriminatedUnion("ruleType", [
+const policyRuleSchema = z.discriminatedUnion("ruleType", [
   allowedTypesRule,
   allowedScopesRule,
   maxSubjectLengthRule,
