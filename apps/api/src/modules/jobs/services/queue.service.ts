@@ -43,6 +43,9 @@ export class QueueService {
         );
         return jobId;
       }
+      // Terminal state (completed/failed/unknown): BullMQ.add() with an existing
+      // jobId returns the old job without re-running. Remove it first.
+      await existing.remove();
     }
 
     await this.syncQueue.add(SYNC_JOB_NAME, { repositoryId, userId }, {
@@ -74,6 +77,7 @@ export class QueueService {
         );
         return jobId;
       }
+      await existing.remove();
     }
 
     const data: RescoreJobData = { repositoryId };

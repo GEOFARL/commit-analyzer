@@ -95,14 +95,31 @@ describe("QueueService", () => {
     expect(addMock).not.toHaveBeenCalled();
   });
 
-  it("re-enqueues when a prior job completed", async () => {
+  it("removes and re-enqueues when a prior job completed", async () => {
+    const removeMock = vi.fn().mockResolvedValue(undefined);
     getJobMock.mockResolvedValue({
       id: "sync-repo-1",
       getState: vi.fn().mockResolvedValue("completed"),
+      remove: removeMock,
     });
 
     await service.enqueueSync("repo-1", "user-1");
 
+    expect(removeMock).toHaveBeenCalledOnce();
+    expect(addMock).toHaveBeenCalledOnce();
+  });
+
+  it("removes and re-enqueues when a prior job failed", async () => {
+    const removeMock = vi.fn().mockResolvedValue(undefined);
+    getJobMock.mockResolvedValue({
+      id: "sync-repo-1",
+      getState: vi.fn().mockResolvedValue("failed"),
+      remove: removeMock,
+    });
+
+    await service.enqueueSync("repo-1", "user-1");
+
+    expect(removeMock).toHaveBeenCalledOnce();
     expect(addMock).toHaveBeenCalledOnce();
   });
 
@@ -147,14 +164,31 @@ describe("QueueService", () => {
       },
     );
 
-    it("re-enqueues when prior rescore job completed", async () => {
+    it("removes and re-enqueues when prior rescore job completed", async () => {
+      const removeMock = vi.fn().mockResolvedValue(undefined);
       rescoreGetJobMock.mockResolvedValue({
         id: "rescore-repo-1",
         getState: vi.fn().mockResolvedValue("completed"),
+        remove: removeMock,
       });
 
       await service.enqueueRescore("repo-1");
 
+      expect(removeMock).toHaveBeenCalledOnce();
+      expect(rescoreAddMock).toHaveBeenCalledOnce();
+    });
+
+    it("removes and re-enqueues when prior rescore job failed", async () => {
+      const removeMock = vi.fn().mockResolvedValue(undefined);
+      rescoreGetJobMock.mockResolvedValue({
+        id: "rescore-repo-1",
+        getState: vi.fn().mockResolvedValue("failed"),
+        remove: removeMock,
+      });
+
+      await service.enqueueRescore("repo-1");
+
+      expect(removeMock).toHaveBeenCalledOnce();
       expect(rescoreAddMock).toHaveBeenCalledOnce();
     });
   });
