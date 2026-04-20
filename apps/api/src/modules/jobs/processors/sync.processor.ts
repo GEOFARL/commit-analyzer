@@ -139,12 +139,16 @@ export class SyncProcessor extends WorkerHost {
           // the final updateProgress call below corrects to exact total.
           pending.length + (pageData.length === COMMITS_PER_PAGE ? COMMITS_PER_PAGE : 0),
         );
+        // totalCommits=0 signals "discovery phase, total unknown" so the
+        // banner stays on "Starting sync…" instead of rendering 100% —
+        // commitsProcessed==totalCommits in the old payload made every
+        // listing tick look complete, then enrichment snapped back to 0%.
         this.eventBus.publish(
           new SyncProgressEvent(
             repositoryId,
             syncJob.id,
             pending.length,
-            pending.length,
+            0,
           ),
         );
       }
