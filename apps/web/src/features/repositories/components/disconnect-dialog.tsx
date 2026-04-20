@@ -31,7 +31,9 @@ export const DisconnectDialog = ({ repo, onClose, onConfirm }: Props) => {
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t("disconnectDialog.title")}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("disconnectDialog.title", { name: repo?.fullName ?? "" })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
             {t("disconnectDialog.description", {
               name: repo?.fullName ?? "",

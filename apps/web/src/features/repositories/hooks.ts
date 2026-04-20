@@ -212,73 +212,11 @@ export const useDisconnectRepoMutation = (userId: string) => {
     onSuccess: () => {
       toast.success(t("toast.disconnected"));
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [...connectedKey] });
-      void queryClient.invalidateQueries({ queryKey: [...githubKey] });
-    },
-  });
-};
-
-export const usePurgeRepoMutation = (userId: string) => {
-  const queryClient = useQueryClient();
-  const t = useTranslations("repositories");
-  const githubKey = repositoryQueryKeys.github(userId);
-  const connectedKey = repositoryQueryKeys.connected(userId);
-
-  return tsr.repos.purge.useMutation({
-    onMutate: async (vars) => {
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: [...connectedKey] }),
-        queryClient.cancelQueries({ queryKey: [...githubKey] }),
-      ]);
-      const prevConnected = queryClient.getQueryData<ConnectedEnvelope>([
-        ...connectedKey,
-      ]);
-      const prevGithub = queryClient.getQueryData<GithubEnvelope>([
-        ...githubKey,
-      ]);
-      const removed = prevConnected?.body.items.find(
-        (r) => r.id === vars.params.repoId,
-      );
-      if (prevConnected) {
-        queryClient.setQueryData<ConnectedEnvelope>([...connectedKey], {
-          ...prevConnected,
-          body: {
-            items: prevConnected.body.items.filter(
-              (r) => r.id !== vars.params.repoId,
-            ),
-          },
-        });
-      }
-      if (prevGithub && removed) {
-        queryClient.setQueryData<GithubEnvelope>([...githubKey], {
-          ...prevGithub,
-          body: {
-            items: prevGithub.body.items.map((r) =>
-              r.githubRepoId === removed.githubRepoId
-                ? { ...r, connected: false }
-                : r,
-            ),
-          },
-        });
-      }
-      return { prevConnected, prevGithub };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.prevConnected) {
-        queryClient.setQueryData([...connectedKey], context.prevConnected);
-      }
-      if (context?.prevGithub) {
-        queryClient.setQueryData([...githubKey], context.prevGithub);
-      }
-      toast.error(t("toast.purgeError"));
-    },
-    onSuccess: () => {
-      toast.success(t("toast.purged"));
-    },
     onSettled: (_data, _err, vars) => {
       void queryClient.invalidateQueries({ queryKey: [...connectedKey] });
       void queryClient.invalidateQueries({ queryKey: [...githubKey] });
+      // disconnect now also purges commits/analytics server-side, so drop
+      // cached chart data for the repo or stale slices linger after reconnect.
       void queryClient.invalidateQueries({
         queryKey: [...analyticsQueryKeyPrefix(vars.params.repoId)],
       });

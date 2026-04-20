@@ -103,26 +103,16 @@ export class ReposService {
     }
 
     await this.repos.setConnected(existing.id, false);
-    await this.cache.del(githubListCacheKey(userId));
-
-    this.eventBus.publish(
-      new RepoDisconnectedEvent(existing.id, userId, existing.githubRepoId),
-    );
-  }
-
-  async purge(userId: string, repoId: string): Promise<void> {
-    const existing = await this.repos.findByIdForUser(repoId, userId);
-    if (!existing) {
-      throw new RepoNotFoundError();
-    }
-
     const { deletedCommits } = await this.repos.purge(existing.id);
     await this.cache.del(githubListCacheKey(userId));
 
     this.logger.log(
-      `repo purged repositoryId=${existing.id} userId=${userId} deletedCommits=${deletedCommits}`,
+      `repo disconnected repositoryId=${existing.id} userId=${userId} deletedCommits=${deletedCommits}`,
     );
 
+    this.eventBus.publish(
+      new RepoDisconnectedEvent(existing.id, userId, existing.githubRepoId),
+    );
     this.eventBus.publish(
       new RepoPurgedEvent(
         existing.id,

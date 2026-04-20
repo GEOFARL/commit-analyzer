@@ -200,19 +200,29 @@ describe("ReposService", () => {
   });
 
   describe("disconnect", () => {
-    it("soft-deletes, invalidates cache, publishes event", async () => {
+    it("soft-deletes, purges data, invalidates cache, publishes both events", async () => {
       const existing = repoEntity();
       repos.findByIdForUser.mockResolvedValue(existing);
+      repos.purge.mockResolvedValue({ deletedCommits: 42 });
 
       await service.disconnect(USER_ID, REPO_ID);
 
       expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
       expect(repos.setConnected).toHaveBeenCalledWith(existing.id, false);
+      expect(repos.purge).toHaveBeenCalledWith(existing.id);
       expect(cache.del).toHaveBeenCalledWith(`repos:github:list:${USER_ID}`);
-      expect(publish).toHaveBeenCalledTimes(1);
-      const event = publish.mock.calls[0]?.[0] as RepoDisconnectedEvent;
-      expect(event).toBeInstanceOf(RepoDisconnectedEvent);
-      expect(event.repositoryId).toBe(existing.id);
+      expect(publish).toHaveBeenCalledTimes(2);
+
+      const disconnected = publish.mock.calls[0]?.[0] as RepoDisconnectedEvent;
+      expect(disconnected).toBeInstanceOf(RepoDisconnectedEvent);
+      expect(disconnected.repositoryId).toBe(existing.id);
+
+      const purged = publish.mock.calls[1]?.[0] as RepoPurgedEvent;
+      expect(purged).toBeInstanceOf(RepoPurgedEvent);
+      expect(purged.repositoryId).toBe(existing.id);
+      expect(purged.userId).toBe(USER_ID);
+      expect(purged.githubRepoId).toBe(existing.githubRepoId);
+      expect(purged.deletedCommits).toBe(42);
     });
 
     it("throws 404 when repo not owned by user", async () => {
@@ -221,6 +231,7 @@ describe("ReposService", () => {
         service.disconnect(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
       expect(repos.setConnected).not.toHaveBeenCalled();
+      expect(repos.purge).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
     });
 
@@ -231,57 +242,17 @@ describe("ReposService", () => {
       await expect(
         service.disconnect(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
-      expect(publish).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("purge", () => {
-    it("deletes data, invalidates cache, publishes RepoPurgedEvent", async () => {
-      const existing = repoEntity();
-      repos.findByIdForUser.mockResolvedValue(existing);
-      repos.purge.mockResolvedValue({ deletedCommits: 42 });
-
-      await service.purge(USER_ID, REPO_ID);
-
-      expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
-      expect(repos.purge).toHaveBeenCalledWith(existing.id);
-      expect(cache.del).toHaveBeenCalledWith(`repos:github:list:${USER_ID}`);
-      expect(publish).toHaveBeenCalledTimes(1);
-      const event = publish.mock.calls[0]?.[0] as RepoPurgedEvent;
-      expect(event).toBeInstanceOf(RepoPurgedEvent);
-      expect(event.repositoryId).toBe(existing.id);
-      expect(event.userId).toBe(USER_ID);
-      expect(event.githubRepoId).toBe(existing.githubRepoId);
-      expect(event.deletedCommits).toBe(42);
-    });
-
-    it("purges a previously disconnected repo's leftover data", async () => {
-      const existing = repoEntity({ isConnected: false });
-      repos.findByIdForUser.mockResolvedValue(existing);
-      repos.purge.mockResolvedValue({ deletedCommits: 5 });
-
-      await service.purge(USER_ID, REPO_ID);
-
-      expect(repos.purge).toHaveBeenCalledWith(existing.id);
-      expect(publish).toHaveBeenCalledTimes(1);
-    });
-
-    it("throws 404 when repo not owned by user", async () => {
-      repos.findByIdForUser.mockResolvedValue(null);
-      await expect(
-        service.purge(USER_ID, REPO_ID),
-      ).rejects.toBeInstanceOf(RepoNotFoundError);
       expect(repos.purge).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
     });
 
-    it("does not invalidate cache or publish if transaction rolls back", async () => {
+    it("does not invalidate cache or publish if purge rolls back", async () => {
       const existing = repoEntity();
       repos.findByIdForUser.mockResolvedValue(existing);
       const boom = new Error("delete failed");
       repos.purge.mockRejectedValue(boom);
 
-      await expect(service.purge(USER_ID, REPO_ID)).rejects.toBe(boom);
+      await expect(service.disconnect(USER_ID, REPO_ID)).rejects.toBe(boom);
 
       expect(cache.del).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();

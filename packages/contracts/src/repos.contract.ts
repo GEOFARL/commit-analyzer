@@ -99,19 +99,6 @@ export const reposContract = c.router(
       summary: "Request a sync run for a connected repository",
       metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
-    purge: {
-      method: "POST",
-      path: "/repos/:repoId/purge",
-      pathParams: z.object({ repoId: z.string().uuid() }),
-      body: c.noBody(),
-      responses: {
-        204: c.noBody(),
-        401: errorEnvelopeSchema,
-        404: errorEnvelopeSchema,
-      },
-      summary: "Disconnect a repository and purge its ingested data",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
-    },
   },
   { strictStatusCodes: true },
 );

@@ -19,9 +19,7 @@
     "connect": "Connect",
     "connecting": "Connecting…",
     "disconnect": "Disconnect",
-    "disconnecting": "Disconnecting…",
-    "purge": "Delete data & disconnect",
-    "purgeAria": "Delete data and disconnect {name}"
+    "disconnecting": "Disconnecting…"
   },
   "badge": {
     "private": "Private",
@@ -50,24 +48,16 @@
     "next": "Next"
   },
   "disconnectDialog": {
-    "title": "Disconnect repository?",
-    "description": "This will remove {name} from Commit Analyzer. You can reconnect it at any time.",
-    "confirm": "Disconnect",
-    "cancel": "Cancel"
-  },
-  "purgeDialog": {
-    "title": "Delete {name}'s data?",
-    "description": "This permanently deletes all commits, file stats, and analytics we've collected for {name}, then disconnects the repository. This cannot be undone. You can reconnect later, but the data will be re-ingested from scratch.",
-    "confirm": "Delete & disconnect",
+    "title": "Disconnect {name}?",
+    "description": "Disconnecting removes {name} from Commit Analyzer and permanently deletes the commits, file stats, and analytics we've ingested for it. You can reconnect later, but the history will be re-ingested from scratch.",
+    "confirm": "Disconnect & delete data",
     "cancel": "Cancel"
   },
   "toast": {
     "connected": "Repository connected",
-    "disconnected": "Repository disconnected",
+    "disconnected": "Repository disconnected and data deleted",
     "connectError": "Could not connect repository",
-    "disconnectError": "Could not disconnect repository",
-    "purged": "Repository data deleted",
-    "purgeError": "Could not delete repository data"
+    "disconnectError": "Could not disconnect repository"
   },
   "error": {
     "load": "We couldn't load your repositories. Please try again."

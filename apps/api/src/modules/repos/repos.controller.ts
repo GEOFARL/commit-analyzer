@@ -69,15 +69,4 @@ export class ReposController {
       return { status: 202, body: {} };
     });
   }
-
-  @TsRestHandler(reposContract.purge as never)
-  purge(@CurrentUser() userId: string): unknown {
-    return tsRestHandler(
-      reposContract.purge as never,
-      (async ({ params }: { params: { repoId: string } }) => {
-        await this.repos.purge(userId, params.repoId);
-        return { status: 204, body: undefined };
-      }) as never,
-    );
-  }
 }
