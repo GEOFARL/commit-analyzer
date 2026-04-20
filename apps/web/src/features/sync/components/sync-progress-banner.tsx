@@ -1,19 +1,15 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Loader2, RefreshCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { analyticsQueryKeyPrefix } from "@/lib/query-keys/analytics";
 import { cn } from "@/lib/utils";
 
-import {
-  useResyncRepoMutation,
-  useSyncProgress,
-  type SyncProgressState,
-} from "../hooks";
+import { useResyncRepoMutation, type SyncProgressState } from "../hooks";
+
+import { useSyncProgressContext } from "./sync-progress-context";
 
 interface SyncProgressBannerProps {
   repoId: string;
@@ -31,20 +27,8 @@ export const SyncProgressBanner = ({
   className,
 }: SyncProgressBannerProps) => {
   const t = useTranslations("sync");
-  const queryClient = useQueryClient();
   const resync = useResyncRepoMutation();
-
-  const state = useSyncProgress(repoId, {
-    onCompleted: () => {
-      toast.success(t("toast.completed"));
-      void queryClient.invalidateQueries({
-        queryKey: [...analyticsQueryKeyPrefix(repoId)],
-      });
-    },
-    onFailed: () => {
-      toast.error(t("toast.failed"));
-    },
-  });
+  const { state, markEnqueued } = useSyncProgressContext();
 
   if (state.status === "idle" || state.status === "completed") {
     return null;
@@ -56,6 +40,7 @@ export const SyncProgressBanner = ({
         { params: { repoId }, body: {} },
         {
           onSuccess: () => {
+            markEnqueued();
             toast.info(t("toast.retryQueued"));
           },
           onError: () => {
@@ -126,6 +111,7 @@ export const SyncProgressBanner = ({
         "flex flex-col gap-3 rounded-md border bg-muted/40 p-4 text-sm",
         className,
       )}
+      aria-live="polite"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-foreground">
@@ -135,7 +121,7 @@ export const SyncProgressBanner = ({
           />
           <span className="font-medium">{stage}</span>
           {state.totalCommits > 0 && (
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground tabular-nums">
               {t("progress.counts", {
                 done: state.commitsProcessed,
                 total: state.totalCommits,
