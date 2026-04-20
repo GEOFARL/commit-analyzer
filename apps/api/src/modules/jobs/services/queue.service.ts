@@ -93,4 +93,35 @@ export class QueueService {
     );
     return jobId;
   }
+
+  /**
+   * Remove any sync and rescore jobs for `repositoryId`, regardless of state.
+   * Used by purge so a later reconnect starts from a clean slate.
+   */
+  async removeJobsForRepo(repositoryId: string): Promise<void> {
+    const syncJobId = `sync-${repositoryId}`;
+    const rescoreJobId = `rescore-${repositoryId}`;
+
+    const [syncJob, rescoreJob] = await Promise.all([
+      this.syncQueue.getJob(syncJobId),
+      this.rescoreQueue.getJob(rescoreJobId),
+    ]);
+
+    await Promise.all([
+      syncJob?.remove().catch((err) => {
+        this.logger.warn(
+          `failed to remove sync job jobId=${syncJobId}: ${String(err)}`,
+        );
+      }),
+      rescoreJob?.remove().catch((err) => {
+        this.logger.warn(
+          `failed to remove rescore job jobId=${rescoreJobId}: ${String(err)}`,
+        );
+      }),
+    ]);
+
+    this.logger.log(
+      `queue jobs removed repositoryId=${repositoryId} syncRemoved=${syncJob != null} rescoreRemoved=${rescoreJob != null}`,
+    );
+  }
 }

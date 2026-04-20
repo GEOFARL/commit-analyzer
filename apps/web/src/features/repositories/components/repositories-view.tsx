@@ -1,7 +1,16 @@
 "use client";
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
-import { AlertCircle, BarChart3, Github, Loader2, Plug, Trash2, X } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  FlameKindling,
+  Github,
+  Loader2,
+  Plug,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 
@@ -13,6 +22,7 @@ import {
   useConnectRepoMutation,
   useDisconnectRepoMutation,
   useGithubReposQuery,
+  usePurgeRepoMutation,
 } from "@/features/repositories/hooks";
 import type { RepositoriesPageData } from "@/features/repositories/types";
 import { useRepoFilters } from "@/features/repositories/use-repo-filters";
@@ -21,6 +31,7 @@ import { Link } from "@/i18n/navigation";
 import { DisconnectDialog } from "./disconnect-dialog";
 import { EmptyGitGraph } from "./empty-git-graph";
 import { EmptyState } from "./empty-state";
+import { PurgeDialog } from "./purge-dialog";
 import { RepoCard } from "./repo-card";
 import { RepoCardSkeleton } from "./repo-card-skeleton";
 import { RepoPagination } from "./repo-pagination";
@@ -41,6 +52,7 @@ export const RepositoriesView = ({
   const connectedQuery = useConnectedReposQuery(userId, initialConnected);
   const connectMutation = useConnectRepoMutation(userId);
   const disconnectMutation = useDisconnectRepoMutation(userId);
+  const purgeMutation = usePurgeRepoMutation(userId);
 
   const githubItems = githubQuery.data?.body.items ?? initialGithub;
   const connectedItems = connectedQuery.data?.body.items ?? initialConnected;
@@ -75,6 +87,7 @@ export const RepositoriesView = ({
   const [pendingDisconnect, setPendingDisconnect] = useState<
     ConnectedRepo | null
   >(null);
+  const [pendingPurge, setPendingPurge] = useState<ConnectedRepo | null>(null);
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,6 +145,10 @@ export const RepositoriesView = ({
               const isDisconnecting =
                 disconnectMutation.isPending &&
                 disconnectMutation.variables?.params.repoId === repo.id;
+              const isPurging =
+                purgeMutation.isPending &&
+                purgeMutation.variables?.params.repoId === repo.id;
+              const isBusy = isDisconnecting || isPurging;
               const isStub = repo.id.startsWith(OPTIMISTIC_ID_PREFIX);
               return (
                 <RepoCard
@@ -141,7 +158,7 @@ export const RepositoriesView = ({
                   isConnected
                   connectedLabel={t("badge.connected")}
                   action={
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="ml-auto flex flex-wrap items-center gap-2">
                       <Button
                         asChild
                         type="button"
@@ -160,7 +177,7 @@ export const RepositoriesView = ({
                         size="sm"
                         className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         onClick={() => setPendingDisconnect(repo)}
-                        disabled={isDisconnecting || isStub}
+                        disabled={isBusy || isStub}
                       >
                         {isDisconnecting ? (
                           <Loader2 className="animate-spin" />
@@ -168,6 +185,24 @@ export const RepositoriesView = ({
                           <Trash2 />
                         )}
                         {t("actions.disconnect")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => setPendingPurge(repo)}
+                        disabled={isBusy || isStub}
+                        aria-label={t("actions.purgeAria", {
+                          name: repo.fullName,
+                        })}
+                      >
+                        {isPurging ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <FlameKindling />
+                        )}
+                        {t("actions.purge")}
                       </Button>
                     </div>
                   }
@@ -286,6 +321,15 @@ export const RepositoriesView = ({
         onConfirm={(repo) => {
           disconnectMutation.mutate({ params: { repoId: repo.id } });
           setPendingDisconnect(null);
+        }}
+      />
+
+      <PurgeDialog
+        repo={pendingPurge}
+        onClose={() => setPendingPurge(null)}
+        onConfirm={(repo) => {
+          purgeMutation.mutate({ params: { repoId: repo.id } });
+          setPendingPurge(null);
         }}
       />
     </div>

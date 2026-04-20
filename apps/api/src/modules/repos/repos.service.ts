@@ -8,6 +8,7 @@ import { EventBus } from "@nestjs/cqrs";
 import { CacheService } from "../../common/cache/cache.service.js";
 import { REPOSITORY_REPOSITORY } from "../../common/database/tokens.js";
 import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
+import { RepoPurgedEvent } from "../../shared/events/repo-purged.event.js";
 import { SyncRequestedEvent } from "../../shared/events/sync-requested.event.js";
 import { OctokitFactory } from "../octokit/octokit-factory.service.js";
 
@@ -106,6 +107,29 @@ export class ReposService {
 
     this.eventBus.publish(
       new RepoDisconnectedEvent(existing.id, userId, existing.githubRepoId),
+    );
+  }
+
+  async purge(userId: string, repoId: string): Promise<void> {
+    const existing = await this.repos.findByIdForUser(repoId, userId);
+    if (!existing) {
+      throw new RepoNotFoundError();
+    }
+
+    const { deletedCommits } = await this.repos.purge(existing.id);
+    await this.cache.del(githubListCacheKey(userId));
+
+    this.logger.log(
+      `repo purged repositoryId=${existing.id} userId=${userId} deletedCommits=${deletedCommits}`,
+    );
+
+    this.eventBus.publish(
+      new RepoPurgedEvent(
+        existing.id,
+        userId,
+        existing.githubRepoId,
+        deletedCommits,
+      ),
     );
   }
 

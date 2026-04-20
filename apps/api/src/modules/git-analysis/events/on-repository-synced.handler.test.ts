@@ -2,6 +2,7 @@ import type { Redis } from "ioredis";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { CacheService } from "../../../common/cache/cache.service.js";
+import { RepoPurgedEvent } from "../../../shared/events/repo-purged.event.js";
 import { RepoRescoredEvent } from "../../../shared/events/repo-rescored.event.js";
 import { RepoSyncedEvent } from "../../../shared/events/repo-synced.event.js";
 import { AnalyticsCacheService } from "../services/analytics-cache.service.js";
@@ -126,5 +127,18 @@ describe("OnRepositorySyncedHandler", () => {
 
     const remaining = (redis as unknown as { keys(): string[] }).keys();
     expect(remaining).toHaveLength(10);
+  });
+
+  it("wipes keys on RepoPurgedEvent (purge trigger)", async () => {
+    await handler.handle(
+      new RepoPurgedEvent("repo-1", "user-1", "12345", 42),
+    );
+
+    const remaining = (redis as unknown as { keys(): string[] }).keys();
+    expect(remaining.filter((k) => k.startsWith("analytics:repo-1:"))).toEqual(
+      [],
+    );
+    expect(remaining).toContain("analytics:repo-2:summary");
+    expect(remaining).toContain("analytics:stats:hits");
   });
 });

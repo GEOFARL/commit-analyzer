@@ -15,6 +15,7 @@ export const auditEventTypes = [
   "policy.activated",
   "generation.completed",
   "generation.failed",
+  "repo.purged",
 ] as const;
 
 export const auditEventTypeSchema = z.enum(auditEventTypes);
