@@ -1,6 +1,11 @@
 import type { DataSource, Repository as OrmRepository } from "typeorm";
 
+import { Commit } from "../entities/commit.entity.js";
 import { Repository } from "../entities/repository.entity.js";
+
+export interface PurgeResult {
+  deletedCommits: number;
+}
 
 export interface RepositoryRepository extends OrmRepository<Repository> {
   listConnectedByUser(userId: string): Promise<Repository[]>;
@@ -10,6 +15,12 @@ export interface RepositoryRepository extends OrmRepository<Repository> {
   ): Promise<Repository | null>;
   findByIdForUser(id: string, userId: string): Promise<Repository | null>;
   setConnected(id: string, isConnected: boolean): Promise<void>;
+  /**
+   * Delete all commits for `id` (cascade drops commit_files + quality_scores)
+   * and soft-reset the repo row (isConnected=false, lastSyncedAt=null) in one
+   * transaction. Returns the count of deleted commits for audit logging.
+   */
+  purge(id: string): Promise<PurgeResult>;
 }
 
 export const createRepositoryRepository = (
@@ -22,6 +33,7 @@ export const createRepositoryRepository = (
     | "findByUserAndGithubId"
     | "findByIdForUser"
     | "setConnected"
+    | "purge"
   > = {
     listConnectedByUser(userId: string): Promise<Repository[]> {
       return base.find({
@@ -40,6 +52,20 @@ export const createRepositoryRepository = (
     },
     async setConnected(id: string, isConnected: boolean): Promise<void> {
       await base.update({ id }, { isConnected });
+    },
+    async purge(id: string): Promise<PurgeResult> {
+      return dataSource.transaction(async (m) => {
+        const deleteResult = await m
+          .createQueryBuilder()
+          .delete()
+          .from(Commit)
+          .where("repository_id = :id", { id })
+          .execute();
+        await m
+          .getRepository(Repository)
+          .update({ id }, { isConnected: false, lastSyncedAt: null });
+        return { deletedCommits: deleteResult.affected ?? 0 };
+      });
     },
   };
   return base.extend(extensions) as RepositoryRepository;

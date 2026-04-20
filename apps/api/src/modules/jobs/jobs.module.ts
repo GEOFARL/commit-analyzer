@@ -7,6 +7,7 @@ import { getServerEnv } from "../../common/config.js";
 import { OctokitModule } from "../octokit/octokit.module.js";
 
 import { OnRepoConnectedHandler } from "./handlers/on-repo-connected.handler.js";
+import { OnRepoPurgedHandler } from "./handlers/on-repo-purged.handler.js";
 import { OnSyncRequestedHandler } from "./handlers/on-sync-requested.handler.js";
 import { RescoreProcessor } from "./processors/rescore.processor.js";
 import { SyncProcessor } from "./processors/sync.processor.js";
@@ -33,6 +34,7 @@ import { QueueService } from "./services/queue.service.js";
     RescoreProcessor,
     QueueService,
     OnRepoConnectedHandler,
+    OnRepoPurgedHandler,
     OnSyncRequestedHandler,
   ],
   exports: [QueueService],

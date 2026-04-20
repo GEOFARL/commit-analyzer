@@ -192,4 +192,47 @@ describe("QueueService", () => {
       expect(rescoreAddMock).toHaveBeenCalledOnce();
     });
   });
+
+  describe("removeJobsForRepo", () => {
+    it("removes both sync and rescore jobs when present", async () => {
+      const syncRemove = vi.fn().mockResolvedValue(undefined);
+      const rescoreRemove = vi.fn().mockResolvedValue(undefined);
+      getJobMock.mockResolvedValue({ id: "sync-repo-1", remove: syncRemove });
+      rescoreGetJobMock.mockResolvedValue({
+        id: "rescore-repo-1",
+        remove: rescoreRemove,
+      });
+
+      await service.removeJobsForRepo("repo-1");
+
+      expect(getJobMock).toHaveBeenCalledWith("sync-repo-1");
+      expect(rescoreGetJobMock).toHaveBeenCalledWith("rescore-repo-1");
+      expect(syncRemove).toHaveBeenCalledOnce();
+      expect(rescoreRemove).toHaveBeenCalledOnce();
+    });
+
+    it("is a no-op when neither job exists", async () => {
+      getJobMock.mockResolvedValue(null);
+      rescoreGetJobMock.mockResolvedValue(null);
+
+      await expect(
+        service.removeJobsForRepo("repo-1"),
+      ).resolves.toBeUndefined();
+    });
+
+    it("swallows per-job remove failures so the other still runs", async () => {
+      const syncRemove = vi.fn().mockRejectedValue(new Error("gone"));
+      const rescoreRemove = vi.fn().mockResolvedValue(undefined);
+      getJobMock.mockResolvedValue({ id: "sync-repo-1", remove: syncRemove });
+      rescoreGetJobMock.mockResolvedValue({
+        id: "rescore-repo-1",
+        remove: rescoreRemove,
+      });
+
+      await expect(
+        service.removeJobsForRepo("repo-1"),
+      ).resolves.toBeUndefined();
+      expect(rescoreRemove).toHaveBeenCalledOnce();
+    });
+  });
 });

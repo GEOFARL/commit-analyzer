@@ -14,6 +14,7 @@ import { OnGenerationFailedHandler } from "./handlers/on-generation-failed.handl
 import { OnLlmKeyDeletedHandler } from "./handlers/on-llm-key-deleted.handler.js";
 import { OnLlmKeyUpsertedHandler } from "./handlers/on-llm-key-upserted.handler.js";
 import { OnPolicyActivatedHandler } from "./handlers/on-policy-activated.handler.js";
+import { OnRepoPurgedAuditHandler } from "./handlers/on-repo-purged.handler.js";
 
 const EVENT_HANDLERS = [
   OnAuthLoggedInHandler,
@@ -25,6 +26,7 @@ const EVENT_HANDLERS = [
   OnPolicyActivatedHandler,
   OnGenerationCompletedHandler,
   OnGenerationFailedHandler,
+  OnRepoPurgedAuditHandler,
 ];
 
 @Global()

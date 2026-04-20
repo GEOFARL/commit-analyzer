@@ -28,6 +28,11 @@ const generationFailedPayload = z.object({
   generation_id: z.string().uuid(),
   reason: z.string(),
 });
+const repoPurgedPayload = z.object({
+  repository_id: z.string().uuid(),
+  github_repo_id: z.string(),
+  deleted_commits: z.number().int().nonnegative(),
+});
 
 const payloadSchemaMap: Record<AuditEventType, z.ZodTypeAny> = {
   "auth.login": authLoginPayload,
@@ -39,6 +44,7 @@ const payloadSchemaMap: Record<AuditEventType, z.ZodTypeAny> = {
   "policy.activated": policyActivatedPayload,
   "generation.completed": generationCompletedPayload,
   "generation.failed": generationFailedPayload,
+  "repo.purged": repoPurgedPayload,
 };
 
 export { auditEventTypeSchema };

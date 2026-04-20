@@ -5,6 +5,7 @@ import { HttpStatus } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RepoConnectedEvent } from "../../shared/events/repo-connected.event.js";
+import { RepoPurgedEvent } from "../../shared/events/repo-purged.event.js";
 import { SyncRequestedEvent } from "../../shared/events/sync-requested.event.js";
 
 import { RepoDisconnectedEvent } from "./events/repo-disconnected.event.js";
@@ -59,6 +60,7 @@ describe("ReposService", () => {
     findByUserAndGithubId: vi.fn(),
     findByIdForUser: vi.fn(),
     setConnected: vi.fn(),
+    purge: vi.fn(),
     create: vi.fn((v: Partial<RepoEntity>) => v as RepoEntity),
     save: vi.fn(),
   };
@@ -229,6 +231,59 @@ describe("ReposService", () => {
       await expect(
         service.disconnect(USER_ID, REPO_ID),
       ).rejects.toBeInstanceOf(RepoNotFoundError);
+      expect(publish).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("purge", () => {
+    it("deletes data, invalidates cache, publishes RepoPurgedEvent", async () => {
+      const existing = repoEntity();
+      repos.findByIdForUser.mockResolvedValue(existing);
+      repos.purge.mockResolvedValue({ deletedCommits: 42 });
+
+      await service.purge(USER_ID, REPO_ID);
+
+      expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
+      expect(repos.purge).toHaveBeenCalledWith(existing.id);
+      expect(cache.del).toHaveBeenCalledWith(`repos:github:list:${USER_ID}`);
+      expect(publish).toHaveBeenCalledTimes(1);
+      const event = publish.mock.calls[0]?.[0] as RepoPurgedEvent;
+      expect(event).toBeInstanceOf(RepoPurgedEvent);
+      expect(event.repositoryId).toBe(existing.id);
+      expect(event.userId).toBe(USER_ID);
+      expect(event.githubRepoId).toBe(existing.githubRepoId);
+      expect(event.deletedCommits).toBe(42);
+    });
+
+    it("purges a previously disconnected repo's leftover data", async () => {
+      const existing = repoEntity({ isConnected: false });
+      repos.findByIdForUser.mockResolvedValue(existing);
+      repos.purge.mockResolvedValue({ deletedCommits: 5 });
+
+      await service.purge(USER_ID, REPO_ID);
+
+      expect(repos.purge).toHaveBeenCalledWith(existing.id);
+      expect(publish).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws 404 when repo not owned by user", async () => {
+      repos.findByIdForUser.mockResolvedValue(null);
+      await expect(
+        service.purge(USER_ID, REPO_ID),
+      ).rejects.toBeInstanceOf(RepoNotFoundError);
+      expect(repos.purge).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("does not invalidate cache or publish if transaction rolls back", async () => {
+      const existing = repoEntity();
+      repos.findByIdForUser.mockResolvedValue(existing);
+      const boom = new Error("delete failed");
+      repos.purge.mockRejectedValue(boom);
+
+      await expect(service.purge(USER_ID, REPO_ID)).rejects.toBe(boom);
+
+      expect(cache.del).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
     });
   });

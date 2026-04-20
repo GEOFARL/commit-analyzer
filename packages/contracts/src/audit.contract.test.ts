@@ -17,7 +17,7 @@ const validEvent = {
 };
 
 describe("auditEventTypeSchema", () => {
-  it("accepts all 9 event types", () => {
+  it("accepts all declared event types", () => {
     for (const t of auditEventTypes) {
       expect(auditEventTypeSchema.parse(t)).toBe(t);
     }
@@ -27,8 +27,12 @@ describe("auditEventTypeSchema", () => {
     expect(() => auditEventTypeSchema.parse("unknown.type")).toThrow();
   });
 
-  it("defines exactly 9 event types", () => {
-    expect(auditEventTypes).toHaveLength(9);
+  it("defines exactly 10 event types", () => {
+    expect(auditEventTypes).toHaveLength(10);
+  });
+
+  it("includes repo.purged", () => {
+    expect(auditEventTypes).toContain("repo.purged");
   });
 });
 
