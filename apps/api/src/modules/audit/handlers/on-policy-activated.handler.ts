@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { EventsHandler, type IEventHandler } from "@nestjs/cqrs";
 
+import { PolicyActivatedEvent } from "../../../shared/events/policy-activated.event.js";
 import { AuditService } from "../audit.service.js";
-import { PolicyActivatedEvent } from "../events/policy-activated.event.js";
 
 @Injectable()
 @EventsHandler(PolicyActivatedEvent)

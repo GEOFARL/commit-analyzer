@@ -23,6 +23,13 @@ export type {
   AuditEventListOptions,
   AuditEventRepository,
 } from "./audit-event.repository.js";
+export { createPolicyRepository } from "./policy.repository.js";
+export type {
+  CreatePolicyInput,
+  PolicyRepository,
+  PolicyRuleInput,
+  UpdatePolicyInput,
+} from "./policy.repository.js";
 export { createRepositoryRepository } from "./repository.repository.js";
 export type { RepositoryRepository } from "./repository.repository.js";
 export { createUserRepository } from "./user.repository.js";

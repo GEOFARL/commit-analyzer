@@ -5,6 +5,7 @@ import {
   createCommitQualityScoreRepository,
   createCommitRepository,
   createDataSource,
+  createPolicyRepository,
   createRepositoryRepository,
   createSyncJobRepository,
   createUserRepository,
@@ -22,6 +23,7 @@ import {
   COMMIT_QUALITY_SCORE_REPOSITORY,
   COMMIT_REPOSITORY,
   DATA_SOURCE,
+  POLICY_REPOSITORY,
   REPOSITORY_REPOSITORY,
   SYNC_JOB_REPOSITORY,
   USER_REPOSITORY,
@@ -93,6 +95,11 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createSyncJobRepository(ds),
     },
     {
+      provide: POLICY_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createPolicyRepository(ds),
+    },
+    {
       provide: APP_INTERCEPTOR,
       useClass: TransactionalInterceptor,
     },
@@ -107,6 +114,7 @@ const dbLogger = new Logger("DatabaseModule");
     COMMIT_REPOSITORY,
     COMMIT_FILE_REPOSITORY,
     SYNC_JOB_REPOSITORY,
+    POLICY_REPOSITORY,
   ],
 })
 export class DatabaseModule {}
