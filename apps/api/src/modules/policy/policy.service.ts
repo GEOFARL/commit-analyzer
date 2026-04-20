@@ -12,12 +12,16 @@ import {
   REPOSITORY_REPOSITORY,
 } from "../../common/database/tokens.js";
 import { PolicyActivatedEvent } from "../../shared/events/policy-activated.event.js";
+import { PolicyChangedEvent } from "../../shared/events/policy-changed.event.js";
 
 import {
+  isUniqueViolation,
+  PolicyActivationConflictError,
   PolicyActiveDeleteError,
   PolicyNotFoundError,
   PolicyRepoNotFoundError,
   PolicyRuleInvalidError,
+  PolicyUpdateEmptyError,
 } from "./policy.errors.js";
 import {
   createPolicySchema,
@@ -36,10 +40,9 @@ export class PolicyService {
     private readonly eventBus: EventBus,
   ) {}
 
-  list(userId: string, repositoryId: string): Promise<Policy[]> {
-    return this.ensureRepoOwned(userId, repositoryId).then(() =>
-      this.policies.listByRepository(repositoryId),
-    );
+  async list(userId: string, repositoryId: string): Promise<Policy[]> {
+    await this.ensureRepoOwned(userId, repositoryId);
+    return this.policies.listByRepository(repositoryId);
   }
 
   async get(
@@ -83,13 +86,20 @@ export class PolicyService {
     policyId: string,
     input: unknown,
   ): Promise<Policy> {
+    const parsed = this.parseUpdate(input);
+    if (parsed.name === undefined && parsed.rules === undefined) {
+      throw new PolicyUpdateEmptyError();
+    }
     await this.ensureRepoOwned(userId, repositoryId);
     const existing = await this.policies.findWithRules(policyId);
     if (!existing || existing.repositoryId !== repositoryId) {
       throw new PolicyNotFoundError();
     }
-    const parsed = this.parseUpdate(input);
-    return this.policies.updateWithRules(policyId, parsed);
+    const updated = await this.policies.updateWithRules(policyId, parsed);
+    this.eventBus.publish(
+      new PolicyChangedEvent(userId, repositoryId, policyId),
+    );
+    return updated;
   }
 
   async delete(
@@ -116,14 +126,31 @@ export class PolicyService {
     if (!existing || existing.repositoryId !== repositoryId) {
       throw new PolicyNotFoundError();
     }
-    const activated = await this.policies.activate(repositoryId, policyId);
+    const activated = await this.activateOrConflict(repositoryId, policyId);
     this.eventBus.publish(
       new PolicyActivatedEvent(userId, repositoryId, policyId),
     );
     this.logger.log(
-      `policy activated repositoryId=${repositoryId} policyId=${policyId}`,
+      `policy activated userId=${userId} repositoryId=${repositoryId} policyId=${policyId}`,
     );
     return activated;
+  }
+
+  private async activateOrConflict(
+    repositoryId: string,
+    policyId: string,
+  ): Promise<Policy> {
+    try {
+      return await this.policies.activate(repositoryId, policyId);
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        this.logger.warn(
+          `policy activation conflict repositoryId=${repositoryId} policyId=${policyId}`,
+        );
+        throw new PolicyActivationConflictError();
+      }
+      throw err;
+    }
   }
 
   private async ensureRepoOwned(

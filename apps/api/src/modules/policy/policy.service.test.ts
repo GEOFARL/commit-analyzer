@@ -4,12 +4,15 @@ import type { Policy, Repository as RepoEntity } from "@commit-analyzer/database
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PolicyActivatedEvent } from "../../shared/events/policy-activated.event.js";
+import { PolicyChangedEvent } from "../../shared/events/policy-changed.event.js";
 
 import {
+  PolicyActivationConflictError,
   PolicyActiveDeleteError,
   PolicyNotFoundError,
   PolicyRepoNotFoundError,
   PolicyRuleInvalidError,
+  PolicyUpdateEmptyError,
 } from "./policy.errors.js";
 import { PolicyService } from "./policy.service.js";
 
@@ -235,7 +238,7 @@ describe("PolicyService", () => {
   });
 
   describe("update", () => {
-    it("updates an existing policy", async () => {
+    it("updates an existing policy and publishes PolicyChangedEvent", async () => {
       repos.findByIdForUser.mockResolvedValue(repoEntity());
       policies.findWithRules.mockResolvedValue(policyEntity());
       const updated = policyEntity({ name: "new" });
@@ -248,6 +251,12 @@ describe("PolicyService", () => {
       expect(policies.updateWithRules).toHaveBeenCalledWith(POLICY_ID, {
         name: "new",
       });
+      expect(publish).toHaveBeenCalledTimes(1);
+      const event = publish.mock.calls[0]?.[0] as PolicyChangedEvent;
+      expect(event).toBeInstanceOf(PolicyChangedEvent);
+      expect(event.userId).toBe(USER_ID);
+      expect(event.repositoryId).toBe(REPO_ID);
+      expect(event.policyId).toBe(POLICY_ID);
       expect(result).toBe(updated);
     });
 
@@ -260,14 +269,28 @@ describe("PolicyService", () => {
       await expect(
         service.update(USER_ID, REPO_ID, POLICY_ID, { name: "new" }),
       ).rejects.toBeInstanceOf(PolicyNotFoundError);
+      expect(publish).not.toHaveBeenCalled();
     });
 
-    it("rejects update with no fields", async () => {
+    it("rejects update with no fields with PolicyUpdateEmptyError", async () => {
       repos.findByIdForUser.mockResolvedValue(repoEntity());
       policies.findWithRules.mockResolvedValue(policyEntity());
 
       await expect(
         service.update(USER_ID, REPO_ID, POLICY_ID, {}),
+      ).rejects.toBeInstanceOf(PolicyUpdateEmptyError);
+      expect(policies.updateWithRules).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("still routes invalid rule shapes to PolicyRuleInvalidError", async () => {
+      repos.findByIdForUser.mockResolvedValue(repoEntity());
+      policies.findWithRules.mockResolvedValue(policyEntity());
+
+      await expect(
+        service.update(USER_ID, REPO_ID, POLICY_ID, {
+          rules: [{ ruleType: "allowedTypes", ruleValue: [] }],
+        }),
       ).rejects.toBeInstanceOf(PolicyRuleInvalidError);
     });
   });
@@ -342,6 +365,30 @@ describe("PolicyService", () => {
         service.activate(USER_ID, REPO_ID, POLICY_ID),
       ).rejects.toBe(boom);
       expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("maps pg unique_violation (23505) to PolicyActivationConflictError", async () => {
+      repos.findByIdForUser.mockResolvedValue(repoEntity());
+      policies.findWithRules.mockResolvedValue(policyEntity());
+      policies.activate.mockRejectedValue({ code: "23505" });
+
+      await expect(
+        service.activate(USER_ID, REPO_ID, POLICY_ID),
+      ).rejects.toBeInstanceOf(PolicyActivationConflictError);
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("maps TypeORM-wrapped 23505 via driverError to conflict", async () => {
+      repos.findByIdForUser.mockResolvedValue(repoEntity());
+      policies.findWithRules.mockResolvedValue(policyEntity());
+      policies.activate.mockRejectedValue({
+        code: "unrelated",
+        driverError: { code: "23505" },
+      });
+
+      await expect(
+        service.activate(USER_ID, REPO_ID, POLICY_ID),
+      ).rejects.toBeInstanceOf(PolicyActivationConflictError);
     });
   });
 });

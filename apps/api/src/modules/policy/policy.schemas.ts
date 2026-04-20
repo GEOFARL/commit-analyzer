@@ -43,7 +43,7 @@ const footerRequiredRule = z.object({
   ruleValue: z.boolean(),
 });
 
-export const policyRuleSchema = z.discriminatedUnion("ruleType", [
+const policyRuleSchema = z.discriminatedUnion("ruleType", [
   allowedTypesRule,
   allowedScopesRule,
   maxSubjectLengthRule,
@@ -56,16 +56,10 @@ export const createPolicySchema = z.object({
   rules: z.array(policyRuleSchema).default([]),
 });
 
-export const updatePolicySchema = z
-  .object({
-    name: z.string().min(1).max(100).optional(),
-    rules: z.array(policyRuleSchema).optional(),
-  })
-  .refine(
-    (v) => v.name !== undefined || v.rules !== undefined,
-    "at least one of name or rules must be provided",
-  );
+export const updatePolicySchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  rules: z.array(policyRuleSchema).optional(),
+});
 
-export type PolicyRuleInputParsed = z.infer<typeof policyRuleSchema>;
 export type CreatePolicyInputParsed = z.infer<typeof createPolicySchema>;
 export type UpdatePolicyInputParsed = z.infer<typeof updatePolicySchema>;

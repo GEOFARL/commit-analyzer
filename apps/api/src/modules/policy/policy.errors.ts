@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 export class PolicyRepoNotFoundError extends NotFoundException {
   constructor() {
@@ -29,3 +33,33 @@ export class PolicyRuleInvalidError extends BadRequestException {
     });
   }
 }
+
+export class PolicyUpdateEmptyError extends BadRequestException {
+  constructor() {
+    super({
+      message: "at least one of name or rules must be provided",
+      code: "POLICY_UPDATE_EMPTY",
+    });
+  }
+}
+
+export class PolicyActivationConflictError extends ConflictException {
+  constructor() {
+    super({
+      message: "another policy was activated concurrently",
+      code: "POLICY_ACTIVATION_CONFLICT",
+    });
+  }
+}
+
+const PG_UNIQUE_VIOLATION = "23505";
+
+export const isUniqueViolation = (err: unknown): boolean => {
+  if (typeof err !== "object" || err === null) return false;
+  const candidate = err as {
+    code?: unknown;
+    driverError?: { code?: unknown };
+  };
+  if (candidate.code === PG_UNIQUE_VIOLATION) return true;
+  return candidate.driverError?.code === PG_UNIQUE_VIOLATION;
+};

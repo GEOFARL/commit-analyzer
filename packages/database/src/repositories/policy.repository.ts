@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+
 import type { DataSource, Repository as OrmRepository } from "typeorm";
 
 import { PolicyRule, type PolicyRuleType } from "../entities/policy-rule.entity.js";
@@ -91,7 +93,7 @@ export const createPolicyRepository = (
           where: { id: saved.id },
           relations: { rules: true },
         });
-        if (!full) throw new Error("policy not found after create");
+        assert(full, "policy not found after create");
         return full;
       });
     },
@@ -102,10 +104,12 @@ export const createPolicyRepository = (
       return dataSource.transaction(async (m) => {
         const policyRepo = m.getRepository(Policy);
         const ruleRepo = m.getRepository(PolicyRule);
-        const existing = await policyRepo.findOne({ where: { id } });
-        if (!existing) throw new Error("policy not found");
-        if (input.name !== undefined) existing.name = input.name;
-        await policyRepo.save(existing);
+        if (input.name !== undefined) {
+          const existing = await policyRepo.findOne({ where: { id } });
+          assert(existing, "policy not found before update");
+          existing.name = input.name;
+          await policyRepo.save(existing);
+        }
         if (input.rules !== undefined) {
           await ruleRepo.delete({ policyId: id });
           if (input.rules.length > 0) {
@@ -124,7 +128,7 @@ export const createPolicyRepository = (
           where: { id },
           relations: { rules: true },
         });
-        if (!full) throw new Error("policy not found after update");
+        assert(full, "policy not found after update");
         return full;
       });
     },
@@ -141,14 +145,14 @@ export const createPolicyRepository = (
         const target = await policyRepo.findOne({
           where: { id: policyId, repositoryId },
         });
-        if (!target) throw new Error("policy not found");
+        assert(target, "policy not found in repository during activation");
         target.isActive = true;
         await policyRepo.save(target);
         const full = await policyRepo.findOne({
           where: { id: policyId },
           relations: { rules: true },
         });
-        if (!full) throw new Error("policy not found after activate");
+        assert(full, "policy not found after activate");
         return full;
       });
     },
