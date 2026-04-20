@@ -90,6 +90,7 @@ export const QualityDistributionChart = ({
                 allowDecimals={false}
               />
               <Tooltip
+                cursor={{ fill: "var(--muted)", fillOpacity: 0.3 }}
                 contentStyle={{
                   background: "var(--popover)",
                   border: "1px solid var(--border)",
