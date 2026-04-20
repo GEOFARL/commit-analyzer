@@ -2,7 +2,8 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["commitlint.config.cjs"]
+      "entry": ["commitlint.config.cjs", "tests/load/*.k6.ts"],
+      "ignoreDependencies": ["^k6(/.+)?$"]
     },
     "apps/api": {
       "entry": ["src/main.ts", "src/index.ts"],
