@@ -12,6 +12,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { useRouter } from "@/i18n/navigation";
 import { analyticsQueryKeyPrefix } from "@/lib/query-keys/analytics";
 
 import { useSyncProgress, type SyncProgressState } from "../hooks";
@@ -48,6 +49,7 @@ export const SyncProgressProvider = ({
 }: SyncProgressProviderProps) => {
   const t = useTranslations("sync");
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [optimisticEnqueued, setOptimisticEnqueued] = useState(false);
 
   const live = useSyncProgress(repoId, {
@@ -57,6 +59,10 @@ export const SyncProgressProvider = ({
       void queryClient.invalidateQueries({
         queryKey: [...analyticsQueryKeyPrefix(repoId)],
       });
+      // Re-run the server component so SyncNowButton's `lastSyncedAt` prop
+      // picks up the fresh timestamp — the analytics cache invalidation
+      // above only refreshes chart data, not the page-level repo record.
+      router.refresh();
     },
     onFailed: () => {
       setOptimisticEnqueued(false);
