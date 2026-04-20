@@ -474,10 +474,6 @@ export const startMockServer = (): Promise<void> =>
 
 export const stopMockServer = (): Promise<void> =>
   new Promise((resolve, reject) => {
-    const closeHttp = (cb: (err?: Error) => void) => {
-      if (!server) return cb();
-      server.close((err) => cb(err ?? undefined));
-    };
     const done = () => {
       server = null;
       io = null;
@@ -485,9 +481,14 @@ export const stopMockServer = (): Promise<void> =>
       resetState();
       resolve();
     };
+    // Socket.io's `close()` closes the attached HTTP server too — calling
+    // `server.close()` afterwards throws "Server is not running" and trips
+    // Playwright's teardown even when every test passed.
     if (io) {
-      void io.close(() => closeHttp((err) => (err ? reject(err) : done())));
+      void io.close((err) => (err ? reject(err) : done()));
+    } else if (server) {
+      server.close((err) => (err ? reject(err) : done()));
     } else {
-      closeHttp((err) => (err ? reject(err) : done()));
+      done();
     }
   });
