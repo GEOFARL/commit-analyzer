@@ -77,7 +77,10 @@ function makeIterator(pages: typeof FIXTURE_COMMITS[]) {
 
 describe("SyncProcessor", () => {
   let processor: SyncProcessor;
-  let reposMock: { findOne: ReturnType<typeof vi.fn> };
+  let reposMock: {
+    findOne: ReturnType<typeof vi.fn>;
+    touchLastSyncedAt: ReturnType<typeof vi.fn>;
+  };
   let syncJobsMock: {
     createJob: ReturnType<typeof vi.fn>;
     markRunning: ReturnType<typeof vi.fn>;
@@ -129,6 +132,7 @@ describe("SyncProcessor", () => {
         fullName: "octocat/hello-world",
         userId: USER_ID,
       }),
+      touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
     };
 
     syncJobsMock = {
@@ -341,6 +345,19 @@ describe("SyncProcessor", () => {
       expect(event.commitsProcessed).toBe(5);
     });
 
+    it("stamps repository.lastSyncedAt with the same timestamp as the job finishedAt", async () => {
+      const job = makeJob();
+      await processor.process(job);
+
+      expect(reposMock.touchLastSyncedAt).toHaveBeenCalledWith(
+        REPO_ID,
+        expect.any(Date),
+      );
+      const completedAt = syncJobsMock.markCompleted.mock.calls[0]![1] as Date;
+      const touchedAt = reposMock.touchLastSyncedAt.mock.calls[0]![1] as Date;
+      expect(touchedAt.getTime()).toBe(completedAt.getTime());
+    });
+
     it("emits sync.progress after each page", async () => {
       const job = makeJob();
       await processor.process(job);
@@ -503,6 +520,7 @@ describe("SyncProcessor", () => {
         expect.any(Date),
       );
       expect(syncJobsMock.markCompleted).not.toHaveBeenCalled();
+      expect(reposMock.touchLastSyncedAt).not.toHaveBeenCalled();
     });
 
     it("does not upsert when commit fetch fails", async () => {
