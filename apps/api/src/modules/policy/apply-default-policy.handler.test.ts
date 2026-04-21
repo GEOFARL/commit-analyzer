@@ -113,10 +113,21 @@ describe("ApplyDefaultPolicyOnRepoConnected", () => {
     expect(activate).toHaveBeenCalledTimes(1);
   });
 
-  it("skips creation when the repo already has policies (idempotent on re-connect)", async () => {
+  it("skips creation when the repo already has a user-named policy (idempotent on re-connect)", async () => {
     const template: DefaultPolicyTemplate = { enabled: true, rules: [] };
     getTemplate.mockResolvedValue(template);
     listByRepository.mockResolvedValue([policy({ name: "custom" })]);
+
+    await handler.handle(event());
+
+    expect(createWithRules).not.toHaveBeenCalled();
+    expect(activate).not.toHaveBeenCalled();
+  });
+
+  it("skips creation when a prior Default policy already exists", async () => {
+    const template: DefaultPolicyTemplate = { enabled: true, rules: [] };
+    getTemplate.mockResolvedValue(template);
+    listByRepository.mockResolvedValue([policy({ name: "Default" })]);
 
     await handler.handle(event());
 
