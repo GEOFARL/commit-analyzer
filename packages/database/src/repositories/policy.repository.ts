@@ -23,6 +23,7 @@ export interface UpdatePolicyInput {
 
 export interface PolicyRepository extends OrmRepository<Policy> {
   listByRepository(repositoryId: string): Promise<Policy[]>;
+  listByRepositoryWithRules(repositoryId: string): Promise<Policy[]>;
   findWithRules(id: string): Promise<Policy | null>;
   getActiveForRepo(repositoryId: string): Promise<Policy | null>;
   createWithRules(input: CreatePolicyInput): Promise<Policy>;
@@ -45,6 +46,7 @@ export const createPolicyRepository = (
   const extensions: Pick<
     PolicyRepository,
     | "listByRepository"
+    | "listByRepositoryWithRules"
     | "findWithRules"
     | "getActiveForRepo"
     | "createWithRules"
@@ -55,6 +57,13 @@ export const createPolicyRepository = (
     listByRepository(repositoryId: string): Promise<Policy[]> {
       return base.find({
         where: { repositoryId },
+        order: { createdAt: "DESC" },
+      });
+    },
+    listByRepositoryWithRules(repositoryId: string): Promise<Policy[]> {
+      return base.find({
+        where: { repositoryId },
+        relations: { rules: true },
         order: { createdAt: "DESC" },
       });
     },

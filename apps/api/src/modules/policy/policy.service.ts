@@ -42,7 +42,7 @@ export class PolicyService {
 
   async list(userId: string, repositoryId: string): Promise<Policy[]> {
     await this.ensureRepoOwned(userId, repositoryId);
-    return this.policies.listByRepository(repositoryId);
+    return this.policies.listByRepositoryWithRules(repositoryId);
   }
 
   async get(

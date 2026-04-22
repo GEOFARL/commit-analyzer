@@ -46,6 +46,7 @@ const policyEntity = (overrides: Partial<Policy> = {}): Policy =>
 describe("PolicyService", () => {
   const policies = {
     listByRepository: vi.fn(),
+    listByRepositoryWithRules: vi.fn(),
     findWithRules: vi.fn(),
     getActiveForRepo: vi.fn(),
     createWithRules: vi.fn(),
@@ -74,7 +75,7 @@ describe("PolicyService", () => {
       await expect(service.list(USER_ID, REPO_ID)).rejects.toBeInstanceOf(
         PolicyRepoNotFoundError,
       );
-      expect(policies.listByRepository).not.toHaveBeenCalled();
+      expect(policies.listByRepositoryWithRules).not.toHaveBeenCalled();
     });
 
     it("get: 404 when repo not owned", async () => {
@@ -93,14 +94,14 @@ describe("PolicyService", () => {
   });
 
   describe("list", () => {
-    it("returns policies for repo when owned", async () => {
+    it("returns policies with rules for repo when owned", async () => {
       repos.findByIdForUser.mockResolvedValue(repoEntity());
-      policies.listByRepository.mockResolvedValue([policyEntity()]);
+      policies.listByRepositoryWithRules.mockResolvedValue([policyEntity()]);
 
       const result = await service.list(USER_ID, REPO_ID);
 
       expect(repos.findByIdForUser).toHaveBeenCalledWith(REPO_ID, USER_ID);
-      expect(policies.listByRepository).toHaveBeenCalledWith(REPO_ID);
+      expect(policies.listByRepositoryWithRules).toHaveBeenCalledWith(REPO_ID);
       expect(result).toHaveLength(1);
     });
   });
