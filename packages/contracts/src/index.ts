@@ -3,6 +3,7 @@ import { initContract } from "@ts-rest/core";
 import { analyticsContract } from "./analytics.contract.js";
 import { auditContract } from "./audit.contract.js";
 import { authContract } from "./auth.contract.js";
+import { policiesContract } from "./policies.contract.js";
 import { reposContract } from "./repos.contract.js";
 
 const c = initContract();
@@ -12,6 +13,7 @@ export const contracts = c.router({
   audit: auditContract,
   analytics: analyticsContract,
   repos: reposContract,
+  policies: policiesContract,
 });
 
 export type Contracts = typeof contracts;
@@ -63,6 +65,36 @@ export {
   summarySchema,
   timelinePointSchema,
 } from "./analytics.contract.js";
+
+export { policiesContract } from "./policies.contract.js";
+export type {
+  CreatePolicyInput,
+  PolicyDto,
+  PolicyRuleDto,
+  PolicyRuleInput,
+  PolicyRuleTypeName,
+  RuleResultDto,
+  UpdatePolicyInput,
+  ValidatePolicyInput,
+  ValidationResultDto,
+} from "./policies.contract.js";
+export {
+  allowedScopesRuleSchema,
+  allowedTypesRuleSchema,
+  bodyRequiredRuleSchema,
+  createPolicySchema,
+  footerRequiredRuleSchema,
+  maxSubjectLengthRuleSchema,
+  policyDtoSchema,
+  policyRuleDtoSchema,
+  policyRuleSchema,
+  policyRuleTypes,
+  policyRuleTypeSchema,
+  ruleResultSchema,
+  updatePolicySchema,
+  validatePolicyInputSchema,
+  validationResultSchema,
+} from "./policies.contract.js";
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";
