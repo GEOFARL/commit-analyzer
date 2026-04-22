@@ -144,7 +144,7 @@
   },
   {
     "name": "pii-jwt-replaced",
-    "input": "diff --function a/auth.ts b/auth.ts\ndiff --git a/auth.ts b/auth.ts\nindex 1..2 100644\n--- a/auth.ts\n+++ b/auth.ts\n@@ -1 +1 @@\n-const t = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0Jh9EsbyoQyZ61qOg';",
+    "input": "diff --git a/auth.ts b/auth.ts\nindex 1..2 100644\n--- a/auth.ts\n+++ b/auth.ts\n@@ -1 +1 @@\n-const t = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0Jh9EsbyoQyZ61qOg';",
     "assertions": {
       "piiMustContain": ["<JWT>"],
       "piiMustNotContain": ["eyJhbGciOiJIUzI1NiJ9"]

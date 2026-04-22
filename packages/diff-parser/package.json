@@ -1,8 +1,17 @@
 {
-  "name": "@commit-analyzer/cli",
+  "name": "@commit-analyzer/diff-parser",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
@@ -11,15 +20,15 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "gpt-tokenizer": "^3.4.0"
+  },
   "devDependencies": {
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
-    "@types/node": "^22.19.17",
+    "@types/node": "^22.9.0",
     "eslint": "^9.14.0",
     "typescript": "^5.6.3",
-    "vitest": "^2"
-  },
-  "dependencies": {
-    "@commit-analyzer/diff-parser": "workspace:*"
+    "vitest": "^2.1.5"
   }
 }

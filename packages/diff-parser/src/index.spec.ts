@@ -8,7 +8,7 @@ import {
   parseAndStripDiff,
   renderParsedDiff,
   type ParsedDiff,
-} from "./diff-parser.js";
+} from "./index.js";
 
 type FixtureAssertions = {
   fileCount?: number;
@@ -32,9 +32,7 @@ type Fixture = {
 };
 
 const require = createRequire(import.meta.url);
-const fixtures = require(
-  "../../test/algorithms/fixtures/diff-parser/fixtures.json",
-) as Fixture[];
+const fixtures = require("../test/fixtures.json") as Fixture[];
 
 function countTokens(text: string): number {
   return encode(text).length;
@@ -107,7 +105,6 @@ describe("parseAndStripDiff — fixtures", () => {
     it(fx.name, () => {
       const parsed = parseAndStripDiff(fx.input);
       applyAssertions(parsed, fx.assertions);
-      // Hard invariant: budget never exceeded, regardless of declared assertions.
       expect(countTokens(renderParsedDiff(parsed))).toBeLessThanOrEqual(
         DIFF_TOKEN_BUDGET,
       );
@@ -124,11 +121,11 @@ describe("parseAndStripDiff — truncation behaviour", () => {
       `+++ b/${path}\n`;
     const body: string[] = [];
     for (let h = 0; h < hunks; h += 1) {
-      body.push(`@@ -${h * 100 + 1},${hunkBodyLines} +${h * 100 + 1},${hunkBodyLines} @@`);
+      body.push(
+        `@@ -${h * 100 + 1},${hunkBodyLines} +${h * 100 + 1},${hunkBodyLines} @@`,
+      );
       for (let l = 0; l < hunkBodyLines; l += 1) {
-        body.push(
-          ` ${path}-hunk${h}-context-line${l}-${"x".repeat(30)}`,
-        );
+        body.push(` ${path}-hunk${h}-context-line${l}-${"x".repeat(30)}`);
       }
       body.push(`-${path}-hunk${h}-removed-${"y".repeat(30)}`);
       body.push(`+${path}-hunk${h}-added-${"z".repeat(30)}`);
@@ -169,10 +166,23 @@ describe("parseAndStripDiff — truncation behaviour", () => {
     expect(countTokens(renderParsedDiff(parsed))).toBeLessThanOrEqual(
       DIFF_TOKEN_BUDGET,
     );
-    const omittedPaths = parsed.files.filter((f) => f.omitted).map((f) => f.path);
+    const omittedPaths = parsed.files
+      .filter((f) => f.omitted)
+      .map((f) => f.path);
     if (omittedPaths.length > 0) {
       expect(parsed.summary).toContain(`[file omitted: ${omittedPaths[0]}]`);
     }
+  });
+
+  it("single huge file whose first+last hunks still blow the budget → file is omitted and budget held", () => {
+    const diff = makeFile("lone-giant.ts", 3, 600);
+    const parsed = parseAndStripDiff(diff);
+    expect(parsed.truncated).toBe(true);
+    expect(countTokens(renderParsedDiff(parsed))).toBeLessThanOrEqual(
+      DIFF_TOKEN_BUDGET,
+    );
+    expect(parsed.files[0]?.omitted).toBe(true);
+    expect(parsed.summary).toContain("[file omitted: lone-giant.ts]");
   });
 
   it("budget is a hard upper bound on every fixture", () => {

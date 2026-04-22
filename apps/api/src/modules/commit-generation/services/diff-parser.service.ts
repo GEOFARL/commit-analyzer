@@ -1,10 +1,9 @@
-import { Injectable } from "@nestjs/common";
-
 import {
   parseAndStripDiff,
   renderParsedDiff,
   type ParsedDiff,
-} from "../../../shared/diff-parser.js";
+} from "@commit-analyzer/diff-parser";
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class DiffParserService {

@@ -18,6 +18,7 @@
   "dependencies": {
     "@commit-analyzer/contracts": "workspace:*",
     "@commit-analyzer/database": "workspace:^",
+    "@commit-analyzer/diff-parser": "workspace:*",
     "@commit-analyzer/shared-types": "workspace:*",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11",
@@ -35,7 +36,6 @@
     "@ts-rest/nest": "^3.51.0",
     "argon2": "^0.44.0",
     "bullmq": "^5.74.1",
-    "gpt-tokenizer": "^3.4.0",
     "helmet": "^8",
     "ioredis": "^5.10.1",
     "nestjs-cls": "^6.2.0",

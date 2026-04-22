@@ -21,6 +21,7 @@ export type ParsedDiff = {
 };
 
 export const DIFF_TOKEN_BUDGET = 4000;
+export const UNKNOWN_PATH = "<unknown>";
 
 const PII_PATTERNS: ReadonlyArray<{ re: RegExp; replace: string }> = [
   { re: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, replace: "<EMAIL>" },
@@ -59,8 +60,8 @@ function extractPath(headerLine: string, bodyLines: string[]): string {
     }
   }
   const match = /^diff --git a\/(.+?) b\/(.+)$/.exec(headerLine);
-  if (match) return match[2] ?? match[1] ?? "unknown";
-  return "unknown";
+  if (match) return match[2] ?? match[1] ?? UNKNOWN_PATH;
+  return UNKNOWN_PATH;
 }
 
 function splitIntoFileSections(raw: string): string[] {
@@ -132,7 +133,7 @@ function renderFile(file: ParsedFile): string {
   const parts: string[] = [];
   parts.push(file.headerLines.join("\n"));
   if (file.isBinary) return parts.join("\n");
-  if (file.omittedHunks > 0 && file.hunks.length >= 2) {
+  if (file.omittedHunks > 0) {
     const first = file.hunks[0]!;
     const last = file.hunks[file.hunks.length - 1]!;
     parts.push(first.header);
@@ -176,7 +177,7 @@ function dropMiddleHunks(files: ParsedFile[]): boolean {
 
 function dropSmallestFile(files: ParsedFile[]): boolean {
   const candidates = files.filter((f) => !f.omitted);
-  if (candidates.length <= 1) return false;
+  if (candidates.length === 0) return false;
   let smallest = candidates[0]!;
   let smallestTokens = fileTokens(smallest);
   for (let i = 1; i < candidates.length; i += 1) {
@@ -190,7 +191,6 @@ function dropSmallestFile(files: ParsedFile[]): boolean {
   smallest.omitted = true;
   smallest.hunks = [];
   smallest.headerLines = [];
-  smallest.omittedHunks = 0;
   return true;
 }
 
@@ -198,6 +198,10 @@ function buildSummary(files: ParsedFile[]): string {
   return files
     .map((f) => (f.omitted ? `[file omitted: ${f.path}]` : f.path))
     .join("\n");
+}
+
+function renderFiles(files: ParsedFile[]): string {
+  return files.map(renderFile).join("\n");
 }
 
 export function parseAndStripDiff(raw: string): ParsedDiff {
@@ -224,8 +228,4 @@ export function parseAndStripDiff(raw: string): ParsedDiff {
     summary: buildSummary(files),
     truncated,
   };
-}
-
-function renderFiles(files: ParsedFile[]): string {
-  return files.map(renderFile).join("\n");
 }
