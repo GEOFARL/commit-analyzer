@@ -2,6 +2,7 @@ import { initContract } from "@ts-rest/core";
 import { z } from "zod";
 
 import { errorEnvelopeSchema } from "./shared/error.js";
+import type { RouteMetadata } from "./shared/metadata.js";
 
 const c = initContract();
 
@@ -80,11 +81,15 @@ export const updatePolicySchema = z.object({
 });
 export type UpdatePolicyInput = z.infer<typeof updatePolicySchema>;
 
-export const policyRuleDtoSchema = z.object({
-  id: z.string().uuid(),
-  ruleType: policyRuleTypeSchema,
-  ruleValue: z.unknown(),
-});
+const ruleIdShape = { id: z.string().uuid() };
+
+export const policyRuleDtoSchema = z.discriminatedUnion("ruleType", [
+  allowedTypesRuleSchema.extend(ruleIdShape),
+  allowedScopesRuleSchema.extend(ruleIdShape),
+  maxSubjectLengthRuleSchema.extend(ruleIdShape),
+  bodyRequiredRuleSchema.extend(ruleIdShape),
+  footerRequiredRuleSchema.extend(ruleIdShape),
+]);
 export type PolicyRuleDto = z.infer<typeof policyRuleDtoSchema>;
 
 export const policyDtoSchema = z.object({
@@ -134,7 +139,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "List policies for a repository",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     get: {
       method: "GET",
@@ -146,7 +151,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Get a policy by id",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     create: {
       method: "POST",
@@ -160,7 +165,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Create a policy for a repository",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     update: {
       method: "PATCH",
@@ -174,7 +179,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Update a policy",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     delete: {
       method: "DELETE",
@@ -188,7 +193,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Delete a policy (inactive only)",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     activate: {
       method: "POST",
@@ -202,7 +207,7 @@ export const policiesContract = c.router(
         409: errorEnvelopeSchema,
       },
       summary: "Activate a policy for its repository (atomic swap)",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
     validate: {
       method: "POST",
@@ -216,7 +221,7 @@ export const policiesContract = c.router(
         404: errorEnvelopeSchema,
       },
       summary: "Validate a commit message against a policy",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
   },
   { strictStatusCodes: true },

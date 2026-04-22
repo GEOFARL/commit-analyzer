@@ -1,11 +1,14 @@
 import type { PolicyDto, PolicyRuleDto } from "@commit-analyzer/contracts";
 import type { Policy, PolicyRule } from "@commit-analyzer/database";
 
-const toRuleDto = (rule: PolicyRule): PolicyRuleDto => ({
-  id: rule.id,
-  ruleType: rule.ruleType,
-  ruleValue: rule.ruleValue,
-});
+// The { ruleType, ruleValue } pair is validated by the Zod `policyRuleSchema`
+// on every create/update path, so the discriminant is already correct in the DB.
+const toRuleDto = (rule: PolicyRule): PolicyRuleDto =>
+  ({
+    id: rule.id,
+    ruleType: rule.ruleType,
+    ruleValue: rule.ruleValue,
+  }) as PolicyRuleDto;
 
 export const toPolicyDto = (policy: Policy): PolicyDto => ({
   id: policy.id,
