@@ -80,6 +80,9 @@ importers:
       bullmq:
         specifier: ^5.74.1
         version: 5.74.1
+      gpt-tokenizer:
+        specifier: ^3.4.0
+        version: 3.4.0
       helmet:
         specifier: ^8
         version: 8.1.0
@@ -146,6 +149,10 @@ importers:
         version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)
 
   apps/cli:
+    dependencies:
+      gpt-tokenizer:
+        specifier: ^3.4.0
+        version: 3.4.0
     devDependencies:
       '@commit-analyzer/eslint-config':
         specifier: workspace:*
@@ -154,7 +161,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
-        specifier: ^22.9.0
+        specifier: ^22.19.17
         version: 22.19.17
       eslint:
         specifier: ^9.14.0
@@ -162,6 +169,9 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+      vitest:
+        specifier: ^2
+        version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)
 
   apps/web:
     dependencies:
@@ -3772,6 +3782,9 @@ packages:
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
+
+  gpt-tokenizer@3.4.0:
+    resolution: {integrity: sha512-wxFLnhIXTDjYebd9A9pGl3e31ZpSypbpIJSOswbgop5jLte/AsZVDvjlbEuVFlsqZixVKqbcoNmRlFDf6pz/UQ==}
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
@@ -8724,6 +8737,8 @@ snapshots:
       gopd: 1.2.0
 
   gopd@1.2.0: {}
+
+  gpt-tokenizer@3.4.0: {}
 
   graceful-fs@4.2.11: {}
 
