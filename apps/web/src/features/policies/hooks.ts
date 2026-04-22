@@ -59,13 +59,12 @@ export const useCreatePolicyMutation = (userId: string, repoId: string) => {
     onSuccess: (data) => {
       if (data.status === 201) {
         toast.success(t("created"));
-        queryClient.setQueryData<PoliciesListEnvelope>([...listKey], (prev) => ({
-          status: 200,
-          body: { items: [data.body, ...(prev?.body.items ?? [])] },
-          headers: prev?.headers ?? emptyHeaders(),
-        }));
       }
     },
+    // Create navigates the user to the editor route. The list page remounts on
+    // return and the invalidation below refreshes it then — no optimistic list
+    // cache write (it caused a flash of the list with the new item before the
+    // editor mounted on /create).
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...listKey] });
     },
