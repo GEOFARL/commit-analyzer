@@ -4,6 +4,7 @@ export { Commit } from "./commit.entity.js";
 export { CommitFile } from "./commit-file.entity.js";
 export type { CommitFileStatus } from "./commit-file.entity.js";
 export { CommitQualityScore } from "./commit-quality-score.entity.js";
+export { GenerationHistory } from "./generation-history.entity.js";
 export { LLMApiKey } from "./llm-api-key.entity.js";
 export type { LLMApiKeyStatus, LLMProvider } from "./llm-api-key.entity.js";
 export { Policy } from "./policy.entity.js";
