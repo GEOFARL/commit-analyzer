@@ -1,0 +1,352 @@
+[
+  {
+    "name": "empty-input",
+    "input": "",
+    "assertions": {
+      "fileCount": 0,
+      "truncated": false,
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "single-file-single-hunk",
+    "input": "diff --git a/src/foo.ts b/src/foo.ts\nindex abc1234..def5678 100644\n--- a/src/foo.ts\n+++ b/src/foo.ts\n@@ -1,3 +1,3 @@\n-old line\n+new line\n context",
+    "assertions": {
+      "fileCount": 1,
+      "truncated": false,
+      "hasPath": ["src/foo.ts"],
+      "hunkCountForPath": { "src/foo.ts": 1 },
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "single-file-two-hunks",
+    "input": "diff --git a/lib/util.ts b/lib/util.ts\nindex 111..222 100644\n--- a/lib/util.ts\n+++ b/lib/util.ts\n@@ -1,3 +1,3 @@\n-a\n+A\n b\n@@ -10,2 +10,2 @@\n-c\n+C",
+    "assertions": {
+      "fileCount": 1,
+      "truncated": false,
+      "hunkCountForPath": { "lib/util.ts": 2 },
+      "anyFileHasOmittedHunks": false,
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "multi-file-small",
+    "input": "diff --git a/a.ts b/a.ts\nindex 1..2 100644\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1 @@\n-a\n+A\ndiff --git a/b.ts b/b.ts\nindex 3..4 100644\n--- a/b.ts\n+++ b/b.ts\n@@ -1 +1 @@\n-b\n+B",
+    "assertions": {
+      "fileCount": 2,
+      "truncated": false,
+      "hasPath": ["a.ts", "b.ts"],
+      "summaryContains": ["a.ts", "b.ts"],
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "rename-only",
+    "input": "diff --git a/old-name.ts b/new-name.ts\nsimilarity index 100%\nrename from old-name.ts\nrename to new-name.ts",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["new-name.ts"],
+      "hunkCountForPath": { "new-name.ts": 0 },
+      "truncated": false,
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "rename-with-edit",
+    "input": "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 85%\nrename from src/old.ts\nrename to src/new.ts\nindex abc..def 100644\n--- a/src/old.ts\n+++ b/src/new.ts\n@@ -1,2 +1,2 @@\n-old content\n+new content",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["src/new.ts"],
+      "hunkCountForPath": { "src/new.ts": 1 },
+      "truncated": false
+    }
+  },
+  {
+    "name": "file-deletion",
+    "input": "diff --git a/old-file.ts b/old-file.ts\ndeleted file mode 100644\nindex abc..0000000\n--- a/old-file.ts\n+++ /dev/null\n@@ -1,3 +0,0 @@\n-line1\n-line2\n-line3",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["old-file.ts"],
+      "hunkCountForPath": { "old-file.ts": 1 },
+      "truncated": false
+    }
+  },
+  {
+    "name": "file-creation",
+    "input": "diff --git a/new-file.ts b/new-file.ts\nnew file mode 100644\nindex 0000000..abc\n--- /dev/null\n+++ b/new-file.ts\n@@ -0,0 +1,2 @@\n+first\n+second",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["new-file.ts"],
+      "hunkCountForPath": { "new-file.ts": 1 },
+      "truncated": false
+    }
+  },
+  {
+    "name": "mode-change-only",
+    "input": "diff --git a/script.sh b/script.sh\nold mode 100644\nnew mode 100755",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["script.sh"],
+      "hunkCountForPath": { "script.sh": 0 },
+      "truncated": false
+    }
+  },
+  {
+    "name": "binary-diff-short",
+    "input": "diff --git a/logo.png b/logo.png\nindex 1..2 100644\nBinary files a/logo.png and b/logo.png differ",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["logo.png"],
+      "isBinaryForPath": { "logo.png": true },
+      "hunkCountForPath": { "logo.png": 0 },
+      "truncated": false
+    }
+  },
+  {
+    "name": "binary-diff-git-binary-patch",
+    "input": "diff --git a/img.jpg b/img.jpg\nindex 1..2 100644\nGIT binary patch\ndelta 42\nzcmV+X0$c?60$YvGF9!Pp00000",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["img.jpg"],
+      "isBinaryForPath": { "img.jpg": true },
+      "truncated": false
+    }
+  },
+  {
+    "name": "pii-email-replaced",
+    "input": "diff --git a/config.ts b/config.ts\nindex 1..2 100644\n--- a/config.ts\n+++ b/config.ts\n@@ -1,2 +1,2 @@\n-const owner = 'alice@example.com';\n+const owner = 'bob@test.org';",
+    "assertions": {
+      "fileCount": 1,
+      "piiMustContain": ["<EMAIL>"],
+      "piiMustNotContain": ["alice@example.com", "bob@test.org"],
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "pii-github-pat-classic",
+    "input": "diff --git a/.env b/.env\nindex 1..2 100644\n--- a/.env\n+++ b/.env\n@@ -1 +1 @@\n-GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789\n+GITHUB_TOKEN=ghp_NEW1234567890abcdefghijklmnopqrstuv",
+    "assertions": {
+      "piiMustContain": ["<GITHUB_TOKEN>"],
+      "piiMustNotContain": [
+        "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789",
+        "ghp_NEW1234567890abcdefghijklmnopqrstuv"
+      ]
+    }
+  },
+  {
+    "name": "pii-github-pat-server",
+    "input": "diff --git a/secrets.yaml b/secrets.yaml\nindex 1..2 100644\n--- a/secrets.yaml\n+++ b/secrets.yaml\n@@ -1 +1 @@\n-key: ghs_abcdefghijklmnopqrstuvwxyz0123456789AB",
+    "assertions": {
+      "piiMustContain": ["<GITHUB_TOKEN>"],
+      "piiMustNotContain": ["ghs_abcdefghijklmnopqrstuvwxyz0123456789AB"]
+    }
+  },
+  {
+    "name": "pii-jwt-replaced",
+    "input": "diff --git a/auth.ts b/auth.ts\nindex 1..2 100644\n--- a/auth.ts\n+++ b/auth.ts\n@@ -1 +1 @@\n-const t = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0Jh9EsbyoQyZ61qOg';",
+    "assertions": {
+      "piiMustContain": ["<JWT>"],
+      "piiMustNotContain": ["eyJhbGciOiJIUzI1NiJ9"]
+    }
+  },
+  {
+    "name": "pii-aws-access-key",
+    "input": "diff --git a/aws.tf b/aws.tf\nindex 1..2 100644\n--- a/aws.tf\n+++ b/aws.tf\n@@ -1 +1 @@\n-access_key = \"AKIAIOSFODNN7EXAMPLE\"",
+    "assertions": {
+      "piiMustContain": ["<AWS_KEY>"],
+      "piiMustNotContain": ["AKIAIOSFODNN7EXAMPLE"]
+    }
+  },
+  {
+    "name": "pii-generic-api-key",
+    "input": "diff --git a/cfg.js b/cfg.js\nindex 1..2 100644\n--- a/cfg.js\n+++ b/cfg.js\n@@ -1 +1 @@\n-const api_key = \"sk-abcdef0123456789abcdef0123456789\";",
+    "assertions": {
+      "piiMustContain": ["<REDACTED>"],
+      "piiMustNotContain": ["sk-abcdef0123456789abcdef0123456789"]
+    }
+  },
+  {
+    "name": "pii-generic-secret-colon",
+    "input": "diff --git a/yaml.yml b/yaml.yml\nindex 1..2 100644\n--- a/yaml.yml\n+++ b/yaml.yml\n@@ -1 +1 @@\n-secret: supersecretvalue_1234567890abc",
+    "assertions": {
+      "piiMustContain": ["<REDACTED>"],
+      "piiMustNotContain": ["supersecretvalue_1234567890abc"]
+    }
+  },
+  {
+    "name": "pii-generic-token-dash",
+    "input": "diff --git a/env.ts b/env.ts\nindex 1..2 100644\n--- a/env.ts\n+++ b/env.ts\n@@ -1 +1 @@\n-TOKEN = abcdefghij0123456789_ABCDEFG",
+    "assertions": {
+      "piiMustContain": ["<REDACTED>"],
+      "piiMustNotContain": ["abcdefghij0123456789_ABCDEFG"]
+    }
+  },
+  {
+    "name": "pii-combined-email-and-token",
+    "input": "diff --git a/mix.ts b/mix.ts\nindex 1..2 100644\n--- a/mix.ts\n+++ b/mix.ts\n@@ -1,2 +1,2 @@\n-owner=jane.doe@corp.io key: ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n+owner=jane.doe@corp.io key: ghp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "assertions": {
+      "piiMustContain": ["<EMAIL>", "<GITHUB_TOKEN>"],
+      "piiMustNotContain": [
+        "jane.doe@corp.io",
+        "ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ghp_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      ]
+    }
+  },
+  {
+    "name": "empty-hunk-deletion-only",
+    "input": "diff --git a/empty.ts b/empty.ts\nindex 1..2 100644\n--- a/empty.ts\n+++ b/empty.ts\n@@ -1,3 +0,0 @@\n-a\n-b\n-c",
+    "assertions": {
+      "fileCount": 1,
+      "hunkCountForPath": { "empty.ts": 1 }
+    }
+  },
+  {
+    "name": "no-newline-at-eof",
+    "input": "diff --git a/eof.ts b/eof.ts\nindex 1..2 100644\n--- a/eof.ts\n+++ b/eof.ts\n@@ -1 +1 @@\n-old\n\\ No newline at end of file\n+new\n\\ No newline at end of file",
+    "assertions": {
+      "fileCount": 1,
+      "hunkCountForPath": { "eof.ts": 1 }
+    }
+  },
+  {
+    "name": "context-only-lines",
+    "input": "diff --git a/ctx.ts b/ctx.ts\nindex 1..2 100644\n--- a/ctx.ts\n+++ b/ctx.ts\n@@ -1,5 +1,5 @@\n line1\n line2\n-line3\n+LINE3\n line4\n line5",
+    "assertions": {
+      "fileCount": 1,
+      "hunkCountForPath": { "ctx.ts": 1 }
+    }
+  },
+  {
+    "name": "mixed-binary-and-text",
+    "input": "diff --git a/logo.png b/logo.png\nindex 1..2 100644\nBinary files a/logo.png and b/logo.png differ\ndiff --git a/code.ts b/code.ts\nindex 3..4 100644\n--- a/code.ts\n+++ b/code.ts\n@@ -1 +1 @@\n-old\n+new",
+    "assertions": {
+      "fileCount": 2,
+      "hasPath": ["logo.png", "code.ts"],
+      "isBinaryForPath": { "logo.png": true, "code.ts": false }
+    }
+  },
+  {
+    "name": "file-with-spaces-in-path",
+    "input": "diff --git a/dir with space/file.ts b/dir with space/file.ts\nindex 1..2 100644\n--- a/dir with space/file.ts\n+++ b/dir with space/file.ts\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["dir with space/file.ts"]
+    }
+  },
+  {
+    "name": "hunk-with-section-heading",
+    "input": "diff --git a/src/big.ts b/src/big.ts\nindex 1..2 100644\n--- a/src/big.ts\n+++ b/src/big.ts\n@@ -10,3 +10,3 @@ function foo() {\n-  return 1;\n+  return 2;\n }",
+    "assertions": {
+      "fileCount": 1,
+      "hunkCountForPath": { "src/big.ts": 1 }
+    }
+  },
+  {
+    "name": "leading-junk-before-diff",
+    "input": "Some preamble text\nmore noise\ndiff --git a/x.ts b/x.ts\nindex 1..2 100644\n--- a/x.ts\n+++ b/x.ts\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["x.ts"]
+    }
+  },
+  {
+    "name": "trailing-newline-after-diff",
+    "input": "diff --git a/trail.ts b/trail.ts\nindex 1..2 100644\n--- a/trail.ts\n+++ b/trail.ts\n@@ -1 +1 @@\n-a\n+b\n",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["trail.ts"]
+    }
+  },
+  {
+    "name": "diff-word-inside-content-not-a-new-file",
+    "input": "diff --git a/readme.md b/readme.md\nindex 1..2 100644\n--- a/readme.md\n+++ b/readme.md\n@@ -1,2 +1,2 @@\n- diff --git is the marker\n+ diff --git is the marker word",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["readme.md"],
+      "hunkCountForPath": { "readme.md": 1 }
+    }
+  },
+  {
+    "name": "three-files-one-tiny-two-bigger",
+    "input": "diff --git a/tiny.ts b/tiny.ts\nindex 1..2 100644\n--- a/tiny.ts\n+++ b/tiny.ts\n@@ -1 +1 @@\n-a\n+b\ndiff --git a/medium.ts b/medium.ts\nindex 3..4 100644\n--- a/medium.ts\n+++ b/medium.ts\n@@ -1,3 +1,3 @@\n line1\n-line2\n+LINE2\n line3\ndiff --git a/large.ts b/large.ts\nindex 5..6 100644\n--- a/large.ts\n+++ b/large.ts\n@@ -1,5 +1,5 @@\n aaaa\n bbbb\n-cccc\n+CCCC\n dddd\n eeee",
+    "assertions": {
+      "fileCount": 3,
+      "hasPath": ["tiny.ts", "medium.ts", "large.ts"],
+      "truncated": false
+    }
+  },
+  {
+    "name": "secret-in-context-line-also-stripped",
+    "input": "diff --git a/leak.ts b/leak.ts\nindex 1..2 100644\n--- a/leak.ts\n+++ b/leak.ts\n@@ -1,3 +1,3 @@\n AKIAIOSFODNN7EXAMPLE\n-old\n+new",
+    "assertions": {
+      "piiMustContain": ["<AWS_KEY>"],
+      "piiMustNotContain": ["AKIAIOSFODNN7EXAMPLE"]
+    }
+  },
+  {
+    "name": "email-inside-header-index-line",
+    "input": "diff --git a/notes.md b/notes.md\nindex 1..2 100644\n--- a/notes.md\n+++ b/notes.md\n@@ -1 +1 @@\n-contact: maint@example.org\n+contact: team@example.org",
+    "assertions": {
+      "piiMustContain": ["<EMAIL>"],
+      "piiMustNotContain": ["maint@example.org", "team@example.org"]
+    }
+  },
+  {
+    "name": "multiple-emails-same-line",
+    "input": "diff --git a/team.ts b/team.ts\nindex 1..2 100644\n--- a/team.ts\n+++ b/team.ts\n@@ -1 +1 @@\n-owners=[alice@x.io,bob@y.io,carol@z.io]",
+    "assertions": {
+      "piiMustContain": ["<EMAIL>"],
+      "piiMustNotContain": ["alice@x.io", "bob@y.io", "carol@z.io"]
+    }
+  },
+  {
+    "name": "truncation-near-limit-safe",
+    "input": "diff --git a/near.ts b/near.ts\nindex 1..2 100644\n--- a/near.ts\n+++ b/near.ts\n@@ -1,5 +1,5 @@\n aaa\n bbb\n-ccc\n+CCC\n ddd\n eee",
+    "assertions": {
+      "truncated": false,
+      "maxTokens": 4000
+    }
+  },
+  {
+    "name": "plus-plus-plus-path-without-b-prefix",
+    "input": "diff --git a/odd.ts b/odd.ts\nindex 1..2 100644\n--- a/odd.ts\n+++ weird/odd.ts\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["weird/odd.ts"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-path-fallback-when-no-plus-plus-plus",
+    "input": "diff --git a/left-only.ts b/right-only.ts\nindex 1..2 100644\n--- a/left-only.ts\n@@ -1 +1 @@\n-only",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["left-only.ts"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-path-without-a-prefix",
+    "input": "diff --git a/bare.ts b/bare.ts\nindex 1..2 100644\n--- bare-left.ts\n@@ -1 +1 @@\n-a",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["bare-left.ts"]
+    }
+  },
+  {
+    "name": "diff-git-header-malformed-falls-back-to-unknown",
+    "input": "diff --git malformed-header-without-prefixes\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["<unknown>"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-dev-null-only-does-not-match",
+    "input": "diff --git a/new.ts b/new.ts\nnew file mode 100644\n--- /dev/null\n@@ -0,0 +1 @@\n+added",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["new.ts"]
+    }
+  }
+]

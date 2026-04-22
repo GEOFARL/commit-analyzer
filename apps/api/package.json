@@ -18,6 +18,7 @@
   "dependencies": {
     "@commit-analyzer/contracts": "workspace:*",
     "@commit-analyzer/database": "workspace:^",
+    "@commit-analyzer/diff-parser": "workspace:*",
     "@commit-analyzer/shared-types": "workspace:*",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11",
