@@ -15,6 +15,8 @@ import {
   User,
   buildDataSourceOptions,
   createGenerationHistoryRepository,
+  encodeGenerationHistoryCursor,
+  decodeGenerationHistoryCursor,
   type GenerationHistoryRepository,
 } from "@commit-analyzer/database";
 import {
@@ -71,11 +73,7 @@ describe.skipIf(SKIP)("GenerationHistoryRepository (integration)", () => {
     await ds.runMigrations();
 
     await ds.query(`DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users`);
-    for (const table of [
-      "users",
-      "repositories",
-      "generation_history",
-    ]) {
+    for (const table of ["users", "repositories", "generation_history"]) {
       await ds.query(`ALTER TABLE "${table}" DISABLE ROW LEVEL SECURITY`);
     }
 
@@ -109,15 +107,14 @@ describe.skipIf(SKIP)("GenerationHistoryRepository (integration)", () => {
     await ds.query(`DELETE FROM generation_history`);
   });
 
-  it("insert persists all scoped fields", async () => {
+  it("insert persists all scoped fields with defaults", async () => {
     const saved = await repo.createOne({
       userId: USER_ID,
       repositoryId: REPO_ID,
       diffHash: "sha256:abc",
       provider: "openai",
       model: "gpt-4o-mini",
-      promptTokens: 123,
-      completionTokens: 45,
+      tokensUsed: 168,
       suggestions: [
         {
           type: "feat",
@@ -131,82 +128,138 @@ describe.skipIf(SKIP)("GenerationHistoryRepository (integration)", () => {
       policyId: null,
     });
 
-    expect(saved.id).toBeTypeOf("string");
-    expect(saved.createdAt).toBeInstanceOf(Date);
-
     const fetched = await repo.findOneByOrFail({ id: saved.id });
     expect(fetched.userId).toBe(USER_ID);
     expect(fetched.repositoryId).toBe(REPO_ID);
     expect(fetched.diffHash).toBe("sha256:abc");
     expect(fetched.provider).toBe("openai");
     expect(fetched.model).toBe("gpt-4o-mini");
-    expect(fetched.promptTokens).toBe(123);
-    expect(fetched.completionTokens).toBe(45);
+    expect(fetched.tokensUsed).toBe(168);
+    expect(fetched.status).toBe("pending");
     expect(fetched.policyId).toBeNull();
-    expect(Array.isArray(fetched.suggestions)).toBe(true);
+    expect(fetched.suggestions).toHaveLength(1);
+    expect(fetched.suggestions[0]!.type).toBe("feat");
+    expect(fetched.suggestions[0]!.compliant).toBe(true);
+    expect(fetched.createdAt).toBeInstanceOf(Date);
   });
 
-  it("insert with null repo + null policy succeeds", async () => {
+  it("insert with null repo + null policy + explicit status succeeds", async () => {
     const saved = await repo.createOne({
       userId: USER_ID,
       diffHash: "sha256:def",
       provider: "anthropic",
-      model: "claude-sonnet-4-6",
-      promptTokens: 10,
-      completionTokens: 20,
+      model: "claude-haiku-4-5",
+      tokensUsed: 30,
+      status: "completed",
       suggestions: [],
     });
 
     const fetched = await repo.findOneByOrFail({ id: saved.id });
     expect(fetched.repositoryId).toBeNull();
     expect(fetched.policyId).toBeNull();
+    expect(fetched.status).toBe("completed");
   });
 
-  it("listByUser paginates by created_at DESC and scopes to user", async () => {
-    const hashes = ["sha256:a", "sha256:b", "sha256:c", "sha256:d", "sha256:e"];
-    const saved: Array<{ id: string; createdAt: Date }> = [];
-    for (const h of hashes) {
-      const row = await repo.createOne({
+  it("check constraint rejects invalid status", async () => {
+    await expect(
+      ds.query(
+        `INSERT INTO generation_history (user_id, diff_hash, provider, model, tokens_used, status, suggestions) VALUES ($1, 'x', 'openai', 'gpt', 0, 'bogus', '[]'::jsonb)`,
+        [USER_ID],
+      ),
+    ).rejects.toThrow(/generation_history_status_chk/);
+  });
+
+  it("listByUser paginates via compound cursor DESC and scopes to user", async () => {
+    for (const hash of ["sha:a", "sha:b", "sha:c", "sha:d", "sha:e"]) {
+      await repo.createOne({
         userId: USER_ID,
-        diffHash: h,
+        diffHash: hash,
         provider: "openai",
         model: "gpt-4o-mini",
-        promptTokens: 1,
-        completionTokens: 1,
+        tokensUsed: 1,
         suggestions: [],
       });
-      saved.push({ id: row.id, createdAt: row.createdAt });
-      // typeorm CreateDateColumn resolution is milliseconds; nudge to guarantee ordering.
-      await new Promise((r) => setTimeout(r, 5));
     }
 
     await repo.createOne({
       userId: OTHER_USER_ID,
-      diffHash: "sha256:other",
+      diffHash: "sha:other",
       provider: "openai",
       model: "gpt-4o-mini",
-      promptTokens: 1,
-      completionTokens: 1,
+      tokensUsed: 1,
       suggestions: [],
     });
 
     const page1 = await repo.listByUser({ userId: USER_ID, limit: 2 });
     expect(page1).toHaveLength(2);
     expect(page1.every((r) => r.userId === USER_ID)).toBe(true);
-    expect(page1[0]!.createdAt.getTime()).toBeGreaterThanOrEqual(
-      page1[1]!.createdAt.getTime(),
-    );
-    expect(page1[0]!.diffHash).toBe("sha256:e");
 
     const page2 = await repo.listByUser({
       userId: USER_ID,
       limit: 2,
-      cursor: page1[1]!.createdAt.toISOString(),
+      cursor: {
+        createdAt: page1[1]!.createdAt.toISOString(),
+        id: page1[1]!.id,
+      },
     });
     expect(page2).toHaveLength(2);
     expect(page2.every((r) => r.userId === USER_ID)).toBe(true);
-    expect(page2[0]!.createdAt.getTime()).toBeLessThan(
-      page1[1]!.createdAt.getTime(),
-    );
+
+    const page3 = await repo.listByUser({
+      userId: USER_ID,
+      limit: 2,
+      cursor: {
+        createdAt: page2[1]!.createdAt.toISOString(),
+        id: page2[1]!.id,
+      },
+    });
+    expect(page3).toHaveLength(1);
+
+    const seen = [...page1, ...page2, ...page3];
+    expect(seen).toHaveLength(5);
+    expect(new Set(seen.map((r) => r.id)).size).toBe(5);
+    for (let i = 1; i < seen.length; i++) {
+      const prev = seen[i - 1]!;
+      const cur = seen[i]!;
+      const sameStamp = prev.createdAt.getTime() === cur.createdAt.getTime();
+      expect(
+        sameStamp
+          ? prev.id > cur.id
+          : prev.createdAt.getTime() > cur.createdAt.getTime(),
+      ).toBe(true);
+    }
+  });
+
+  it("compound cursor breaks ties on equal created_at", async () => {
+    const stamp = new Date("2026-04-22T12:00:00.000Z");
+    const ids = ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222", "33333333-3333-3333-3333-333333333333"];
+    for (const id of ids) {
+      await ds.query(
+        `INSERT INTO generation_history (id, user_id, diff_hash, provider, model, tokens_used, suggestions, created_at) VALUES ($1, $2, 'h', 'openai', 'gpt', 0, '[]'::jsonb, $3)`,
+        [id, USER_ID, stamp.toISOString()],
+      );
+    }
+
+    const page1 = await repo.listByUser({ userId: USER_ID, limit: 2 });
+    expect(page1.map((r) => r.id)).toEqual([ids[2], ids[1]]);
+
+    const page2 = await repo.listByUser({
+      userId: USER_ID,
+      limit: 2,
+      cursor: {
+        createdAt: page1[1]!.createdAt.toISOString(),
+        id: page1[1]!.id,
+      },
+    });
+    expect(page2.map((r) => r.id)).toEqual([ids[0]]);
+  });
+
+  it("cursor encode/decode round-trips", () => {
+    const row = { id: "11111111-1111-1111-1111-111111111111", createdAt: new Date("2026-04-22T12:34:56.789Z") } as const;
+    const encoded = encodeGenerationHistoryCursor(row);
+    const decoded = decodeGenerationHistoryCursor(encoded);
+    expect(decoded.id).toBe(row.id);
+    expect(new Date(decoded.createdAt).getTime()).toBe(row.createdAt.getTime());
+    expect(() => decodeGenerationHistoryCursor("nosep")).toThrow();
   });
 });

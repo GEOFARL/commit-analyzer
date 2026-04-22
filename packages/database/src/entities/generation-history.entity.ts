@@ -1,3 +1,8 @@
+import type {
+  GenerationStatus,
+  LlmProvider,
+  SuggestionRecord,
+} from "@commit-analyzer/shared-types";
 import {
   Column,
   CreateDateColumn,
@@ -12,18 +17,20 @@ import { Policy } from "./policy.entity.js";
 import { Repository } from "./repository.entity.js";
 import { User } from "./user.entity.js";
 
+// DESC ordering lives in the migration (index decorator can't express it);
+// the composite (user_id, created_at DESC) index powers history pagination.
 @Entity({ name: "generation_history" })
 @Index("generation_history_user_created_idx", ["userId", "createdAt"])
 export class GenerationHistory {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column("uuid")
-  userId!: string;
+  @Column("uuid", { nullable: true })
+  userId!: string | null;
 
-  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @ManyToOne(() => User, { onDelete: "SET NULL", nullable: true })
   @JoinColumn({ name: "user_id" })
-  user!: User;
+  user!: User | null;
 
   @Column("uuid", { nullable: true })
   repositoryId!: string | null;
@@ -36,19 +43,19 @@ export class GenerationHistory {
   diffHash!: string;
 
   @Column("text")
-  provider!: string;
+  provider!: LlmProvider;
 
   @Column("text")
   model!: string;
 
   @Column("int")
-  promptTokens!: number;
+  tokensUsed!: number;
 
-  @Column("int")
-  completionTokens!: number;
+  @Column("text", { default: "pending" })
+  status!: GenerationStatus;
 
   @Column("jsonb")
-  suggestions!: unknown;
+  suggestions!: SuggestionRecord[];
 
   @Column("uuid", { nullable: true })
   policyId!: string | null;

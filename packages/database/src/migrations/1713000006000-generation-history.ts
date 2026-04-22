@@ -7,16 +7,17 @@ export class GenerationHistory1713000006000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE "generation_history" (
         "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        "user_id" uuid NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+        "user_id" uuid REFERENCES "users"("id") ON DELETE SET NULL,
         "repository_id" uuid REFERENCES "repositories"("id") ON DELETE SET NULL,
         "diff_hash" text NOT NULL,
         "provider" text NOT NULL,
         "model" text NOT NULL,
-        "prompt_tokens" int NOT NULL,
-        "completion_tokens" int NOT NULL,
+        "tokens_used" int NOT NULL,
+        "status" text NOT NULL DEFAULT 'pending',
         "suggestions" jsonb NOT NULL,
         "policy_id" uuid REFERENCES "policies"("id") ON DELETE SET NULL,
-        "created_at" timestamptz NOT NULL DEFAULT now()
+        "created_at" timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT "generation_history_status_chk" CHECK ("status" IN ('pending', 'streaming', 'completed', 'failed', 'cancelled'))
       )
     `);
 
