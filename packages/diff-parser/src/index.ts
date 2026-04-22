@@ -60,7 +60,7 @@ function extractPath(headerLine: string, bodyLines: string[]): string {
     }
   }
   const match = /^diff --git a\/(.+?) b\/(.+)$/.exec(headerLine);
-  if (match) return match[2] ?? match[1] ?? UNKNOWN_PATH;
+  if (match) return match[2]!;
   return UNKNOWN_PATH;
 }
 
@@ -83,7 +83,7 @@ function splitIntoFileSections(raw: string): string[] {
 
 function parseFileSection(section: string): ParsedFile {
   const lines = section.split("\n");
-  const headerLine = lines[0] ?? "";
+  const headerLine = lines[0]!;
   const headerLines: string[] = [];
   const hunks: ParsedHunk[] = [];
   let isBinary = false;
@@ -103,10 +103,6 @@ function parseFileSection(section: string): ParsedFile {
 
   while (i < lines.length) {
     const hunkHeader = lines[i]!;
-    if (!hunkHeader.startsWith("@@")) {
-      i += 1;
-      continue;
-    }
     const hunkLines: string[] = [];
     i += 1;
     while (i < lines.length && !lines[i]!.startsWith("@@")) {
@@ -165,8 +161,8 @@ function fileTokens(file: ParsedFile): number {
 function dropMiddleHunks(files: ParsedFile[]): boolean {
   let changed = false;
   for (const file of files) {
-    if (file.omitted || file.isBinary) continue;
-    if (file.hunks.length > 2 && file.omittedHunks === 0) {
+    if (file.isBinary) continue;
+    if (file.hunks.length > 2) {
       file.omittedHunks = file.hunks.length - 2;
       file.hunks = [file.hunks[0]!, file.hunks[file.hunks.length - 1]!];
       changed = true;
@@ -175,9 +171,8 @@ function dropMiddleHunks(files: ParsedFile[]): boolean {
   return changed;
 }
 
-function dropSmallestFile(files: ParsedFile[]): boolean {
+function dropSmallestFile(files: ParsedFile[]): void {
   const candidates = files.filter((f) => !f.omitted);
-  if (candidates.length === 0) return false;
   let smallest = candidates[0]!;
   let smallestTokens = fileTokens(smallest);
   for (let i = 1; i < candidates.length; i += 1) {
@@ -191,7 +186,6 @@ function dropSmallestFile(files: ParsedFile[]): boolean {
   smallest.omitted = true;
   smallest.hunks = [];
   smallest.headerLines = [];
-  return true;
 }
 
 function buildSummary(files: ParsedFile[]): string {
@@ -218,8 +212,7 @@ export function parseAndStripDiff(raw: string): ParsedDiff {
     countTokens(renderFiles(files)) > DIFF_TOKEN_BUDGET &&
     files.some((f) => !f.omitted)
   ) {
-    const dropped = dropSmallestFile(files);
-    if (!dropped) break;
+    dropSmallestFile(files);
     truncated = true;
   }
 

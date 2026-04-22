@@ -11,10 +11,12 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "lint": "eslint .",
@@ -27,6 +29,7 @@
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
     "@types/node": "^22.9.0",
+    "@vitest/coverage-v8": "^2",
     "eslint": "^9.14.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.5"

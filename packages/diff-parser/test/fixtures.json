@@ -308,5 +308,45 @@
       "truncated": false,
       "maxTokens": 4000
     }
+  },
+  {
+    "name": "plus-plus-plus-path-without-b-prefix",
+    "input": "diff --git a/odd.ts b/odd.ts\nindex 1..2 100644\n--- a/odd.ts\n+++ weird/odd.ts\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["weird/odd.ts"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-path-fallback-when-no-plus-plus-plus",
+    "input": "diff --git a/left-only.ts b/right-only.ts\nindex 1..2 100644\n--- a/left-only.ts\n@@ -1 +1 @@\n-only",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["left-only.ts"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-path-without-a-prefix",
+    "input": "diff --git a/bare.ts b/bare.ts\nindex 1..2 100644\n--- bare-left.ts\n@@ -1 +1 @@\n-a",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["bare-left.ts"]
+    }
+  },
+  {
+    "name": "diff-git-header-malformed-falls-back-to-unknown",
+    "input": "diff --git malformed-header-without-prefixes\n@@ -1 +1 @@\n-a\n+b",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["<unknown>"]
+    }
+  },
+  {
+    "name": "minus-minus-minus-dev-null-only-does-not-match",
+    "input": "diff --git a/new.ts b/new.ts\nnew file mode 100644\n--- /dev/null\n@@ -0,0 +1 @@\n+added",
+    "assertions": {
+      "fileCount": 1,
+      "hasPath": ["new.ts"]
+    }
   }
 ]

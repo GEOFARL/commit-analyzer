@@ -133,6 +133,18 @@ describe("parseAndStripDiff — truncation behaviour", () => {
     return header + body.join("\n");
   }
 
+  it("binary file survives dropMiddleHunks when other files push over budget", () => {
+    const binary =
+      "diff --git a/img.png b/img.png\nindex 1..2 100644\nBinary files a/img.png and b/img.png differ";
+    const big = makeFile("big.ts", 200, 5);
+    const parsed = parseAndStripDiff(`${binary}\n${big}`);
+    expect(parsed.truncated).toBe(true);
+    const bin = parsed.files.find((f) => f.path === "img.png");
+    expect(bin?.isBinary).toBe(true);
+    expect(bin?.omittedHunks).toBe(0);
+    expect(bin?.hunks).toHaveLength(0);
+  });
+
   it("under budget → no truncation", () => {
     const diff = makeFile("small.ts", 1);
     const parsed = parseAndStripDiff(diff);
@@ -155,12 +167,15 @@ describe("parseAndStripDiff — truncation behaviour", () => {
     );
   });
 
-  it("over budget across many files → drops smallest files, marks as omitted in summary", () => {
+  it("over budget across many single-hunk files → iterates all candidates and drops smallest first", () => {
     const parts: string[] = [];
-    parts.push(makeFile("big-a.ts", 50, 5));
-    parts.push(makeFile("tiny-a.ts", 1, 1));
-    parts.push(makeFile("big-b.ts", 50, 5));
-    parts.push(makeFile("tiny-b.ts", 1, 1));
+    // 20 single-hunk files in descending body size so the smallest candidate
+    // appears LAST — forces the inner "t < smallestTokens" swap branch on every
+    // file-drop iteration. dropMiddleHunks can't help (each file has 1 hunk).
+    for (let n = 0; n < 20; n += 1) {
+      const size = 24 - n;
+      parts.push(makeFile(`file-${n}.ts`, 1, size));
+    }
     const parsed = parseAndStripDiff(parts.join("\n"));
     expect(parsed.truncated).toBe(true);
     expect(countTokens(renderParsedDiff(parsed))).toBeLessThanOrEqual(
@@ -169,9 +184,10 @@ describe("parseAndStripDiff — truncation behaviour", () => {
     const omittedPaths = parsed.files
       .filter((f) => f.omitted)
       .map((f) => f.path);
-    if (omittedPaths.length > 0) {
-      expect(parsed.summary).toContain(`[file omitted: ${omittedPaths[0]}]`);
-    }
+    expect(omittedPaths.length).toBeGreaterThan(0);
+    expect(parsed.summary).toContain(`[file omitted: ${omittedPaths[0]}]`);
+    // Smallest file (file-19.ts, 5 body lines) must be dropped before larger ones.
+    expect(omittedPaths).toContain("file-19.ts");
   });
 
   it("single huge file whose first+last hunks still blow the budget → file is omitted and budget held", () => {
