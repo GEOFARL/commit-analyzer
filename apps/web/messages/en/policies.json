@@ -111,6 +111,47 @@
     "regexInvalid": "Invalid regular expression.",
     "subjectLengthRange": "Must be between 1 and 500."
   },
+  "validate": {
+    "title": "Try a commit message",
+    "description": "Paste a commit message to see how it measures up against the saved rules.",
+    "textareaLabel": "Commit message",
+    "placeholder": "feat(auth): add passwordless login…",
+    "examplesLabel": "Try an example",
+    "examples": {
+      "valid": "Well-formed",
+      "invalid": "Unknown type",
+      "long": "Subject too long",
+      "noBody": "Missing body"
+    },
+    "clear": "Clear",
+    "emptyHint": "Start typing to run validation.",
+    "unsavedHint": "You have unsaved changes. Validation runs against the last saved version of this policy.",
+    "noRules": "This policy has no rules, so any message passes.",
+    "checking": "Checking…",
+    "passedAll": "Message satisfies every rule.",
+    "failedSome": "{count, plural, one {# rule failed} few {# rules failed} other {# rules failed}}",
+    "passed": "Passed",
+    "failed": "Failed",
+    "errorTitle": "Validation failed",
+    "errorBody": "Couldn't reach the server. Try again.",
+    "retry": "Retry",
+    "ruleLabels": {
+      "format": "Conventional Commits format",
+      "allowedTypes": "Allowed types",
+      "allowedScopes": "Allowed scopes",
+      "maxSubjectLength": "Max subject length",
+      "bodyRequired": "Body required",
+      "footerRequired": "Footer required"
+    },
+    "defaultMessages": {
+      "format": "Message isn't a Conventional Commit.",
+      "allowedTypes": "Type isn't in the allowed list.",
+      "allowedScopes": "Scope isn't in the allowed list.",
+      "maxSubjectLength": "Subject exceeds the maximum length.",
+      "bodyRequired": "Body is required but missing.",
+      "footerRequired": "Footer is required but missing."
+    }
+  },
   "toast": {
     "created": "Policy created.",
     "createError": "Failed to create policy.",

@@ -46,6 +46,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import { DeletePolicyDialog } from "./delete-policy-dialog";
+import { ManualValidatePanel } from "./manual-validate-panel";
 import { RuleEditor } from "./rule-editor";
 
 type RowErrors = Record<string, string>;
@@ -308,6 +309,9 @@ export const PolicyEditorView = ({
         </div>
       )}
 
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex flex-col gap-6 min-w-0">
+
       <section className="flex flex-col gap-3 rounded-xl border bg-card p-5">
         <header>
           <h2 className="text-sm font-semibold tracking-tight">
@@ -372,6 +376,18 @@ export const PolicyEditorView = ({
           <AddRuleGrid usedKinds={usedKinds} onAdd={handleAddRule} />
         )}
       </section>
+
+        </div>
+
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <ManualValidatePanel
+            repoId={repo.id}
+            policyId={initialPolicy.id}
+            hasSavedRules={policy.rules.length > 0}
+            dirty={dirty}
+          />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between gap-2 border-t pt-6">
         <Button

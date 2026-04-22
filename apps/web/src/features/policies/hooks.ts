@@ -164,6 +164,9 @@ export const useActivatePolicyMutation = (userId: string, repoId: string) => {
   });
 };
 
+export const useValidatePolicyMutation = () =>
+  tsr.policies.validate.useMutation({ retry: 0 });
+
 export const useDeletePolicyMutation = (userId: string, repoId: string) => {
   const queryClient = useQueryClient();
   const t = useTranslations("policies.toast");
