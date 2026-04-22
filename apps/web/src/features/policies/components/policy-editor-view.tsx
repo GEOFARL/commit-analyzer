@@ -124,7 +124,7 @@ export const PolicyEditorView = ({
     if (!dirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "";
+      e.returnValue = true;
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
@@ -269,11 +269,11 @@ export const PolicyEditorView = ({
             {t("editor.subtitle", { repo: repo.fullName })}
           </p>
         </div>
-        <div
-          className="flex flex-wrap items-center gap-2 sm:flex-shrink-0"
-          aria-live="polite"
-        >
-          <span className="text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0">
+          <span
+            className="text-xs text-muted-foreground"
+            aria-live="polite"
+          >
             {dirty ? t("editor.unsaved") : t("editor.saved")}
           </span>
           {!policy.isActive && (
@@ -409,7 +409,7 @@ export const PolicyEditorView = ({
               className="mr-1 inline h-3.5 w-3.5"
               aria-hidden="true"
             />
-            {t("list.error.load")}
+            {t("editor.hasErrors")}
           </p>
         )}
       </div>

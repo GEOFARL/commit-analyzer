@@ -61,7 +61,8 @@
     "activate": "Activate",
     "active": "Active policy",
     "delete": "Delete policy",
-    "inactiveHint": "This policy is inactive. Activate it to enforce these rules on new commits."
+    "inactiveHint": "This policy is inactive. Activate it to enforce these rules on new commits.",
+    "hasErrors": "Fix the highlighted rules before saving."
   },
   "kinds": {
     "allowedTypes": {

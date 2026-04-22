@@ -7,8 +7,12 @@ import {
 
 export type RuleFormState =
   | { ruleType: "allowedTypes"; raw: string }
-  | { ruleType: "allowedScopes"; mode: "list"; raw: string }
-  | { ruleType: "allowedScopes"; mode: "regex"; pattern: string }
+  | {
+      ruleType: "allowedScopes";
+      mode: "list" | "regex";
+      raw: string;
+      pattern: string;
+    }
   | { ruleType: "maxSubjectLength"; value: string }
   | { ruleType: "bodyRequired"; value: boolean }
   | { ruleType: "footerRequired"; value: boolean };
@@ -35,10 +39,12 @@ export const dtoToFormState = (rule: PolicyRuleDto): RuleFormState => {
             ruleType: "allowedScopes",
             mode: "list",
             raw: rule.ruleValue.values.join(", "),
+            pattern: "",
           }
         : {
             ruleType: "allowedScopes",
             mode: "regex",
+            raw: "",
             pattern: rule.ruleValue.pattern,
           };
     case "maxSubjectLength":
@@ -63,7 +69,7 @@ export const defaultFormState = (
         raw: "feat, fix, chore, docs, refactor, test",
       };
     case "allowedScopes":
-      return { ruleType: "allowedScopes", mode: "list", raw: "" };
+      return { ruleType: "allowedScopes", mode: "list", raw: "", pattern: "" };
     case "maxSubjectLength":
       return { ruleType: "maxSubjectLength", value: "72" };
     case "bodyRequired":

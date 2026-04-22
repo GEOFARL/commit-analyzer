@@ -12,6 +12,8 @@ import type { PoliciesListEnvelope, PolicyDetailEnvelope } from "./types";
 
 const emptyHeaders = () => new Headers();
 
+const STALE_MS = 60_000;
+
 export const usePoliciesListQuery = (
   userId: string,
   repoId: string,
@@ -25,7 +27,7 @@ export const usePoliciesListQuery = (
       body: { items: initialItems },
       headers: emptyHeaders(),
     },
-    staleTime: 0,
+    staleTime: STALE_MS,
     retry: 0,
   });
 
@@ -43,7 +45,7 @@ export const usePolicyQuery = (
       body: initialPolicy,
       headers: emptyHeaders(),
     },
-    staleTime: 0,
+    staleTime: STALE_MS,
     retry: 0,
   });
 
@@ -116,8 +118,12 @@ export const useActivatePolicyMutation = (userId: string, repoId: string) => {
   const listKey = policyQueryKeys.list(userId, repoId);
 
   return tsr.policies.activate.useMutation({
-    onMutate: async (vars) => {
-      await queryClient.cancelQueries({ queryKey: [...listKey] });
+    onMutate: async (vars): Promise<{ prev: PoliciesListEnvelope | undefined }> => {
+      const detailKey = policyQueryKeys.detail(userId, repoId, vars.params.id);
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: [...listKey] }),
+        queryClient.cancelQueries({ queryKey: [...detailKey] }),
+      ]);
       const prev = queryClient.getQueryData<PoliciesListEnvelope>([...listKey]);
       if (prev) {
         queryClient.setQueryData<PoliciesListEnvelope>([...listKey], {
@@ -133,9 +139,8 @@ export const useActivatePolicyMutation = (userId: string, repoId: string) => {
       return { prev };
     },
     onError: (_err, _vars, context) => {
-      const ctx = context as { prev?: PoliciesListEnvelope } | undefined;
-      if (ctx?.prev) {
-        queryClient.setQueryData([...listKey], ctx.prev);
+      if (context?.prev) {
+        queryClient.setQueryData([...listKey], context.prev);
       }
       toast.error(t("activateError"));
     },
@@ -166,8 +171,12 @@ export const useDeletePolicyMutation = (userId: string, repoId: string) => {
   const listKey = policyQueryKeys.list(userId, repoId);
 
   return tsr.policies.delete.useMutation({
-    onMutate: async (vars) => {
-      await queryClient.cancelQueries({ queryKey: [...listKey] });
+    onMutate: async (vars): Promise<{ prev: PoliciesListEnvelope | undefined }> => {
+      const detailKey = policyQueryKeys.detail(userId, repoId, vars.params.id);
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: [...listKey] }),
+        queryClient.cancelQueries({ queryKey: [...detailKey] }),
+      ]);
       const prev = queryClient.getQueryData<PoliciesListEnvelope>([...listKey]);
       if (prev) {
         queryClient.setQueryData<PoliciesListEnvelope>([...listKey], {
@@ -180,13 +189,14 @@ export const useDeletePolicyMutation = (userId: string, repoId: string) => {
       return { prev };
     },
     onError: (_err, _vars, context) => {
-      const ctx = context as { prev?: PoliciesListEnvelope } | undefined;
-      if (ctx?.prev) {
-        queryClient.setQueryData([...listKey], ctx.prev);
+      if (context?.prev) {
+        queryClient.setQueryData([...listKey], context.prev);
       }
       toast.error(t("deleteError"));
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
+      const detailKey = policyQueryKeys.detail(userId, repoId, vars.params.id);
+      queryClient.removeQueries({ queryKey: [...detailKey] });
       toast.success(t("deleted"));
     },
     onSettled: () => {

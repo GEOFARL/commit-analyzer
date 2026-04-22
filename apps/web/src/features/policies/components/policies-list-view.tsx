@@ -56,8 +56,13 @@ export const PoliciesListView = ({
         });
         if (result.status === 201) {
           setCreateOpen(false);
-          router.push(`/repositories/${repo.id}/policies/${result.body.id}`);
-          return result.body.id;
+          // Defer navigation by one frame so the dialog close animation
+          // starts before the editor route mounts.
+          const id = result.body.id;
+          requestAnimationFrame(() => {
+            router.push(`/repositories/${repo.id}/policies/${id}`);
+          });
+          return id;
         }
         return null;
       } catch {

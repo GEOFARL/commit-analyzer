@@ -239,15 +239,9 @@ const AllowedScopesEditor = ({
           <Select
             value={state.mode}
             onValueChange={(value) => {
-              if (value === "list") {
-                onChange({ ruleType: "allowedScopes", mode: "list", raw: "" });
-              } else {
-                onChange({
-                  ruleType: "allowedScopes",
-                  mode: "regex",
-                  pattern: "",
-                });
-              }
+              const next: "list" | "regex" =
+                value === "regex" ? "regex" : "list";
+              onChange({ ...state, mode: next });
             }}
           >
             <SelectTrigger id={`${uid}-mode`}>
