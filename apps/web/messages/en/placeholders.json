@@ -4,10 +4,6 @@
     "title": "Generate",
     "description": "Draft commit messages from a diff using your configured LLM provider."
   },
-  "policies": {
-    "title": "Policies",
-    "description": "Configure commit message policies enforced by the analyzer."
-  },
   "settings": {
     "title": "Settings",
     "description": "Manage your workspace, tokens, and preferences."

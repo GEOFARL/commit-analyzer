@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "list": "Policies",
+    "editor": "Edit policy",
+    "picker": "Policies"
+  },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "repositories": "Repositories",
+    "policies": "Policies"
+  },
+  "list": {
+    "title": "{repo} policies",
+    "subtitle": "Commit-message rules enforced by the analyzer.",
+    "createPolicy": "New policy",
+    "rulesCount": "{count, plural, =0 {No rules} one {# rule} other {# rules}}",
+    "active": "Active",
+    "inactive": "Inactive",
+    "updatedAt": "Updated {date}",
+    "empty": {
+      "title": "No policies yet",
+      "description": "Create a policy to enforce commit standards on this repository.",
+      "cta": "Create your first policy"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "activate": "Activate",
+      "activating": "Activating…",
+      "deleting": "Deleting…"
+    },
+    "error": {
+      "load": "Failed to load policies. Please try again."
+    }
+  },
+  "create": {
+    "title": "New policy",
+    "description": "Name your policy. You'll configure rules on the next screen.",
+    "nameLabel": "Policy name",
+    "namePlaceholder": "e.g. Conventional commits",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating…"
+  },
+  "editor": {
+    "back": "Back to policies",
+    "subtitle": "Configure commit-message rules for {repo}.",
+    "nameLabel": "Policy name",
+    "nameHelp": "Short, descriptive label.",
+    "rulesTitle": "Rules",
+    "rulesDescription": "Add one rule per commit-message check.",
+    "rulesEmpty": "No rules configured yet. Add one to start enforcing.",
+    "addRuleLabel": "Add rule",
+    "addRulePlaceholder": "Pick a rule type…",
+    "addRuleAllUsed": "All rule types added.",
+    "removeRule": "Remove rule",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "All changes saved",
+    "unsaved": "Unsaved changes",
+    "activate": "Activate",
+    "active": "Active policy",
+    "delete": "Delete policy",
+    "inactiveHint": "This policy is inactive. Activate it to enforce these rules on new commits.",
+    "hasErrors": "Fix the highlighted rules before saving."
+  },
+  "kinds": {
+    "allowedTypes": {
+      "label": "Allowed types",
+      "description": "Conventional-commit types accepted for this repository.",
+      "valueLabel": "Types",
+      "valuePlaceholder": "feat, fix, chore…",
+      "hint": "Comma-separated list. At least one type required."
+    },
+    "allowedScopes": {
+      "label": "Allowed scopes",
+      "description": "Restrict the scope token in the commit subject.",
+      "modeLabel": "Mode",
+      "modeList": "Explicit list",
+      "modeRegex": "Regex pattern",
+      "listLabel": "Scopes",
+      "listPlaceholder": "auth, api, ui…",
+      "listHint": "Comma-separated list. At least one scope required.",
+      "regexLabel": "Pattern",
+      "regexPlaceholder": "^[a-z-]+$",
+      "regexHint": "Valid JavaScript regular expression."
+    },
+    "maxSubjectLength": {
+      "label": "Max subject length",
+      "description": "Maximum characters allowed in the commit subject.",
+      "valueLabel": "Characters",
+      "hint": "Between 1 and 500."
+    },
+    "bodyRequired": {
+      "label": "Body required",
+      "description": "Commits must include a body separated by a blank line.",
+      "toggleLabel": "Require body"
+    },
+    "footerRequired": {
+      "label": "Footer required",
+      "description": "Commits must include a footer token (e.g. BREAKING CHANGE, refs #123).",
+      "toggleLabel": "Require footer"
+    }
+  },
+  "errors": {
+    "nameRequired": "Name is required.",
+    "nameTooLong": "Name must be 100 characters or fewer.",
+    "typesRequired": "Add at least one type.",
+    "scopesRequired": "Add at least one scope.",
+    "regexInvalid": "Invalid regular expression.",
+    "subjectLengthRange": "Must be between 1 and 500."
+  },
+  "toast": {
+    "created": "Policy created.",
+    "createError": "Failed to create policy.",
+    "saved": "Policy saved.",
+    "saveError": "Failed to save policy.",
+    "activated": "Policy activated.",
+    "activateError": "Failed to activate policy.",
+    "deleted": "Policy deleted.",
+    "deleteError": "Failed to delete policy. Active policies must be deactivated first."
+  },
+  "delete": {
+    "title": "Delete policy?",
+    "description": "\"{name}\" will be permanently deleted. This cannot be undone.",
+    "activeWarning": "Active policies cannot be deleted. Activate another policy first.",
+    "cancel": "Cancel",
+    "confirm": "Delete"
+  },
+  "picker": {
+    "title": "Policies",
+    "subtitle": "Select a repository to manage its commit-message policies.",
+    "managePolicies": "Manage policies",
+    "empty": {
+      "title": "No repositories connected",
+      "description": "Connect a repository to configure commit policies.",
+      "cta": "Go to repositories"
+    }
+  }
+}
