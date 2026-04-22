@@ -110,6 +110,47 @@
     "regexInvalid": "Некоректний regex.",
     "subjectLengthRange": "Має бути між 1 і 500."
   },
+  "validate": {
+    "title": "Перевірити повідомлення",
+    "description": "Вставте повідомлення коміту, щоб побачити, чи воно відповідає збереженим правилам.",
+    "textareaLabel": "Повідомлення коміту",
+    "placeholder": "feat(auth): add passwordless login…",
+    "examplesLabel": "Спробувати приклад",
+    "examples": {
+      "valid": "Коректне",
+      "invalid": "Невідомий тип",
+      "long": "Тема задовга",
+      "noBody": "Без тіла"
+    },
+    "clear": "Очистити",
+    "emptyHint": "Почніть вводити, щоб запустити перевірку.",
+    "unsavedHint": "Є незбережені зміни. Перевірка виконується проти останньої збереженої версії політики.",
+    "noRules": "Політика не має правил — будь-яке повідомлення проходить.",
+    "checking": "Перевіряємо…",
+    "passedAll": "Повідомлення відповідає всім правилам.",
+    "failedSome": "{count, plural, one {# правило провалено} few {# правила провалено} many {# правил провалено} other {# правил провалено}}",
+    "passed": "Пройдено",
+    "failed": "Провалено",
+    "errorTitle": "Не вдалося перевірити",
+    "errorBody": "Сервер не відповідає. Спробуйте ще раз.",
+    "retry": "Повторити",
+    "ruleLabels": {
+      "format": "Формат Conventional Commits",
+      "allowedTypes": "Дозволені типи",
+      "allowedScopes": "Дозволені scope",
+      "maxSubjectLength": "Макс. довжина теми",
+      "bodyRequired": "Тіло обов'язкове",
+      "footerRequired": "Футер обов'язковий"
+    },
+    "defaultMessages": {
+      "format": "Повідомлення не у форматі Conventional Commits.",
+      "allowedTypes": "Тип не входить до дозволеного списку.",
+      "allowedScopes": "Scope не входить до дозволеного списку.",
+      "maxSubjectLength": "Тема перевищує максимальну довжину.",
+      "bodyRequired": "Тіло обов'язкове, але відсутнє.",
+      "footerRequired": "Футер обов'язковий, але відсутній."
+    }
+  },
   "toast": {
     "created": "Політику створено.",
     "createError": "Не вдалося створити політику.",
