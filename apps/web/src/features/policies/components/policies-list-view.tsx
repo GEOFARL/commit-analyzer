@@ -55,13 +55,9 @@ export const PoliciesListView = ({
           body: { name, rules: [] },
         });
         if (result.status === 201) {
-          setCreateOpen(false);
-          // Defer navigation by one frame so the dialog close animation
-          // starts before the editor route mounts.
           const id = result.body.id;
-          requestAnimationFrame(() => {
-            router.push(`/repositories/${repo.id}/policies/${id}`);
-          });
+          router.push(`/repositories/${repo.id}/policies/${id}`);
+          setCreateOpen(false);
           return id;
         }
         return null;

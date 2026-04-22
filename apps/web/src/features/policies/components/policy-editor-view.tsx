@@ -8,6 +8,7 @@ import {
 import {
   AlertCircle,
   ArrowLeft,
+  Check,
   CheckCircle2,
   Loader2,
   Plus,
@@ -27,13 +28,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   useActivatePolicyMutation,
   useDeletePolicyMutation,
   usePolicyQuery,
@@ -49,6 +43,7 @@ import {
 } from "@/features/policies/rule-form";
 import type { PolicyEditorPageData } from "@/features/policies/types";
 import { Link, useRouter } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 
 import { DeletePolicyDialog } from "./delete-policy-dialog";
 import { RuleEditor } from "./rule-editor";
@@ -134,10 +129,7 @@ export const PolicyEditorView = ({
     () => new Set(entries.map((e) => e.state.ruleType)),
     [entries],
   );
-  const availableKinds = useMemo(
-    () => policyRuleTypes.filter((k) => !usedKinds.has(k)),
-    [usedKinds],
-  );
+  const allKindsUsed = usedKinds.size === policyRuleTypes.length;
 
   const handleAddRule = useCallback((kind: PolicyRuleTypeName) => {
     setEntries((prev) => [
@@ -350,7 +342,7 @@ export const PolicyEditorView = ({
         )}
       </section>
 
-      <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-5">
         <header>
           <h2 className="text-sm font-semibold tracking-tight">
             {t("editor.rulesTitle")}
@@ -360,12 +352,7 @@ export const PolicyEditorView = ({
           </p>
         </header>
 
-        {entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-muted/20 py-10 text-center text-xs text-muted-foreground">
-            <ShieldCheck className="h-8 w-8" aria-hidden="true" />
-            <p>{t("editor.rulesEmpty")}</p>
-          </div>
-        ) : (
+        {entries.length > 0 && (
           <ul className="flex flex-col gap-3">
             {entries.map((entry) => (
               <li key={entry.uid}>
@@ -381,10 +368,9 @@ export const PolicyEditorView = ({
           </ul>
         )}
 
-        <AddRulePicker
-          available={availableKinds}
-          onAdd={handleAddRule}
-        />
+        {!allKindsUsed && (
+          <AddRuleGrid usedKinds={usedKinds} onAdd={handleAddRule} />
+        )}
       </section>
 
       <div className="flex items-center justify-between gap-2 border-t pt-6">
@@ -425,47 +411,83 @@ export const PolicyEditorView = ({
   );
 };
 
-const AddRulePicker = ({
-  available,
+const AddRuleGrid = ({
+  usedKinds,
   onAdd,
 }: {
-  available: readonly PolicyRuleTypeName[];
+  usedKinds: ReadonlySet<PolicyRuleTypeName>;
   onAdd: (kind: PolicyRuleTypeName) => void;
 }) => {
-  const t = useTranslations("policies");
+  const t = useTranslations("policies.editor");
   const tKinds = useTranslations("policies.kinds");
 
-  if (available.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        {t("editor.addRuleAllUsed")}
-      </p>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-      <label htmlFor="add-rule" className="text-xs font-medium">
-        {t("editor.addRuleLabel")}
-      </label>
-      <Select
-        value=""
-        onValueChange={(value) => onAdd(value as PolicyRuleTypeName)}
-      >
-        <SelectTrigger id="add-rule" className="sm:max-w-xs">
-          <span className="flex items-center gap-2">
-            <Plus className="h-4 w-4 opacity-70" aria-hidden="true" />
-            <SelectValue placeholder={t("editor.addRulePlaceholder")} />
-          </span>
-        </SelectTrigger>
-        <SelectContent>
-          {available.map((kind) => (
-            <SelectItem key={kind} value={kind}>
-              {tKinds(`${kind}.label`)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div
+      className="flex flex-col gap-3 rounded-xl border bg-card p-5"
+      aria-labelledby="add-rule-title"
+    >
+      <div>
+        <h3
+          id="add-rule-title"
+          className="text-sm font-semibold tracking-tight"
+        >
+          {t("addRuleTitle")}
+        </h3>
+        <p className="text-xs text-muted-foreground text-pretty">
+          {t("addRuleHelp")}
+        </p>
+      </div>
+      <ul className="grid gap-2 sm:grid-cols-2" role="list">
+        {policyRuleTypes.map((kind) => {
+          const added = usedKinds.has(kind);
+          const label = tKinds(`${kind}.label`);
+          const description = tKinds(`${kind}.description`);
+          return (
+            <li key={kind}>
+              <button
+                type="button"
+                onClick={added ? undefined : () => onAdd(kind)}
+                disabled={added}
+                aria-label={
+                  added
+                    ? t("ruleAddedAria", { label })
+                    : t("addRuleAria", { label })
+                }
+                className={cn(
+                  "flex h-full w-full flex-col items-start gap-1.5 rounded-lg border bg-background p-3 text-left transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  added
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:border-primary/40 hover:bg-accent/40",
+                )}
+              >
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span className="text-sm font-semibold leading-none">
+                    {label}
+                  </span>
+                  {added ? (
+                    <Badge variant="secondary" className="gap-1 text-[10px]">
+                      <Check
+                        className="h-3 w-3"
+                        aria-hidden="true"
+                      />
+                      {t("ruleAdded")}
+                    </Badge>
+                  ) : (
+                    <Plus
+                      className="h-4 w-4 shrink-0 opacity-60"
+                      aria-hidden="true"
+                    />
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground text-pretty">
+                  {description}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 };

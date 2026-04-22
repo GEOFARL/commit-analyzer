@@ -17,14 +17,48 @@ type NavItem = {
   href: "/dashboard" | "/repositories" | "/generate" | "/policies" | "/settings";
   icon: LucideIcon;
   labelKey: "dashboard" | "repositories" | "generate" | "policies" | "settings";
+  isActive: (pathname: string) => boolean;
 };
 
+// A nested policies subtree (/repositories/:id/policies[/:policyId]) belongs to
+// the Policies nav entry, not Repositories.
+const policyPathRe = /(^|\/)policies(\/|$)/;
+const repoPathRe = /^\/repositories(\/|$)/;
+
+const startsWithMatcher = (href: string) => (p: string) =>
+  p === href || p.startsWith(`${href}/`);
+
 const items: NavItem[] = [
-  { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
-  { href: "/repositories", icon: GitBranch, labelKey: "repositories" },
-  { href: "/generate", icon: Sparkles, labelKey: "generate" },
-  { href: "/policies", icon: ShieldCheck, labelKey: "policies" },
-  { href: "/settings", icon: Settings, labelKey: "settings" },
+  {
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    labelKey: "dashboard",
+    isActive: startsWithMatcher("/dashboard"),
+  },
+  {
+    href: "/repositories",
+    icon: GitBranch,
+    labelKey: "repositories",
+    isActive: (p) => repoPathRe.test(p) && !policyPathRe.test(p),
+  },
+  {
+    href: "/generate",
+    icon: Sparkles,
+    labelKey: "generate",
+    isActive: startsWithMatcher("/generate"),
+  },
+  {
+    href: "/policies",
+    icon: ShieldCheck,
+    labelKey: "policies",
+    isActive: (p) => policyPathRe.test(p),
+  },
+  {
+    href: "/settings",
+    icon: Settings,
+    labelKey: "settings",
+    isActive: startsWithMatcher("/settings"),
+  },
 ];
 
 export const SidebarNav = () => {
@@ -33,9 +67,8 @@ export const SidebarNav = () => {
 
   return (
     <nav className="flex flex-col gap-0.5 px-3">
-      {items.map(({ href, icon: Icon, labelKey }) => {
-        const active =
-          pathname === href || pathname.startsWith(`${href}/`);
+      {items.map(({ href, icon: Icon, labelKey, isActive }) => {
+        const active = isActive(pathname);
         return (
           <Link
             key={href}
