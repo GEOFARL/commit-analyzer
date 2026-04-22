@@ -7,7 +7,6 @@ import { z } from "zod";
 
 export {
   createPolicySchema,
-  policyRuleSchema,
   updatePolicySchema,
 } from "@commit-analyzer/contracts";
 
