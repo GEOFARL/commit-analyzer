@@ -146,6 +146,84 @@ const ANALYTICS_FILES = [
   { filePath: "packages/contracts/src/analytics.contract.ts", changeCount: 54 },
 ];
 
+// ─── Policy fixtures ────────────────────────────────────────────────────────
+
+type MockPolicyRule = {
+  id: string;
+  ruleType: string;
+  ruleValue: unknown;
+};
+
+type MockPolicy = {
+  id: string;
+  repositoryId: string;
+  name: string;
+  isActive: boolean;
+  rules: MockPolicyRule[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+const policies = new Map<string, MockPolicy>();
+
+const listPoliciesForRepo = (repoId: string): MockPolicy[] =>
+  Array.from(policies.values())
+    .filter((p) => p.repositoryId === repoId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+const cloneRuleInput = (rule: { ruleType: string; ruleValue: unknown }): MockPolicyRule => ({
+  id: randomUUID(),
+  ruleType: rule.ruleType,
+  ruleValue: rule.ruleValue,
+});
+
+const ccFirstLineRegex = /^([a-z]+)(?:\(([^)]+)\))?(!?): (.+)$/;
+
+type RuleResult = { ruleType: string; passed: boolean; message?: string };
+
+const validateAgainstRules = (
+  message: string,
+  rules: MockPolicyRule[],
+): { passed: boolean; results: RuleResult[] } => {
+  const firstLine = (message.split("\n")[0] ?? "").trim();
+  const match = ccFirstLineRegex.exec(firstLine);
+  const parsed = match
+    ? { type: match[1] as string, subject: match[4] as string }
+    : null;
+  const subjectForLen = parsed?.subject ?? firstLine;
+
+  const results: RuleResult[] = rules.map((rule) => {
+    switch (rule.ruleType) {
+      case "allowedTypes": {
+        const list = (rule.ruleValue as string[]) ?? [];
+        const passed = parsed != null && list.includes(parsed.type);
+        return passed
+          ? { ruleType: "allowedTypes", passed: true }
+          : {
+              ruleType: "allowedTypes",
+              passed: false,
+              message: `Type '${parsed?.type ?? "unknown"}' is not in the allowed list.`,
+            };
+      }
+      case "maxSubjectLength": {
+        const max = rule.ruleValue as number;
+        const passed = subjectForLen.length <= max;
+        return passed
+          ? { ruleType: "maxSubjectLength", passed: true }
+          : {
+              ruleType: "maxSubjectLength",
+              passed: false,
+              message: `Subject is ${subjectForLen.length} characters; max is ${max}.`,
+            };
+      }
+      default:
+        return { ruleType: rule.ruleType, passed: true };
+    }
+  });
+
+  return { passed: results.every((r) => r.passed), results };
+};
+
 // ─── Sync simulation state ──────────────────────────────────────────────────
 
 type PendingSync = { syncJobId: string };
@@ -189,7 +267,7 @@ const drivePendingSync = (
 const corsHeaders = (req: IncomingMessage): Record<string, string> => ({
   "Access-Control-Allow-Origin": req.headers.origin ?? "*",
   "Access-Control-Allow-Credentials": "true",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
   "Access-Control-Allow-Headers":
     req.headers["access-control-request-headers"] ??
     "authorization, content-type",
@@ -220,6 +298,25 @@ const drainBody = (req: IncomingMessage): Promise<void> =>
     req.on("data", () => {});
     req.on("end", () => resolve());
     req.on("error", () => resolve());
+  });
+
+const readJsonBody = (req: IncomingMessage): Promise<unknown> =>
+  new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      const raw = Buffer.concat(chunks).toString("utf8");
+      if (!raw) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on("error", () => resolve({}));
   });
 
 // ─── Server & socket state ──────────────────────────────────────────────────
@@ -416,6 +513,152 @@ const handleRequest = async (
     return;
   }
 
+  // ── Policies ─────────────────────────────────────────────────────────────
+  const policiesListMatch = /^\/repos\/([0-9a-fA-F-]+)\/policies$/.exec(
+    pathname,
+  );
+  if (policiesListMatch) {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const repoId = policiesListMatch[1] as string;
+    if (!connectedRepos.has(repoId)) {
+      sendJson(req, res, 404, { message: "not found" });
+      return;
+    }
+    if (req.method === "GET") {
+      sendJson(req, res, 200, { items: listPoliciesForRepo(repoId) });
+      return;
+    }
+    if (req.method === "POST") {
+      const body = (await readJsonBody(req)) as {
+        name?: unknown;
+        rules?: unknown;
+      };
+      const name = typeof body.name === "string" ? body.name : "";
+      const rulesInput = Array.isArray(body.rules)
+        ? (body.rules as { ruleType: string; ruleValue: unknown }[])
+        : [];
+      const now = new Date().toISOString();
+      const created: MockPolicy = {
+        id: randomUUID(),
+        repositoryId: repoId,
+        name,
+        isActive: false,
+        rules: rulesInput.map(cloneRuleInput),
+        createdAt: now,
+        updatedAt: now,
+      };
+      policies.set(created.id, created);
+      sendJson(req, res, 201, created);
+      return;
+    }
+  }
+
+  const policyDetailMatch =
+    /^\/repos\/([0-9a-fA-F-]+)\/policies\/([0-9a-fA-F-]+)$/.exec(pathname);
+  if (policyDetailMatch) {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const repoId = policyDetailMatch[1] as string;
+    const policyId = policyDetailMatch[2] as string;
+    const policy = policies.get(policyId);
+    if (!policy || policy.repositoryId !== repoId) {
+      await drainBody(req);
+      sendJson(req, res, 404, { message: "not found" });
+      return;
+    }
+    if (req.method === "GET") {
+      sendJson(req, res, 200, policy);
+      return;
+    }
+    if (req.method === "PATCH") {
+      const body = (await readJsonBody(req)) as {
+        name?: unknown;
+        rules?: unknown;
+      };
+      if (typeof body.name === "string") policy.name = body.name;
+      if (Array.isArray(body.rules)) {
+        policy.rules = (
+          body.rules as { ruleType: string; ruleValue: unknown }[]
+        ).map(cloneRuleInput);
+      }
+      policy.updatedAt = new Date().toISOString();
+      sendJson(req, res, 200, policy);
+      return;
+    }
+    if (req.method === "DELETE") {
+      await drainBody(req);
+      if (policy.isActive) {
+        sendJson(req, res, 400, { message: "cannot delete active policy" });
+        return;
+      }
+      policies.delete(policyId);
+      res.writeHead(204, corsHeaders(req));
+      res.end();
+      return;
+    }
+  }
+
+  const policyActivateMatch =
+    /^\/repos\/([0-9a-fA-F-]+)\/policies\/([0-9a-fA-F-]+)\/activate$/.exec(
+      pathname,
+    );
+  if (req.method === "POST" && policyActivateMatch) {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    await drainBody(req);
+    const repoId = policyActivateMatch[1] as string;
+    const policyId = policyActivateMatch[2] as string;
+    const target = policies.get(policyId);
+    if (!target || target.repositoryId !== repoId) {
+      sendJson(req, res, 404, { message: "not found" });
+      return;
+    }
+    // Atomic swap: deactivate any currently active policy on the same repo.
+    for (const p of policies.values()) {
+      if (p.repositoryId === repoId && p.id !== policyId && p.isActive) {
+        p.isActive = false;
+        p.updatedAt = new Date().toISOString();
+      }
+    }
+    target.isActive = true;
+    target.updatedAt = new Date().toISOString();
+    sendJson(req, res, 200, target);
+    return;
+  }
+
+  const policyValidateMatch =
+    /^\/repos\/([0-9a-fA-F-]+)\/policies\/([0-9a-fA-F-]+)\/validate$/.exec(
+      pathname,
+    );
+  if (req.method === "POST" && policyValidateMatch) {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const repoId = policyValidateMatch[1] as string;
+    const policyId = policyValidateMatch[2] as string;
+    const target = policies.get(policyId);
+    if (!target || target.repositoryId !== repoId) {
+      await drainBody(req);
+      sendJson(req, res, 404, { message: "not found" });
+      return;
+    }
+    const body = (await readJsonBody(req)) as { message?: unknown };
+    if (typeof body.message !== "string" || body.message.length === 0) {
+      sendJson(req, res, 400, { message: "message required" });
+      return;
+    }
+    sendJson(req, res, 200, validateAgainstRules(body.message, target.rules));
+    return;
+  }
+
   res.writeHead(404, corsHeaders(req));
   res.end();
 };
@@ -435,6 +678,7 @@ const resetState = (): void => {
     createdAt: "2024-02-01T00:00:00.000Z",
   });
   pendingSyncs.clear();
+  policies.clear();
 };
 
 export const startMockServer = (): Promise<void> =>
