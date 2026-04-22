@@ -323,6 +323,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@commit-analyzer/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
       pg:
         specifier: ^8.13.1
         version: 8.20.0

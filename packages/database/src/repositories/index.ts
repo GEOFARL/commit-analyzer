@@ -23,6 +23,17 @@ export type {
   AuditEventListOptions,
   AuditEventRepository,
 } from "./audit-event.repository.js";
+export {
+  createGenerationHistoryRepository,
+  decodeGenerationHistoryCursor,
+  encodeGenerationHistoryCursor,
+} from "./generation-history.repository.js";
+export type {
+  CreateGenerationHistoryInput,
+  GenerationHistoryCursor,
+  GenerationHistoryListOptions,
+  GenerationHistoryRepository,
+} from "./generation-history.repository.js";
 export { createPolicyRepository } from "./policy.repository.js";
 export type {
   CreatePolicyInput,
