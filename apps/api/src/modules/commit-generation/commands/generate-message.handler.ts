@@ -51,10 +51,15 @@ export class GenerateMessageHandler
   private readonly logger = new Logger(GenerateMessageHandler.name);
 
   constructor(
+    @Inject(DiffParserService)
     private readonly diffParser: DiffParserService,
+    @Inject(PromptBuilderService)
     private readonly promptBuilder: PromptBuilderService,
+    @Inject(LLMProviderFactory)
     private readonly factory: LLMProviderFactory,
+    @Inject(ValidatorService)
     private readonly validator: ValidatorService,
+    @Inject(EventBus)
     private readonly eventBus: EventBus,
     @Inject(POLICY_REPOSITORY)
     private readonly policies: PolicyRepository,
