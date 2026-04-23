@@ -15,8 +15,13 @@ export const createSupabaseServerClient = async (): Promise<AppSupabaseClient> =
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
-          for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+          try {
+            for (const { name, value, options } of cookiesToSet) {
+              cookieStore.set(name, value, options);
+            }
+          } catch {
+            // called from a Server Component — Next.js forbids cookie writes
+            // here. Middleware handles the refreshed cookies on the next nav.
           }
         },
       },
