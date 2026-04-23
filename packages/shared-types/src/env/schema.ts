@@ -58,6 +58,11 @@ export const serverEnvSchema = z.object({
   OPENAI_API_KEY: optionalString,
   ANTHROPIC_API_KEY: optionalString,
 
+  GENERATION_POLICY_REGEN_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+
   ENCRYPTION_KEY_BASE64: base64Key32,
 
   CSP_CONNECT_SRC: z

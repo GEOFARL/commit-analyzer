@@ -3,12 +3,12 @@ import { Controller, UseGuards } from "@nestjs/common";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
 import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
+import { ValidatorService } from "../../shared/policy-validation/validator.service.js";
 import { CurrentUser } from "../auth/current-user.decorator.js";
 import { SupabaseAuthGuard } from "../auth/supabase-auth.guard.js";
 
 import { toPolicyDto } from "./policy.mappers.js";
 import { PolicyService } from "./policy.service.js";
-import { ValidatorService } from "./services/validator.service.js";
 
 @Controller()
 @UseGuards(SupabaseAuthGuard)
