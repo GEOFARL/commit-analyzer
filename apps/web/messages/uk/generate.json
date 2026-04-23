@@ -1,0 +1,65 @@
+{
+  "title": "Генерація повідомлення коміту",
+  "subtitle": "Вставте diff, оберіть провайдера та стрімте варіанти повідомлень. Підключіть політику, щоб отримати миттєву перевірку.",
+  "generate": "Згенерувати",
+  "generating": "Генерація…",
+  "cancel": "Скасувати",
+  "cancelled": "Генерацію скасовано.",
+  "error": {
+    "title": "Не вдалося згенерувати"
+  },
+  "diff": {
+    "label": "Diff",
+    "placeholder": "Вставте або перетягніть сюди уніфікований diff (вивід `git diff`, файл `.patch` або `.diff`).",
+    "hint": "Порада: перетягніть .patch файл у поле або просто вставте текст.",
+    "fromFile": "Завантажено з {name}",
+    "chars": "{count, plural, =0 {0 символів} one {# символ} few {# символи} many {# символів} other {# символів}}",
+    "paste": "Вставити",
+    "tooLarge": "Diff перевищує 1 МБ. Скоротіть його перед генерацією.",
+    "pasteSuccess": "Diff вставлено.",
+    "pasteEmpty": "Буфер обміну порожній.",
+    "pasteError": "Не вдалося прочитати буфер обміну.",
+    "uploadFile": "Завантажити .patch",
+    "fileTooLarge": "Файл завеликий (макс. 1 МБ)."
+  },
+  "provider": {
+    "providerLabel": "Провайдер",
+    "providerPlaceholder": "Оберіть провайдера",
+    "modelLabel": "Модель",
+    "modelPlaceholder": "Оберіть модель",
+    "noKeysTitle": "Немає налаштованих ключів LLM",
+    "noKeysDescription": "Додайте ключ OpenAI або Anthropic у налаштуваннях, щоб увімкнути генерацію.",
+    "addKeysCta": "Керування ключами LLM"
+  },
+  "policy": {
+    "repoLabel": "Репозиторій (необовʼязково)",
+    "repoPlaceholder": "Оберіть репозиторій",
+    "noRepo": "Без репозиторію",
+    "policyLabel": "Політика (необовʼязково)",
+    "policyPlaceholder": "Оберіть політику",
+    "policyDisabled": "Спочатку оберіть репозиторій",
+    "noPolicy": "Без політики",
+    "loading": "Завантаження політик…"
+  },
+  "card": {
+    "compliant": "Відповідає",
+    "nonCompliant": "Не відповідає",
+    "copy": "Копіювати",
+    "copied": "Скопійовано",
+    "copyError": "Не вдалося скопіювати"
+  },
+  "rules": {
+    "allowedTypes": "Тип",
+    "allowedScopes": "Область",
+    "maxSubjectLength": "Довжина заголовка",
+    "bodyRequired": "Тіло",
+    "footerRequired": "Футер",
+    "format": "Формат"
+  },
+  "list": {
+    "streamingEmpty": "Очікування першої пропозиції…",
+    "streamingMore": "Надходять нові пропозиції…",
+    "idleTitle": "Пропозиції зʼявляться тут",
+    "idleHint": "Надішліть diff, щоб почати стрімити варіанти повідомлень."
+  }
+}

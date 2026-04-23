@@ -4,6 +4,7 @@ import type auth from "../messages/en/auth.json";
 import type common from "../messages/en/common.json";
 import type dashboard from "../messages/en/dashboard.json";
 import type errors from "../messages/en/errors.json";
+import type generate from "../messages/en/generate.json";
 import type landing from "../messages/en/landing.json";
 import type llmKeys from "../messages/en/llmKeys.json";
 import type login from "../messages/en/login.json";
@@ -24,6 +25,7 @@ type Messages = {
   common: typeof common;
   dashboard: typeof dashboard;
   errors: typeof errors;
+  generate: typeof generate;
   landing: typeof landing;
   llmKeys: typeof llmKeys;
   login: typeof login;

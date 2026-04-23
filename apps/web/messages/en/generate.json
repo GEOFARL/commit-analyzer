@@ -1,0 +1,65 @@
+{
+  "title": "Generate commit message",
+  "subtitle": "Paste a diff, pick a provider, and stream commit-message suggestions. Attach a policy to get instant compliance feedback.",
+  "generate": "Generate",
+  "generating": "Generating…",
+  "cancel": "Cancel",
+  "cancelled": "Generation cancelled.",
+  "error": {
+    "title": "Generation failed"
+  },
+  "diff": {
+    "label": "Diff",
+    "placeholder": "Paste or drop a unified diff here (output of `git diff`, a `.patch`, or a `.diff` file).",
+    "hint": "Tip: drop a .patch file anywhere in the box, or paste directly.",
+    "fromFile": "Loaded from {name}",
+    "chars": "{count, plural, =0 {0 characters} one {# character} other {# characters}}",
+    "paste": "Paste",
+    "tooLarge": "Diff exceeds 1 MB. Trim it before generating.",
+    "pasteSuccess": "Diff pasted.",
+    "pasteEmpty": "Clipboard is empty.",
+    "pasteError": "Could not read clipboard.",
+    "uploadFile": "Upload .patch",
+    "fileTooLarge": "File is too large (max 1 MB)."
+  },
+  "provider": {
+    "providerLabel": "Provider",
+    "providerPlaceholder": "Select a provider",
+    "modelLabel": "Model",
+    "modelPlaceholder": "Select a model",
+    "noKeysTitle": "No LLM keys configured",
+    "noKeysDescription": "Add an OpenAI or Anthropic API key in settings to enable generation.",
+    "addKeysCta": "Manage LLM keys"
+  },
+  "policy": {
+    "repoLabel": "Repository (optional)",
+    "repoPlaceholder": "Select a repository",
+    "noRepo": "No repository",
+    "policyLabel": "Policy (optional)",
+    "policyPlaceholder": "Select a policy",
+    "policyDisabled": "Select a repository first",
+    "noPolicy": "No policy",
+    "loading": "Loading policies…"
+  },
+  "card": {
+    "compliant": "Compliant",
+    "nonCompliant": "Non-compliant",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyError": "Copy failed"
+  },
+  "rules": {
+    "allowedTypes": "Type",
+    "allowedScopes": "Scope",
+    "maxSubjectLength": "Subject length",
+    "bodyRequired": "Body",
+    "footerRequired": "Footer",
+    "format": "Format"
+  },
+  "list": {
+    "streamingEmpty": "Waiting for first suggestion…",
+    "streamingMore": "Streaming more…",
+    "idleTitle": "Suggestions will appear here",
+    "idleHint": "Submit a diff to start streaming commit-message suggestions."
+  }
+}
