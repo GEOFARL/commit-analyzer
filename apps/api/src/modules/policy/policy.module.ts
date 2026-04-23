@@ -7,7 +7,6 @@ import { ApplyDefaultPolicyOnRepoConnected } from "./apply-default-policy.handle
 import { DefaultPolicyService } from "./default-policy.service.js";
 import { PoliciesController } from "./policies.controller.js";
 import { PolicyService } from "./policy.service.js";
-import { ValidatorService } from "./services/validator.service.js";
 
 @Module({
   imports: [CqrsModule, AuthModule],
@@ -16,8 +15,7 @@ import { ValidatorService } from "./services/validator.service.js";
     PolicyService,
     DefaultPolicyService,
     ApplyDefaultPolicyOnRepoConnected,
-    ValidatorService,
   ],
-  exports: [PolicyService, DefaultPolicyService, ValidatorService],
+  exports: [PolicyService, DefaultPolicyService],
 })
 export class PolicyModule {}

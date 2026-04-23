@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { EventsHandler, type IEventHandler } from "@nestjs/cqrs";
 
+import { GenerationCompletedEvent } from "../../../shared/events/generation-completed.event.js";
 import { AuditService } from "../audit.service.js";
-import { GenerationCompletedEvent } from "../events/generation-completed.event.js";
 
 @Injectable()
 @EventsHandler(GenerationCompletedEvent)

@@ -13,6 +13,7 @@ import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { PolicyModule } from "./modules/policy/policy.module.js";
 import { ReposModule } from "./modules/repos/repos.module.js";
 import { WsModule } from "./modules/ws/ws.module.js";
+import { PolicyValidationModule } from "./shared/policy-validation/policy-validation.module.js";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WsModule } from "./modules/ws/ws.module.js";
     DatabaseModule,
     CacheModule,
     ThrottlerConfigModule,
+    PolicyValidationModule,
     AuthModule,
     AuditModule,
     GitAnalysisModule,

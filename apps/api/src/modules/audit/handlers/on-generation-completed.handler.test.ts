@@ -2,8 +2,8 @@ import "reflect-metadata";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { GenerationCompletedEvent } from "../../../shared/events/generation-completed.event.js";
 import { AuditService } from "../audit.service.js";
-import { GenerationCompletedEvent } from "../events/generation-completed.event.js";
 
 import { OnGenerationCompletedHandler } from "./on-generation-completed.handler.js";
 

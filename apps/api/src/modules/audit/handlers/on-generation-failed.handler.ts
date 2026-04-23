@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { EventsHandler, type IEventHandler } from "@nestjs/cqrs";
 
+import { GenerationFailedEvent } from "../../../shared/events/generation-failed.event.js";
 import { AuditService } from "../audit.service.js";
-import { GenerationFailedEvent } from "../events/generation-failed.event.js";
 
 @Injectable()
 @EventsHandler(GenerationFailedEvent)

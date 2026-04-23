@@ -1,4 +1,4 @@
-import type { ParsedCC } from "../../../../shared/cc-parser.js";
+import type { ParsedCC } from "../../cc-parser.js";
 
 export type ParsedOk = Extract<ParsedCC, { ok: true }>;
 

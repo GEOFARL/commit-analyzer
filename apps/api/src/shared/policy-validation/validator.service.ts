@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { parseConventionalCommit } from "../../../shared/cc-parser.js";
+import { parseConventionalCommit } from "../cc-parser.js";
 
 import { RULE_REGISTRY, UnknownPolicyRuleError } from "./rules/registry.js";
 import type {
