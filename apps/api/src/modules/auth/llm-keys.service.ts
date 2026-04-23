@@ -5,13 +5,19 @@ import { EventBus } from "@nestjs/cqrs";
 
 import { LLM_API_KEY_REPOSITORY } from "../../common/database/tokens.js";
 import { CryptoService } from "../../shared/crypto.service.js";
-import { mapProviderError } from "../commit-generation/providers/llm-provider.errors.js";
+import {
+  mapProviderError,
+  QuotaExhaustedError,
+  TimeoutError,
+} from "../commit-generation/providers/llm-provider.errors.js";
 import { LLMProviderFactory } from "../commit-generation/providers/llm-provider.factory.js";
 
 import { LlmKeyDeletedEvent } from "./events/llm-key-deleted.event.js";
 import { LlmKeyUpsertedEvent } from "./events/llm-key-upserted.event.js";
 import {
   InvalidLlmApiKeyException,
+  LlmProviderQuotaExhaustedException,
+  LlmProviderTimeoutException,
   LlmProviderUnavailableException,
 } from "./llm-keys.errors.js";
 
@@ -36,18 +42,30 @@ export class LlmKeysService {
     provider: LlmProviderName,
     key: string,
   ): Promise<LLMApiKey> {
-    // `BaseLLMProvider.verify()` collapses upstream errors into a boolean:
-    // AuthError → false, QuotaError → true (valid but rate-limited), and
-    // other upstream failures are the only path that throws. So we only need
-    // to handle the boolean and the upstream-error throw here.
+    // `BaseLLMProvider.verify()` collapses outcomes into:
+    //   AuthError → false ("provider rejected the API key"),
+    //   QuotaError (plain 429 rate-limit) → true (transient; allow save),
+    //   QuotaExhaustedError / TimeoutError / UpstreamError → thrown.
+    // The thrown errors are translated below into distinct 422 codes so the UI
+    // can show actionable messages instead of a generic "unavailable".
     let verified: boolean;
     try {
       verified = await this.providers.get(provider).verify(key);
     } catch (err) {
       const mapped = mapProviderError(err);
       this.logger.warn(
-        `LLM verify threw for provider=${provider}: ${mapped.message}`,
+        `LLM verify threw for provider=${provider}: ${mapped.name}: ${mapped.message}`,
       );
+      if (mapped instanceof QuotaExhaustedError) {
+        throw new LlmProviderQuotaExhaustedException(
+          `${provider} account has no remaining quota — add billing credit and try again`,
+        );
+      }
+      if (mapped instanceof TimeoutError) {
+        throw new LlmProviderTimeoutException(
+          `timed out contacting ${provider}; please retry`,
+        );
+      }
       throw new LlmProviderUnavailableException(
         "could not verify the API key with the provider",
       );

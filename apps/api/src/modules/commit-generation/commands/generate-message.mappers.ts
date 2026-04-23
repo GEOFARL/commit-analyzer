@@ -4,6 +4,8 @@ import type { ValidatorPolicy } from "../../../shared/policy-validation/validato
 import {
   AuthError,
   QuotaError,
+  QuotaExhaustedError,
+  TimeoutError,
   UpstreamError,
 } from "../providers/llm-provider.errors.js";
 import type { PromptPolicy } from "../services/prompt-builder.types.js";
@@ -37,7 +39,9 @@ export const toValidatorPolicy = (policy: Policy): ValidatorPolicy => ({
 
 export const classifyGenerationError = (error: unknown): string => {
   if (error instanceof AuthError) return "LLM_AUTH";
+  if (error instanceof QuotaExhaustedError) return "LLM_QUOTA_EXHAUSTED";
   if (error instanceof QuotaError) return "LLM_RATE_LIMIT";
+  if (error instanceof TimeoutError) return "LLM_TIMEOUT";
   if (error instanceof UpstreamError) return "LLM_UPSTREAM";
   if (error instanceof Error && error.constructor.name !== "Error") {
     return error.constructor.name;
