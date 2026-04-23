@@ -5,15 +5,11 @@ import { NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CryptoService } from "../../shared/crypto.service.js";
-import { LlmKeyDeletedEvent } from "../audit/events/llm-key-deleted.event.js";
-import { LlmKeyUpsertedEvent } from "../audit/events/llm-key-upserted.event.js";
-import {
-  AuthError,
-  QuotaError,
-  UpstreamError,
-} from "../commit-generation/providers/llm-provider.errors.js";
+import { UpstreamError } from "../commit-generation/providers/llm-provider.errors.js";
 import type { LLMProviderFactory } from "../commit-generation/providers/llm-provider.factory.js";
 
+import { LlmKeyDeletedEvent } from "./events/llm-key-deleted.event.js";
+import { LlmKeyUpsertedEvent } from "./events/llm-key-upserted.event.js";
 import {
   InvalidLlmApiKeyException,
   LlmProviderUnavailableException,
@@ -85,76 +81,64 @@ describe("LlmKeysService", () => {
       const saved = makeRecord();
       repo.upsertForUser.mockResolvedValueOnce(saved);
 
-      const result = await makeService().upsert(USER_ID, {
-        provider: "openai",
-        apiKey: "sk-live-validkey1",
-      });
+      const result = await makeService().upsert(
+        USER_ID,
+        "openai",
+        "sk-live-validkey1",
+      );
 
       expect(verify).toHaveBeenCalledWith("sk-live-validkey1");
       expect(crypto.encryptParts).toHaveBeenCalledWith("sk-live-validkey1");
       expect(repo.upsertForUser).toHaveBeenCalledWith({
         userId: USER_ID,
         provider: "openai",
-        keyEnc: expect.any(Buffer),
-        keyIv: expect.any(Buffer),
-        keyTag: expect.any(Buffer),
+        keyEnc: Buffer.from("c"),
+        keyIv: Buffer.from("i"),
+        keyTag: Buffer.from("t"),
         status: "ok",
       });
-      expect(publish).toHaveBeenCalledWith(
-        expect.any(LlmKeyUpsertedEvent),
-      );
+      expect(publish).toHaveBeenCalledWith(new LlmKeyUpsertedEvent(USER_ID, "openai"));
       expect(result).toBe(saved);
     });
 
-    it("rejects when verify returns false", async () => {
+    // `BaseLLMProvider.verify()` returns false on AuthError — the service's
+    // invalid-key path must trigger on that boolean, not on an exception.
+    it("rejects with 422 when verify returns false (provider auth rejection)", async () => {
       verify.mockResolvedValueOnce(false);
 
       await expect(
-        makeService().upsert(USER_ID, {
-          provider: "openai",
-          apiKey: "sk-invalid-key-12345",
-        }),
+        makeService().upsert(USER_ID, "openai", "sk-invalid-key-12345"),
       ).rejects.toBeInstanceOf(InvalidLlmApiKeyException);
 
       expect(repo.upsertForUser).not.toHaveBeenCalled();
       expect(publish).not.toHaveBeenCalled();
     });
 
-    it("rejects when verify throws an AuthError", async () => {
-      verify.mockRejectedValueOnce(new AuthError("unauthorized"));
-
-      await expect(
-        makeService().upsert(USER_ID, {
-          provider: "anthropic",
-          apiKey: "sk-ant-rejected01234",
-        }),
-      ).rejects.toBeInstanceOf(InvalidLlmApiKeyException);
-      expect(repo.upsertForUser).not.toHaveBeenCalled();
-    });
-
-    it("still saves the key when verify throws a QuotaError", async () => {
-      verify.mockRejectedValueOnce(new QuotaError("rate limited"));
+    // `BaseLLMProvider.verify()` maps QuotaError → true so the user isn't
+    // blocked from saving a working key during a rate-limit hiccup; the
+    // service must honor that boolean.
+    it("saves when verify returns true even during a quota hiccup", async () => {
+      verify.mockResolvedValueOnce(true);
       repo.upsertForUser.mockResolvedValueOnce(makeRecord());
 
-      await makeService().upsert(USER_ID, {
-        provider: "openai",
-        apiKey: "sk-quota-exhausted123",
-      });
+      await makeService().upsert(
+        USER_ID,
+        "openai",
+        "sk-quota-exhausted123",
+      );
 
       expect(repo.upsertForUser).toHaveBeenCalled();
       expect(publish).toHaveBeenCalledWith(
-        expect.any(LlmKeyUpsertedEvent),
+        new LlmKeyUpsertedEvent(USER_ID, "openai"),
       );
     });
 
+    // UpstreamError is the only category `verify()` re-throws.
     it("surfaces LlmProviderUnavailableException on upstream failures", async () => {
       verify.mockRejectedValueOnce(new UpstreamError("5xx"));
 
       await expect(
-        makeService().upsert(USER_ID, {
-          provider: "openai",
-          apiKey: "sk-working-maybe12345",
-        }),
+        makeService().upsert(USER_ID, "openai", "sk-working-maybe12345"),
       ).rejects.toBeInstanceOf(LlmProviderUnavailableException);
       expect(repo.upsertForUser).not.toHaveBeenCalled();
     });
@@ -166,7 +150,9 @@ describe("LlmKeysService", () => {
 
       await makeService().remove(USER_ID, "openai");
 
-      expect(publish).toHaveBeenCalledWith(expect.any(LlmKeyDeletedEvent));
+      expect(publish).toHaveBeenCalledWith(
+        new LlmKeyDeletedEvent(USER_ID, "openai"),
+      );
     });
 
     it("throws NotFoundException when no row was removed", async () => {

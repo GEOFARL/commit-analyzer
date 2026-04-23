@@ -1,4 +1,4 @@
-import type { LlmApiKey, LlmProviderName } from "@commit-analyzer/contracts";
+import type { LlmApiKey } from "@commit-analyzer/contracts";
 
 export type LlmKeysEnvelope = {
   status: 200;
@@ -15,8 +15,3 @@ export type UpsertError = {
   code: string;
   message: string;
 };
-
-export const LLM_PROVIDERS: readonly LlmProviderName[] = [
-  "openai",
-  "anthropic",
-] as const;

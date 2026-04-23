@@ -3,7 +3,6 @@ import { initContract } from "@ts-rest/core";
 import { analyticsContract } from "./analytics.contract.js";
 import { auditContract } from "./audit.contract.js";
 import { authContract } from "./auth.contract.js";
-import { llmKeysContract } from "./llm-keys.contract.js";
 import { policiesContract } from "./policies.contract.js";
 import { reposContract } from "./repos.contract.js";
 
@@ -15,7 +14,6 @@ export const contracts = c.router({
   analytics: analyticsContract,
   repos: reposContract,
   policies: policiesContract,
-  llmKeys: llmKeysContract,
 });
 
 export type Contracts = typeof contracts;
@@ -25,12 +23,21 @@ export type {
   ApiKey,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
+  LlmApiKey,
+  LlmApiKeyStatus,
+  LlmProviderName,
+  UpsertLlmKeyBody,
   User,
 } from "./auth.contract.js";
 export {
   apiKeySchema,
   createApiKeyRequestSchema,
   createApiKeyResponseSchema,
+  llmApiKeySchema,
+  llmApiKeyStatusSchema,
+  llmApiKeyStatuses,
+  llmProviderSchema,
+  upsertLlmKeyBodySchema,
   userSchema,
 } from "./auth.contract.js";
 
@@ -97,22 +104,6 @@ export {
   validatePolicyInputSchema,
   validationResultSchema,
 } from "./policies.contract.js";
-
-export { llmKeysContract } from "./llm-keys.contract.js";
-export type {
-  LlmApiKey,
-  LlmApiKeyStatus,
-  LlmProviderName,
-  UpsertLlmKeyRequest,
-} from "./llm-keys.contract.js";
-export {
-  llmApiKeySchema,
-  llmApiKeyStatusSchema,
-  llmApiKeyStatuses,
-  llmProviderSchema,
-  llmProviders,
-  upsertLlmKeyRequestSchema,
-} from "./llm-keys.contract.js";
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";

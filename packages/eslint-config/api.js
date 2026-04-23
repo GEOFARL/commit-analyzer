@@ -116,6 +116,21 @@ export default [
                 to: { type: "module", captured: { name: "octokit" } },
               },
             },
+            // Settings → LLM API Keys (docs/03-modules/F-settings.md §6) puts
+            // the LLM key CRUD in `auth/`, but the verification probe is the
+            // same LLM provider client used for message generation and lives
+            // in `commit-generation/` (T-4.4). A targeted exception — not
+            // blanket cross-cutting — keeps the `auth → commit-generation`
+            // edge narrow to this one legitimate dependency.
+            {
+              from: { type: "module", captured: { name: "auth" } },
+              allow: {
+                to: {
+                  type: "module",
+                  captured: { name: "commit-generation" },
+                },
+              },
+            },
             {
               from: { type: "shared" },
               allow: { to: { type: "common" } },

@@ -51,10 +51,13 @@ export const LlmKeysView = ({ userId, initialItems }: LlmKeysPageData) => {
   const handleUpsert = useCallback(
     async (
       provider: LlmProviderName,
-      apiKey: string,
+      key: string,
     ): Promise<UpsertError | null> => {
       try {
-        await upsertMutation.mutateAsync({ body: { provider, apiKey } });
+        await upsertMutation.mutateAsync({
+          params: { provider },
+          body: { key },
+        });
         return null;
       } catch (err) {
         return parseServerError(err);

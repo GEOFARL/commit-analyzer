@@ -1,6 +1,7 @@
 "use client";
 
 import type { LlmProviderName } from "@commit-analyzer/contracts";
+import { llmProviderSchema } from "@commit-analyzer/contracts";
 import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
@@ -23,7 +24,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { LLM_PROVIDERS, type UpsertError } from "../types";
+import type { UpsertError } from "../types";
+
+const LLM_PROVIDERS = llmProviderSchema.options;
 
 type Props = {
   open: boolean;

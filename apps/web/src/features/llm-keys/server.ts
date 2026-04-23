@@ -12,7 +12,7 @@ export const getLlmKeysPageData = async (): Promise<LlmKeysPageData> => {
   const userId = sessionData.session?.user.id ?? "anonymous";
 
   const client = createServerTsRestClient(accessToken);
-  const res = await client.llmKeys.list();
+  const res = await client.auth.llmKeys.list();
 
   if (res.status !== 200) {
     throw new Error(`Failed to load LLM keys (status ${res.status})`);

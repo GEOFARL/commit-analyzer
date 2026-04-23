@@ -31,8 +31,12 @@ export const LlmKeyRow = ({ llmKey, isDeleting, onDelete }: Props) => {
           <span className="truncate font-medium text-sm sm:text-base">
             {t(`providers.${llmKey.provider}`)}
           </span>
-          <Badge variant="secondary" className="font-mono text-xs shrink-0">
-            {llmKey.maskedKey}
+          <Badge
+            variant="secondary"
+            aria-hidden="true"
+            className="font-mono text-xs shrink-0"
+          >
+            ••••••••
           </Badge>
           <Badge
             variant={llmKey.status === "ok" ? "default" : "secondary"}

@@ -2,8 +2,8 @@ import "reflect-metadata";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { LlmKeyUpsertedEvent } from "../../auth/events/llm-key-upserted.event.js";
 import { AuditService } from "../audit.service.js";
-import { LlmKeyUpsertedEvent } from "../events/llm-key-upserted.event.js";
 
 import { OnLlmKeyUpsertedHandler } from "./on-llm-key-upserted.handler.js";
 

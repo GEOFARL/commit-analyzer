@@ -15,7 +15,7 @@ export const useLlmKeysQuery = (
   userId: string,
   initialItems: LlmApiKey[],
 ) => {
-  const query = tsr.llmKeys.list.useQuery({
+  const query = tsr.auth.llmKeys.list.useQuery({
     queryKey: [...llmKeyQueryKeys.all(userId)],
     queryData: {},
     initialData: {
@@ -41,7 +41,7 @@ export const useUpsertLlmKeyMutation = (userId: string) => {
   const t = useTranslations("llmKeys");
   const queryKey = llmKeyQueryKeys.all(userId);
 
-  return tsr.llmKeys.upsert.useMutation({
+  return tsr.auth.llmKeys.upsert.useMutation({
     onSuccess: (data) => {
       if (data.status === 200) {
         queryClient.setQueryData<LlmKeysEnvelope>([...queryKey], (prev) => {
@@ -74,7 +74,7 @@ export const useDeleteLlmKeyMutation = (userId: string) => {
   const t = useTranslations("llmKeys");
   const queryKey = llmKeyQueryKeys.all(userId);
 
-  return tsr.llmKeys.remove.useMutation({
+  return tsr.auth.llmKeys.delete.useMutation({
     onMutate: async (vars: { params: { provider: LlmProviderName } }) => {
       await queryClient.cancelQueries({ queryKey: [...queryKey] });
       const prev = queryClient.getQueryData<LlmKeysEnvelope>([...queryKey]);
