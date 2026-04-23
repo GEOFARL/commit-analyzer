@@ -34,6 +34,11 @@ export type {
   GenerationHistoryListOptions,
   GenerationHistoryRepository,
 } from "./generation-history.repository.js";
+export { createLLMApiKeyRepository } from "./llm-api-key.repository.js";
+export type {
+  LLMApiKeyRepository,
+  UpsertLLMApiKeyInput,
+} from "./llm-api-key.repository.js";
 export { createPolicyRepository } from "./policy.repository.js";
 export type {
   CreatePolicyInput,

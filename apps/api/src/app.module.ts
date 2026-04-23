@@ -10,6 +10,7 @@ import { CommitGenerationModule } from "./modules/commit-generation/commit-gener
 import { GitAnalysisModule } from "./modules/git-analysis/git-analysis.module.js";
 import { HealthController } from "./modules/health/health.controller.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
+import { LlmKeysModule } from "./modules/llm-keys/llm-keys.module.js";
 import { PolicyModule } from "./modules/policy/policy.module.js";
 import { ReposModule } from "./modules/repos/repos.module.js";
 import { WsModule } from "./modules/ws/ws.module.js";
@@ -28,6 +29,7 @@ import { PolicyValidationModule } from "./shared/policy-validation/policy-valida
     ReposModule,
     PolicyModule,
     CommitGenerationModule,
+    LlmKeysModule,
     JobsModule,
     WsModule,
   ],

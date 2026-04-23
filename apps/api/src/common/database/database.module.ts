@@ -6,6 +6,7 @@ import {
   createCommitRepository,
   createDataSource,
   createGenerationHistoryRepository,
+  createLLMApiKeyRepository,
   createPolicyRepository,
   createRepositoryRepository,
   createSyncJobRepository,
@@ -25,6 +26,7 @@ import {
   COMMIT_REPOSITORY,
   DATA_SOURCE,
   GENERATION_HISTORY_REPOSITORY,
+  LLM_API_KEY_REPOSITORY,
   POLICY_REPOSITORY,
   REPOSITORY_REPOSITORY,
   SYNC_JOB_REPOSITORY,
@@ -107,6 +109,11 @@ const dbLogger = new Logger("DatabaseModule");
       useFactory: (ds: DataSource) => createGenerationHistoryRepository(ds),
     },
     {
+      provide: LLM_API_KEY_REPOSITORY,
+      inject: [DATA_SOURCE],
+      useFactory: (ds: DataSource) => createLLMApiKeyRepository(ds),
+    },
+    {
       provide: APP_INTERCEPTOR,
       useClass: TransactionalInterceptor,
     },
@@ -123,6 +130,7 @@ const dbLogger = new Logger("DatabaseModule");
     SYNC_JOB_REPOSITORY,
     POLICY_REPOSITORY,
     GENERATION_HISTORY_REPOSITORY,
+    LLM_API_KEY_REPOSITORY,
   ],
 })
 export class DatabaseModule {}

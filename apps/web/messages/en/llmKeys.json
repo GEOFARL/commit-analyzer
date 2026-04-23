@@ -1,0 +1,49 @@
+{
+  "title": "LLM API Keys",
+  "subtitle": "Store the provider keys used to generate commit messages. Keys are verified with the provider before they are encrypted at rest.",
+  "addKey": "Add key",
+  "delete": "Delete",
+  "created": "Added",
+  "providers": {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic"
+  },
+  "status": {
+    "ok": "Verified",
+    "invalid": "Invalid",
+    "unknown": "Unknown"
+  },
+  "empty": {
+    "title": "No LLM keys yet",
+    "description": "Add an OpenAI or Anthropic API key to start generating commit messages.",
+    "cta": "Add your first key"
+  },
+  "error": {
+    "load": "Failed to load LLM keys. Please try again."
+  },
+  "toast": {
+    "saved": "LLM API key saved.",
+    "saveError": "Failed to save LLM API key.",
+    "deleted": "LLM API key deleted.",
+    "deleteError": "Failed to delete LLM API key."
+  },
+  "upsertDialog": {
+    "title": "Add LLM API key",
+    "description": "We'll verify the key with the provider before storing it. It is encrypted at rest and never shown again.",
+    "providerLabel": "Provider",
+    "keyLabel": "API key",
+    "keyPlaceholder": "sk-…",
+    "keyHelp": "The key is sent once to the provider for verification and stored encrypted.",
+    "replacingHint": "This provider already has a key. Submitting will replace it.",
+    "revealKey": "Show key",
+    "hideKey": "Hide key",
+    "cancel": "Cancel",
+    "verifyAndSave": "Verify & save"
+  },
+  "deleteDialog": {
+    "title": "Delete LLM API key?",
+    "description": "The {provider} key will be permanently deleted. Commit generation with this provider will stop working until a new key is added.",
+    "cancel": "Cancel",
+    "confirm": "Delete"
+  }
+}
