@@ -1,8 +1,6 @@
 import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 
-import { ValidatorService } from "../../shared/policy-validation/validator.service.js";
-
 import { GenerateMessageHandler } from "./commands/generate-message.handler.js";
 import { AnthropicProvider } from "./providers/anthropic.provider.js";
 import { LLMProviderFactory } from "./providers/llm-provider.factory.js";
@@ -20,7 +18,6 @@ const COMMAND_HANDLERS = [GenerateMessageHandler];
     OpenAIProvider,
     AnthropicProvider,
     LLMProviderFactory,
-    ValidatorService,
     ...COMMAND_HANDLERS,
   ],
   exports: [

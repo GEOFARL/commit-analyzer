@@ -9,6 +9,7 @@ import type {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ValidatorService } from "../../../shared/policy-validation/validator.service.js";
+import { QuotaError } from "../providers/llm-provider.errors.js";
 import { LLMProviderFactory } from "../providers/llm-provider.factory.js";
 import type {
   GenerateArgs,
@@ -303,6 +304,46 @@ describe("GenerateMessageHandler", () => {
     expect(result.tokensUsed).toBe(200);
   });
 
+  it("discards the regen result and its token cost when the rerun is no better", async () => {
+    getServerEnvMock.mockReturnValue({ GENERATION_POLICY_REGEN_ENABLED: true });
+    const provider = mockProvider({
+      suggestions: [
+        [
+          { type: "chore", subject: "short" },
+          { type: "wip", subject: "messing around" },
+        ],
+        [
+          { type: "chore", subject: "still bad" },
+          { type: "wip", subject: "also bad" },
+        ],
+      ],
+      tokensUsed: 100,
+    });
+    const { handler } = build({
+      provider,
+      policies: mockPolicyRepo(policyFixture()),
+      repos: mockReposRepo(true),
+    });
+
+    const result = await handler.execute(
+      new GenerateMessageCommand(
+        USER_ID,
+        SAMPLE_DIFF,
+        "openai",
+        "gpt-4o-mini",
+        "sk-test",
+        { repositoryId: REPO_ID, count: 2 },
+      ),
+    );
+
+    expect(result.regenerated).toBe(false);
+    expect(result.tokensUsed).toBe(100);
+    expect(result.suggestions.map((s) => s.subject)).toEqual([
+      "short",
+      "messing around",
+    ]);
+  });
+
   it("does not regenerate when the flag is off, even with failing suggestions", async () => {
     const provider = mockProvider({
       suggestions: [
@@ -356,8 +397,8 @@ describe("GenerateMessageHandler", () => {
     expect(eventBus.publish).not.toHaveBeenCalled();
   });
 
-  it("records a failed history row and emits generation.failed when provider throws", async () => {
-    const err = new Error("upstream down");
+  it("records a failed history row and emits generation.failed with a classified reason", async () => {
+    const err = new QuotaError("rate limited");
     const throwingStream: AsyncIterable<SuggestionEvent> = {
       [Symbol.asyncIterator]: () => ({ next: () => Promise.reject(err) }),
     };
@@ -385,9 +426,12 @@ describe("GenerateMessageHandler", () => {
       .calls[0]![0] as Record<string, unknown>;
     expect(createArgs.status).toBe("failed");
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
+    const publishSpy = eventBus.publish;
+    const event = publishSpy.mock.calls[0]![0] as { reason: string };
+    expect(event.reason).toBe("LLM_RATE_LIMIT");
   });
 
-  it("skips policy lookup when the user does not own the repository", async () => {
+  it("skips policy lookup when repositoryId is given but the user does not own it", async () => {
     const provider = mockProvider({
       suggestions: [[{ type: "chore", subject: "short" }]],
     });
@@ -414,5 +458,53 @@ describe("GenerateMessageHandler", () => {
     }).getActiveForRepo;
     expect(activeSpy).not.toHaveBeenCalled();
     expect(result.suggestions[0]!.compliant).toBe(true);
+  });
+
+  it("throws PolicyAccessDeniedError when policyId points at a repo not owned by the user", async () => {
+    const provider = mockProvider({
+      suggestions: [[{ type: "feat", subject: "add guard" }]],
+    });
+    const { handler } = build({
+      provider,
+      policies: mockPolicyRepo(policyFixture()),
+      repos: mockReposRepo(false),
+    });
+
+    await expect(
+      handler.execute(
+        new GenerateMessageCommand(
+          USER_ID,
+          SAMPLE_DIFF,
+          "openai",
+          "gpt-4o-mini",
+          "sk-test",
+          { policyId: POLICY_ID },
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("throws PolicyAccessDeniedError when policyId does not exist", async () => {
+    const provider = mockProvider({
+      suggestions: [[{ type: "feat", subject: "add guard" }]],
+    });
+    const { handler } = build({
+      provider,
+      policies: mockPolicyRepo(null),
+      repos: mockReposRepo(true),
+    });
+
+    await expect(
+      handler.execute(
+        new GenerateMessageCommand(
+          USER_ID,
+          SAMPLE_DIFF,
+          "openai",
+          "gpt-4o-mini",
+          "sk-test",
+          { policyId: POLICY_ID },
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

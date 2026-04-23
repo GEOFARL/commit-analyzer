@@ -174,6 +174,8 @@ const mockReposRepo = () =>
   }) as unknown as RepositoryRepository;
 
 const build = (provider: LLMProvider) => {
+  // Same fixture mock wired for both slots — fixture tests only exercise one
+  // provider per run, and the factory picks by name at call time.
   const factory = new LLMProviderFactory(
     provider as never,
     provider as never,

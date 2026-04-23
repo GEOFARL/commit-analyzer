@@ -1,7 +1,6 @@
 import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 
-import { ValidatorService } from "../../shared/policy-validation/validator.service.js";
 import { AuthModule } from "../auth/auth.module.js";
 
 import { ApplyDefaultPolicyOnRepoConnected } from "./apply-default-policy.handler.js";
@@ -16,8 +15,7 @@ import { PolicyService } from "./policy.service.js";
     PolicyService,
     DefaultPolicyService,
     ApplyDefaultPolicyOnRepoConnected,
-    ValidatorService,
   ],
-  exports: [PolicyService, DefaultPolicyService, ValidatorService],
+  exports: [PolicyService, DefaultPolicyService],
 })
 export class PolicyModule {}

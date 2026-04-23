@@ -2,7 +2,6 @@ import type {
   GenerationHistoryRepository,
   Policy,
   PolicyRepository,
-  PolicyRule,
   RepositoryRepository,
 } from "@commit-analyzer/database";
 import { renderParsedDiff, type ParsedDiff } from "@commit-analyzer/diff-parser";
@@ -23,29 +22,26 @@ import {
 import { GenerationCompletedEvent } from "../../../shared/events/generation-completed.event.js";
 import { GenerationFailedEvent } from "../../../shared/events/generation-failed.event.js";
 import { ValidatorService } from "../../../shared/policy-validation/validator.service.js";
-import type { ValidatorPolicy } from "../../../shared/policy-validation/validator.service.types.js";
 import { LLMProviderFactory } from "../providers/llm-provider.factory.js";
 import type { LLMProvider } from "../providers/llm-provider.interface.js";
 import type { LlmSuggestion } from "../providers/suggestion.schema.js";
 import { hashDiff } from "../services/diff-hash.js";
 import { DiffParserService } from "../services/diff-parser.service.js";
 import { PromptBuilderService } from "../services/prompt-builder.service.js";
-import type { PromptPolicy } from "../services/prompt-builder.types.js";
 import { formatSuggestionAsCommitMessage } from "../services/suggestion-formatter.js";
 
 import { GenerateMessageCommand } from "./generate-message.command.js";
+import { PolicyAccessDeniedError } from "./generate-message.errors.js";
+import {
+  classifyGenerationError,
+  regenSystemSuffix,
+  toPromptPolicy,
+  toValidatorPolicy,
+} from "./generate-message.mappers.js";
 import type {
   EnrichedSuggestion,
   GenerateMessageResult,
 } from "./generate-message.result.js";
-
-const REGEN_SYSTEM_SUFFIX = (failures: string[]): string =>
-  [
-    "",
-    "Your previous suggestions failed these policy rules:",
-    ...failures.map((line) => `- ${line}`),
-    "Regenerate all suggestions so every one satisfies the rules above.",
-  ].join("\n");
 
 @Injectable()
 @CommandHandler(GenerateMessageCommand)
@@ -74,7 +70,11 @@ export class GenerateMessageHandler
     const { userId, diff, provider, model, apiKey, options } = command;
     const parsed = this.diffParser.parse(diff);
     const diffHash = hashDiff(renderParsedDiff(parsed));
-    const policy = await this.resolvePolicy(userId, options.policyId, options.repositoryId);
+    const policy = await this.resolvePolicy(
+      userId,
+      options.policyId,
+      options.repositoryId,
+    );
     const count = options.count ?? 3;
 
     try {
@@ -103,14 +103,14 @@ export class GenerateMessageHandler
           policy,
           count,
           signal: options.signal,
-          regenSuffix: REGEN_SYSTEM_SUFFIX(failures),
+          regenSuffix: regenSystemSuffix(failures),
         });
         const reEnriched = this.enrich(second.suggestions, policy);
         if (this.compliantCount(reEnriched) > this.compliantCount(enriched)) {
           enriched = reEnriched;
+          tokensUsed += second.tokensUsed;
+          regenerated = true;
         }
-        tokensUsed += second.tokensUsed;
-        regenerated = true;
       }
 
       const status: GenerationStatus = "completed";
@@ -146,7 +146,7 @@ export class GenerateMessageHandler
         regenerated,
       };
     } catch (error) {
-      const reason = error instanceof Error ? error.name : "unknown";
+      const reason = classifyGenerationError(error);
       const historyId = await this.persist({
         userId,
         repositoryId: options.repositoryId,
@@ -204,9 +204,7 @@ export class GenerateMessageHandler
     suggestions: LlmSuggestion[],
     policy: Policy | null,
   ): EnrichedSuggestion[] {
-    const validatorPolicy = policy
-      ? toValidatorPolicy(policy)
-      : null;
+    const validatorPolicy = policy ? toValidatorPolicy(policy) : null;
     return suggestions.map((s) => {
       const validation = validatorPolicy
         ? this.validator.validate(
@@ -237,12 +235,13 @@ export class GenerateMessageHandler
   ): Promise<Policy | null> {
     if (policyId) {
       const policy = await this.policies.findWithRules(policyId);
-      if (!policy) return null;
+      if (!policy) throw new PolicyAccessDeniedError();
       const owned = await this.repositories.findByIdForUser(
         policy.repositoryId,
         userId,
       );
-      return owned ? policy : null;
+      if (!owned) throw new PolicyAccessDeniedError();
+      return policy;
     }
     if (repositoryId) {
       const owned = await this.repositories.findByIdForUser(
@@ -309,20 +308,3 @@ export class GenerateMessageHandler
     }
   }
 }
-
-const toPromptPolicy = (policy: Policy | null): PromptPolicy | undefined => {
-  if (!policy) return undefined;
-  return {
-    rules: policy.rules.map((rule: PolicyRule) => ({
-      ruleType: rule.ruleType,
-      ruleValue: rule.ruleValue,
-    })) as PromptPolicy["rules"],
-  };
-};
-
-const toValidatorPolicy = (policy: Policy): ValidatorPolicy => ({
-  rules: policy.rules.map((rule) => ({
-    ruleType: rule.ruleType,
-    ruleValue: rule.ruleValue,
-  })),
-});
