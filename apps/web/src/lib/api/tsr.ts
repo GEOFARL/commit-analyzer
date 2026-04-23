@@ -42,7 +42,7 @@ const TOKEN_REFRESH_LEEWAY_SECONDS = 60;
  * stale, which surfaces as a transient error card on screens that gate UI on
  * `isError` / `failureReason`.
  */
-const resolveBrowserToken = async (): Promise<string | undefined> => {
+export const resolveBrowserToken = async (): Promise<string | undefined> => {
   try {
     const supabase = getBrowserSupabase();
     const { data } = await supabase.auth.getSession();

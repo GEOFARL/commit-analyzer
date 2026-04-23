@@ -7,6 +7,7 @@ import en_auth from "../../messages/en/auth.json";
 import en_common from "../../messages/en/common.json";
 import en_dashboard from "../../messages/en/dashboard.json";
 import en_errors from "../../messages/en/errors.json";
+import en_generate from "../../messages/en/generate.json";
 import en_landing from "../../messages/en/landing.json";
 import en_llmKeys from "../../messages/en/llmKeys.json";
 import en_login from "../../messages/en/login.json";
@@ -23,6 +24,7 @@ import uk_auth from "../../messages/uk/auth.json";
 import uk_common from "../../messages/uk/common.json";
 import uk_dashboard from "../../messages/uk/dashboard.json";
 import uk_errors from "../../messages/uk/errors.json";
+import uk_generate from "../../messages/uk/generate.json";
 import uk_landing from "../../messages/uk/landing.json";
 import uk_llmKeys from "../../messages/uk/llmKeys.json";
 import uk_login from "../../messages/uk/login.json";
@@ -44,6 +46,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     common: en_common,
     dashboard: en_dashboard,
     errors: en_errors,
+    generate: en_generate,
     landing: en_landing,
     llmKeys: en_llmKeys,
     login: en_login,
@@ -62,6 +65,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     common: uk_common,
     dashboard: uk_dashboard,
     errors: uk_errors,
+    generate: uk_generate,
     landing: uk_landing,
     llmKeys: uk_llmKeys,
     login: uk_login,
