@@ -138,7 +138,7 @@ const buildApp = async (
     ),
   };
   const llmKeyRepo = {
-    findByUserProvider: vi.fn().mockResolvedValue(
+    findByUserAndProvider: vi.fn().mockResolvedValue(
       withLlmKey
         ? {
             userId: USER_ID,
@@ -204,7 +204,17 @@ const buildApp = async (
         }),
         inject: [ClsService],
       },
-      { provide: ApiKeyGuard, useValue: { canActivate: () => false } },
+      {
+        provide: ApiKeyGuard,
+        useFactory: (cls: ClsService) => ({
+          canActivate: () => {
+            cls.set("auth.userId", USER_ID);
+            cls.set("auth.kind", "api-key");
+            return true;
+          },
+        }),
+        inject: [ClsService],
+      },
       JwtOrApiKeyGuard,
     ],
   })
@@ -281,6 +291,64 @@ describe("POST /generate (SSE)", () => {
 
     expect(res.status).toBe(412);
     expect(res.body).toMatchObject({ code: "NO_LLM_KEY" });
+  });
+
+  it("accepts API-key auth via x-api-key header", async () => {
+    const ctx = await buildApp(fakeProvider(happyPathScript));
+    app = ctx.app;
+    const server = app.getHttpServer() as Server;
+
+    const res = await request(server)
+      .post("/generate")
+      .set("x-api-key", "cap_secret_xxxxxxxxxxxxxxxxxx")
+      .send({ diff: SAMPLE_DIFF, provider: "openai", model: "gpt-4o-mini" });
+
+    expect(res.status).toBe(200);
+    const frames = parseSseFrames(res.text);
+    expect(frames.map((f) => f.kind)).toEqual(["suggestion", "done"]);
+  });
+
+  it("delivers the first SSE frame within the TTFT budget (<2 s)", async () => {
+    const ctx = await buildApp(fakeProvider(happyPathScript));
+    app = ctx.app;
+    await app.listen(0);
+    const server = app.getHttpServer() as Server;
+    const { port } = server.address() as AddressInfo;
+
+    const http = await import("node:http");
+    const payload = JSON.stringify({
+      diff: SAMPLE_DIFF,
+      provider: "openai",
+      model: "gpt-4o-mini",
+    });
+    const start = performance.now();
+    const ttft = await new Promise<number>((resolve, reject) => {
+      const req_ = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/generate",
+          method: "POST",
+          headers: {
+            authorization: "Bearer stub-jwt",
+            "content-type": "application/json",
+            "content-length": Buffer.byteLength(payload),
+          },
+        },
+        (r) => {
+          r.once("data", () => {
+            const delta = performance.now() - start;
+            req_.destroy();
+            resolve(delta);
+          });
+          r.once("error", reject);
+        },
+      );
+      req_.once("error", reject);
+      req_.end(payload);
+      setTimeout(() => reject(new Error("ttft timeout")), 3000);
+    });
+    expect(ttft).toBeLessThan(2000);
   });
 
   it("rejects unauthenticated requests with 401", async () => {

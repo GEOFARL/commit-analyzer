@@ -18,9 +18,7 @@ import {
 } from "./supabase-auth.guard.js";
 
 @Module({
-  // forwardRef: CommitGenerationModule imports AuthModule for the SSE route's
-  // JwtOrApiKeyGuard, and AuthModule's LlmKeysService calls LLMProviderFactory
-  // from CommitGenerationModule. Break the circular import at the module edge.
+  // forwardRef breaks the auth ↔ commit-generation cycle.
   imports: [CqrsModule, forwardRef(() => CommitGenerationModule)],
   controllers: [AuthController, AuthTsRestController],
   providers: [

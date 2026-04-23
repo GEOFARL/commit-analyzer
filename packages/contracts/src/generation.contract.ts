@@ -56,25 +56,9 @@ export type ErrorFrame = z.infer<typeof errorFrameSchema>;
 
 export const generationContract = c.router(
   {
-    /**
-     * Streams Conventional Commit suggestions as Server-Sent Events.
-     *
-     * Response is `text/event-stream` with four event kinds, per Module C §2:
-     * - `suggestion`: one per generated message (carries `compliant` + per-rule
-     *   `validation` breakdown when a policy is active).
-     * - `token`: optional live-token delta (reserved; not emitted today).
-     * - `done`: terminal success frame with `historyId` + `tokensUsed`.
-     * - `error`: terminal failure frame with `{code, message}`.
-     *
-     * Transport headers:
-     * - `Cache-Control: no-cache, no-transform`
-     * - `X-Accel-Buffering: no`
-     * - `: ping` heartbeat every 15 s on idle streams.
-     *
-     * `responses: { 200: z.void() }` — ts-rest has no SSE primitive; the body
-     * above describes the stream format. Clients consume this endpoint with
-     * raw fetch streaming or `EventSource`, not `initClient`.
-     */
+    // SSE stream — frames (suggestion/token/done/error) + headers per Module C
+    // §2 and 05-api-contracts §6. `200: z.void()` because ts-rest has no SSE
+    // primitive; consume via fetch streaming or EventSource, not initClient.
     generate: {
       method: "POST",
       path: "/generate",

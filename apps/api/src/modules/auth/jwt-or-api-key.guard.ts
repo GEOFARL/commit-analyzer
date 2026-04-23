@@ -10,13 +10,7 @@ import type { Request } from "express";
 import { ApiKeyGuard } from "./api-key.guard.js";
 import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
-/**
- * Composite guard for `/generate`: accepts either a Supabase JWT via
- * `Authorization: Bearer …` or an API key via `x-api-key`. The first header
- * that is present determines which child guard runs — no ambiguous
- * best-effort chains, and a failing header returns the 401 from that guard
- * rather than masking it as a generic fallback.
- */
+// JWT wins when both headers are sent (see `09-security.md §8`).
 @Injectable()
 export class JwtOrApiKeyGuard implements CanActivate {
   constructor(

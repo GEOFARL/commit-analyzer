@@ -24,7 +24,7 @@ import { GenerationStreamService } from "../services/generation-stream.service.j
 import { LlmKeyService } from "../services/llm-key.service.js";
 
 import { HEARTBEAT_MS } from "./generate.constants.js";
-import { writeSseEvent } from "./generate.mappers.js";
+import { canWrite, writeSseEvent } from "./generate.mappers.js";
 
 @Controller()
 @UseGuards(JwtOrApiKeyGuard)
@@ -67,33 +67,25 @@ export class GenerateController {
 
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders?.();
 
-    // Disable Nagle so each SSE frame hits the wire immediately; sending an
-    // initial comment frame guarantees the client's first-byte timer trips
-    // before the provider's first token lands (covers the TTFT budget even
-    // when the upstream is slow).
+    // Prime TTFT: disable Nagle + write a comment frame before the provider's
+    // first token.
     res.socket?.setNoDelay(true);
-    res.write(": connected\n\n");
+    if (canWrite(res)) res.write(": connected\n\n");
 
     const abort = new AbortController();
-    // Use res.on('close') — that's the event Express/Node fire on client
-    // disconnect for a still-open response. req.on('close') does not fire
-    // reliably once headers have been flushed.
     res.on("close", () => abort.abort());
 
     const heartbeat = setInterval(() => {
-      if (!res.writableEnded) res.write(": ping\n\n");
+      if (canWrite(res)) res.write(": ping\n\n");
     }, HEARTBEAT_MS);
     heartbeat.unref?.();
 
     try {
-      // Drain the whole generator even after the client disconnects: the
-      // stream service needs to reach its post-catch branch to persist the
-      // cancelled history row. Breaking out here would abandon the async
-      // generator and skip persistence.
+      // Drain the generator fully — breaking early abandons it and skips the
+      // cancelled-history persist in the post-abort branch.
       for await (const ev of this.stream.stream({
         userId,
         diff: body.diff,
@@ -107,10 +99,10 @@ export class GenerateController {
           signal: abort.signal,
         },
       })) {
-        if (!res.writableEnded) writeSseEvent(res, ev);
+        if (canWrite(res)) writeSseEvent(res, ev);
       }
     } catch (err) {
-      if (!res.writableEnded) {
+      if (canWrite(res)) {
         writeSseEvent(res, {
           kind: "error",
           data: {
@@ -121,7 +113,7 @@ export class GenerateController {
       }
     } finally {
       clearInterval(heartbeat);
-      if (!res.writableEnded) res.end();
+      if (canWrite(res)) res.end();
     }
   }
 }
