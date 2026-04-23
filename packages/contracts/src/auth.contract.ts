@@ -1,9 +1,32 @@
+import { llmProviders } from "@commit-analyzer/shared-types";
 import { initContract } from "@ts-rest/core";
 import { z } from "zod";
 
 import { errorEnvelopeSchema } from "./shared/error.js";
 
 const c = initContract();
+
+export const llmProviderSchema = z.enum(llmProviders);
+export type LlmProviderName = z.infer<typeof llmProviderSchema>;
+
+export const llmApiKeyStatuses = ["ok", "invalid", "unknown"] as const;
+export const llmApiKeyStatusSchema = z.enum(llmApiKeyStatuses);
+export type LlmApiKeyStatus = z.infer<typeof llmApiKeyStatusSchema>;
+
+// Response shape per docs/03-modules/F-settings.md §2 — no plaintext and no
+// prefix is exposed. The UI renders a fixed placeholder to show "configured".
+export const llmApiKeySchema = z.object({
+  id: z.string().uuid(),
+  provider: llmProviderSchema,
+  status: llmApiKeyStatusSchema,
+  createdAt: z.string().datetime(),
+});
+export type LlmApiKey = z.infer<typeof llmApiKeySchema>;
+
+export const upsertLlmKeyBodySchema = z.object({
+  key: z.string().min(8).max(512),
+});
+export type UpsertLlmKeyBody = z.infer<typeof upsertLlmKeyBodySchema>;
 
 export const userSchema = z.object({
   id: z.string().uuid(),
@@ -96,6 +119,49 @@ export const authContract = c.router(
             404: errorEnvelopeSchema,
           },
           summary: "Revoke an API key",
+          metadata: { auth: "jwt", rateLimit: "default" } as const,
+        },
+      },
+      { pathPrefix: "" },
+    ),
+    llmKeys: c.router(
+      {
+        list: {
+          method: "GET",
+          path: "/llm-keys",
+          responses: {
+            200: z.object({ items: z.array(llmApiKeySchema) }),
+            401: errorEnvelopeSchema,
+          },
+          summary: "List LLM API keys for the current user",
+          metadata: { auth: "jwt", rateLimit: "default" } as const,
+        },
+        upsert: {
+          method: "PUT",
+          path: "/llm-keys/:provider",
+          pathParams: z.object({ provider: llmProviderSchema }),
+          body: upsertLlmKeyBodySchema,
+          responses: {
+            200: llmApiKeySchema,
+            400: errorEnvelopeSchema,
+            401: errorEnvelopeSchema,
+            422: errorEnvelopeSchema,
+          },
+          summary:
+            "Verify an LLM API key with the provider and store it on success",
+          metadata: { auth: "jwt", rateLimit: "auth" } as const,
+        },
+        delete: {
+          method: "DELETE",
+          path: "/llm-keys/:provider",
+          pathParams: z.object({ provider: llmProviderSchema }),
+          body: c.noBody(),
+          responses: {
+            204: c.noBody(),
+            401: errorEnvelopeSchema,
+            404: errorEnvelopeSchema,
+          },
+          summary: "Delete the LLM API key for a provider",
           metadata: { auth: "jwt", rateLimit: "default" } as const,
         },
       },

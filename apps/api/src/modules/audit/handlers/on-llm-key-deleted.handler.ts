@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { EventsHandler, type IEventHandler } from "@nestjs/cqrs";
 
+import { LlmKeyDeletedEvent } from "../../auth/events/llm-key-deleted.event.js";
 import { AuditService } from "../audit.service.js";
-import { LlmKeyDeletedEvent } from "../events/llm-key-deleted.event.js";
 
 @Injectable()
 @EventsHandler(LlmKeyDeletedEvent)

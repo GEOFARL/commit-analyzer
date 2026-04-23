@@ -23,12 +23,21 @@ export type {
   ApiKey,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
+  LlmApiKey,
+  LlmApiKeyStatus,
+  LlmProviderName,
+  UpsertLlmKeyBody,
   User,
 } from "./auth.contract.js";
 export {
   apiKeySchema,
   createApiKeyRequestSchema,
   createApiKeyResponseSchema,
+  llmApiKeySchema,
+  llmApiKeyStatusSchema,
+  llmApiKeyStatuses,
+  llmProviderSchema,
+  upsertLlmKeyBodySchema,
   userSchema,
 } from "./auth.contract.js";
 
