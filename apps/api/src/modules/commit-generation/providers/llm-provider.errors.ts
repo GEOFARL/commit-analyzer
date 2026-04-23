@@ -14,6 +14,9 @@ export class TimeoutError extends LLMProviderError {}
 export class UpstreamError extends LLMProviderError {}
 
 const INSUFFICIENT_QUOTA_CODE = "insufficient_quota";
+// Anthropic does not use a stable error code for billing exhaustion — it
+// returns invalid_request_error (HTTP 400) with this human-readable message.
+const ANTHROPIC_LOW_CREDIT_MARKER = "credit balance is too low";
 
 // OpenAI returns 429 for both rate-limit and out-of-credit; only the body's
 // `error.code` distinguishes them. Distinguishing matters: rate-limit is
@@ -33,6 +36,35 @@ const isInsufficientQuota = (error: APICallError): boolean => {
   }
   const body = error.responseBody;
   if (typeof body === "string" && body.includes(INSUFFICIENT_QUOTA_CODE)) {
+    return true;
+  }
+  return false;
+};
+
+// Anthropic surfaces billing exhaustion as 400 invalid_request_error with a
+// "credit balance is too low" message, not 429. Detecting it here lets the
+// service raise the same actionable QuotaExhausted path as OpenAI.
+const isAnthropicLowCredit = (error: APICallError): boolean => {
+  const data = (error as { data?: unknown }).data;
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    data.error &&
+    typeof data.error === "object" &&
+    "message" in data.error &&
+    typeof (data.error as { message?: unknown }).message === "string" &&
+    (data.error as { message: string }).message
+      .toLowerCase()
+      .includes(ANTHROPIC_LOW_CREDIT_MARKER)
+  ) {
+    return true;
+  }
+  const body = error.responseBody;
+  if (
+    typeof body === "string" &&
+    body.toLowerCase().includes(ANTHROPIC_LOW_CREDIT_MARKER)
+  ) {
     return true;
   }
   return false;
@@ -81,6 +113,9 @@ export function mapProviderError(error: unknown): LLMProviderError {
       return isInsufficientQuota(error)
         ? new QuotaExhaustedError(error.message, error)
         : new QuotaError(error.message, error);
+    }
+    if (status === 400 && isAnthropicLowCredit(error)) {
+      return new QuotaExhaustedError(error.message, error);
     }
     return new UpstreamError(error.message, error);
   }

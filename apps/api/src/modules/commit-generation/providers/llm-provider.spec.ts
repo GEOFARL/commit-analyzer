@@ -182,6 +182,38 @@ describe.each([
       );
     });
 
+    // Anthropic returns 400 invalid_request_error (not 429) when the account
+    // is out of credit. Without the dedicated branch this would surface as a
+    // generic "could not verify" upstream error.
+    it("throws QuotaExhaustedError on Anthropic-style 400 'credit balance is too low'", async () => {
+      generateTextMock.mockRejectedValueOnce(
+        apiCallError(400, {
+          data: {
+            error: {
+              type: "invalid_request_error",
+              message:
+                "Your credit balance is too low to access the Anthropic API.",
+            },
+          },
+        }),
+      );
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        QuotaExhaustedError,
+      );
+    });
+
+    it("throws QuotaExhaustedError when only responseBody carries the Anthropic low-credit message", async () => {
+      generateTextMock.mockRejectedValueOnce(
+        apiCallError(400, {
+          responseBody:
+            '{"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}',
+        }),
+      );
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        QuotaExhaustedError,
+      );
+    });
+
     it("unwraps a RetryError wrapping a 401 and returns false", async () => {
       const inner = apiCallError(401);
       generateTextMock.mockRejectedValueOnce(
