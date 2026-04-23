@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { QUICK_GENERATE_DIFF_STORAGE_KEY } from "@/lib/storage-keys";
 
 import { MODELS_BY_PROVIDER } from "../constants";
 import { useGenerateStream, useLlmKeysQuery } from "../hooks";
@@ -55,6 +56,18 @@ export const GenerateView = ({
     setProvider(next);
     setModel(MODELS_BY_PROVIDER[next][0] ?? null);
   }, [keys, provider]);
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(QUICK_GENERATE_DIFF_STORAGE_KEY);
+      if (stored) {
+        setDiff(stored);
+        sessionStorage.removeItem(QUICK_GENERATE_DIFF_STORAGE_KEY);
+      }
+    } catch {
+      // sessionStorage unavailable — ignore.
+    }
+  }, []);
 
   const handleProviderChange = useCallback((next: LlmProviderName) => {
     setProvider(next);
