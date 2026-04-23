@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { SAMPLE_DIFF, TTFT_BUDGET_MS } from "./generate.constants";
 
 // Optional smoke suite that exercises the same generate flow against a real
 // staging LLM provider. Skipped by default — the mock SSE stub in the main
@@ -13,18 +14,6 @@ import { expect, test } from "./fixtures";
 // environment uses — this suite does not inject Supabase fixtures.
 const RUN_LIVE = process.env.E2E_REAL_LLM === "1";
 const LIVE_BASE_URL = process.env.E2E_REAL_LLM_BASE_URL ?? "";
-
-const SAMPLE_DIFF = `diff --git a/src/auth.ts b/src/auth.ts
-index e69de29..b6fc4c6 100644
---- a/src/auth.ts
-+++ b/src/auth.ts
-@@ -0,0 +1,3 @@
-+export const signIn = async (email, password) => {
-+  return await api.post("/auth/sign-in", { email, password });
-+};
-`;
-
-const TTFT_BUDGET_MS = 2_000;
 
 test.describe("generate (live LLM)", () => {
   test.skip(!RUN_LIVE, "set E2E_REAL_LLM=1 to enable the live smoke suite");
@@ -42,19 +31,14 @@ test.describe("generate (live LLM)", () => {
 
     await page.getByLabel("Diff", { exact: true }).fill(SAMPLE_DIFF);
 
-    const startedAt = Date.now();
     await page.getByRole("button", { name: /^Generate$/ }).click();
 
     // Don't lock the assertion to a specific subject string — real LLM output
     // is non-deterministic. Wait for the first suggestion card instead.
+    // `toBeVisible({ timeout })` is the TTFT gate.
     await expect(page.getByRole("article").first()).toBeVisible({
       timeout: TTFT_BUDGET_MS,
     });
-    const ttftMs = Date.now() - startedAt;
-    expect(
-      ttftMs,
-      `live TTFT was ${ttftMs}ms (budget ${TTFT_BUDGET_MS}ms)`,
-    ).toBeLessThan(TTFT_BUDGET_MS);
 
     // Stream is expected to settle within ~30 s; the per-suggestion count is
     // bounded by the contract (max 5).

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { TEST_SERVER_ENV } from "./e2e/server-env-stub";
+
 const MOCK_PORT = 54321;
 
 export default defineConfig({
@@ -30,22 +32,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key",
       NEXT_PUBLIC_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
-      // The /api/generate-proxy route calls loadServerEnv() at module load and
-      // fails the dev build hard if any var is missing. Stub the full server
-      // schema so the proxy reaches the mock SSE handler. APP_URL / API_URL /
-      // WEB_ORIGIN are the values the proxy actually reads; everything else is
-      // schema-required filler.
-      APP_URL: "http://localhost:3000",
-      API_URL: `http://127.0.0.1:${MOCK_PORT}`,
-      WEB_ORIGIN: "http://localhost:3000",
-      DATABASE_URL: "postgres://stub:stub@127.0.0.1:5432/stub",
-      REDIS_URL: "redis://127.0.0.1:6379",
-      SUPABASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-      SUPABASE_ANON_KEY: "mock-anon-key",
-      SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key",
-      GITHUB_CLIENT_ID: "mock-github-client-id",
-      GITHUB_CLIENT_SECRET: "mock-github-client-secret",
-      ENCRYPTION_KEY_BASE64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      ...TEST_SERVER_ENV,
     },
   },
 });

@@ -164,6 +164,10 @@ type MockPolicy = {
   updatedAt: string;
 };
 
+// Module-scoped: state persists for the life of the worker process.
+// Intentional — Playwright retries within a run reuse this Map so a flaky
+// retry doesn't lose seeded fixtures, and `resetState()` clears it only at
+// startup/teardown.
 const policies = new Map<string, MockPolicy>();
 
 const listPoliciesForRepo = (repoId: string): MockPolicy[] =>
@@ -217,7 +221,12 @@ const validateAgainstRules = (
             };
       }
       default:
-        return { ruleType: rule.ruleType, passed: true };
+        // Surface mock drift early — silently passing unknown rule types
+        // would let new validators ship with green E2Es while the mock is
+        // not actually exercising them.
+        throw new Error(
+          `validateAgainstRules: unknown ruleType "${rule.ruleType}" — extend the mock when adding new rules.`,
+        );
     }
   });
 
@@ -275,11 +284,10 @@ const STUB_SUGGESTIONS: StubSuggestion[] = [
   },
 ];
 
-// Inter-frame delay for the SSE stream. The spec asserts TTFT (first
-// suggestion frame visible in the DOM) < 2 s, so the first chunk is flushed
-// immediately and subsequent ones spaced just enough that the client can
-// observe the streaming behaviour.
-const STUB_FRAME_GAP_MS = 50;
+// Inter-frame delay for the SSE stream. Kept at 0 — the spec only asserts
+// the final card count and the per-suggestion content, not mid-stream UI
+// state, so spacing the frames just slows the test without buying signal.
+const STUB_FRAME_GAP_MS = 0;
 
 const sendSseEvent = (
   res: ServerResponse,
