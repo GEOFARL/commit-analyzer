@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { TEST_SERVER_ENV } from "./e2e/server-env-stub";
+
 const MOCK_PORT = 54321;
 
 export default defineConfig({
@@ -30,6 +32,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key",
       NEXT_PUBLIC_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
       NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      ...TEST_SERVER_ENV,
     },
   },
 });

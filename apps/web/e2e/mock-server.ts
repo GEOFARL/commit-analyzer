@@ -164,6 +164,10 @@ type MockPolicy = {
   updatedAt: string;
 };
 
+// Module-scoped: state persists for the life of the worker process.
+// Intentional — Playwright retries within a run reuse this Map so a flaky
+// retry doesn't lose seeded fixtures, and `resetState()` clears it only at
+// startup/teardown.
 const policies = new Map<string, MockPolicy>();
 
 const listPoliciesForRepo = (repoId: string): MockPolicy[] =>
@@ -217,11 +221,112 @@ const validateAgainstRules = (
             };
       }
       default:
-        return { ruleType: rule.ruleType, passed: true };
+        // Surface mock drift early — silently passing unknown rule types
+        // would let new validators ship with green E2Es while the mock is
+        // not actually exercising them.
+        throw new Error(
+          `validateAgainstRules: unknown ruleType "${rule.ruleType}" — extend the mock when adding new rules.`,
+        );
     }
   });
 
   return { passed: results.every((r) => r.passed), results };
+};
+
+// ─── LLM keys + generate fixtures ───────────────────────────────────────────
+
+// One pre-seeded "ok" key per supported provider. The generate page picks the
+// first verified key as the default selection — keep this list non-empty so
+// the spec doesn't have to navigate through the "no keys configured" empty
+// state before submitting.
+const LLM_KEYS = [
+  {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    provider: "anthropic" as const,
+    status: "ok" as const,
+    createdAt: "2024-02-01T00:00:00.000Z",
+  },
+];
+
+// Three deterministic suggestions used by the SSE stub. Subjects are written
+// to fail the strict E2E policy (allowedTypes = [feat], maxSubjectLength = 30)
+// so the badges-reflect-validation acceptance criterion is exercised end-to-end
+// without relying on probabilistic LLM output.
+type StubSuggestion = {
+  type: string;
+  scope: string | null;
+  subject: string;
+  body: string | null;
+  footer: string | null;
+};
+
+const STUB_SUGGESTIONS: StubSuggestion[] = [
+  {
+    type: "feat",
+    scope: "auth",
+    subject: "add email + password sign-in flow",
+    body: null,
+    footer: null,
+  },
+  {
+    type: "fix",
+    scope: "auth",
+    subject: "patch the long-running session refresh edge case",
+    body: null,
+    footer: null,
+  },
+  {
+    type: "chore",
+    scope: null,
+    subject: "tidy up auth module",
+    body: null,
+    footer: null,
+  },
+];
+
+// Inter-frame delay for the SSE stream. Kept at 0 — the spec only asserts
+// the final card count and the per-suggestion content, not mid-stream UI
+// state, so spacing the frames just slows the test without buying signal.
+const STUB_FRAME_GAP_MS = 0;
+
+const sendSseEvent = (
+  res: ServerResponse,
+  event: string,
+  data: unknown,
+): void => {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+};
+
+const buildSuggestionFrame = (
+  index: number,
+  stub: StubSuggestion,
+  policyRules: MockPolicyRule[] | null,
+) => {
+  const headerLine = `${stub.type}${stub.scope ? `(${stub.scope})` : ""}: ${stub.subject}`;
+  if (!policyRules) {
+    return {
+      index,
+      type: stub.type,
+      scope: stub.scope,
+      subject: stub.subject,
+      body: stub.body,
+      footer: stub.footer,
+      compliant: true,
+      validation: null,
+    };
+  }
+  const validation = validateAgainstRules(headerLine, policyRules);
+  return {
+    index,
+    type: stub.type,
+    scope: stub.scope,
+    subject: stub.subject,
+    body: stub.body,
+    footer: stub.footer,
+    compliant: validation.passed,
+    validation,
+  };
 };
 
 // ─── Sync simulation state ──────────────────────────────────────────────────
@@ -510,6 +615,76 @@ const handleRequest = async (
         return;
     }
     sendJson(req, res, 404, { message: "not found" });
+    return;
+  }
+
+  // ── LLM keys ─────────────────────────────────────────────────────────────
+  if (req.method === "GET" && pathname === "/llm-keys") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    sendJson(req, res, 200, { items: LLM_KEYS });
+    return;
+  }
+
+  // ── Generate (SSE) ───────────────────────────────────────────────────────
+  if (req.method === "POST" && pathname === "/generate") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const body = (await readJsonBody(req)) as {
+      policyId?: unknown;
+      repositoryId?: unknown;
+    };
+    const policyId = typeof body.policyId === "string" ? body.policyId : null;
+    const policy = policyId ? (policies.get(policyId) ?? null) : null;
+    const policyRules = policy ? policy.rules : null;
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+      ...corsHeaders(req),
+    });
+
+    let cancelled = false;
+    req.on("close", () => {
+      cancelled = true;
+    });
+
+    // Flush headers + first frame immediately. The TTFT acceptance assertion
+    // measures from the submit click to the first suggestion card being
+    // visible in the DOM, so any delay before the first write directly eats
+    // into the budget.
+    sendSseEvent(
+      res,
+      "suggestion",
+      buildSuggestionFrame(0, STUB_SUGGESTIONS[0]!, policyRules),
+    );
+
+    let i = 1;
+    const writeNext = (): void => {
+      if (cancelled) return;
+      if (i >= STUB_SUGGESTIONS.length) {
+        sendSseEvent(res, "done", {
+          historyId: "11111111-2222-4222-8222-333333333333",
+          tokensUsed: 1234,
+        });
+        res.end();
+        return;
+      }
+      sendSseEvent(
+        res,
+        "suggestion",
+        buildSuggestionFrame(i, STUB_SUGGESTIONS[i]!, policyRules),
+      );
+      i += 1;
+      setTimeout(writeNext, STUB_FRAME_GAP_MS);
+    };
+    setTimeout(writeNext, STUB_FRAME_GAP_MS);
     return;
   }
 
