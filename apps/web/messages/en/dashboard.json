@@ -1,15 +1,51 @@
 {
   "title": "Dashboard",
-  "placeholder": "Your connected repositories will appear here.",
   "welcome": "Welcome back",
+  "welcomeNamed": "Welcome back, {name}",
   "welcomeHelper": "Here's a quick overview of your workspace.",
-  "ctaRepositories": "Go to repositories",
-  "cards": {
-    "repositories": "Repositories",
-    "repositoriesHelper": "Connect a GitHub repo to start analyzing commits.",
-    "generate": "Generate",
-    "generateHelper": "Draft commit messages from a diff using your LLM keys.",
-    "comingSoon": "Coming soon",
-    "comingSoonTooltip": "Available in Phase 2"
+  "recentRepos": {
+    "heading": "Recent repositories",
+    "openAnalytics": "Open analytics",
+    "lastSynced": "Last synced {time}",
+    "neverSynced": "Never synced",
+    "viewAll": "View all {count}",
+    "empty": {
+      "title": "No connected repositories",
+      "description": "Connect a GitHub repository to start analyzing commits and generating messages.",
+      "cta": "Connect repository"
+    }
+  },
+  "quickGenerate": {
+    "heading": "Quick generate",
+    "label": "Paste a diff to draft a commit message",
+    "hint": "We'll open the generator with this diff pre-filled so you can pick a provider and go.",
+    "placeholder": "diff --git a/... b/...",
+    "continue": "Continue in generator",
+    "chars": "{count, plural, =0 {0 characters} one {# character} other {# characters}}",
+    "tooLarge": "Diff exceeds 1 MB. Open the generator to upload a file instead.",
+    "noKey": {
+      "title": "Add an LLM key to start generating",
+      "description": "Provide an OpenAI or Anthropic key to draft commit messages from diffs.",
+      "cta": "Add LLM key"
+    }
+  },
+  "quickActions": {
+    "heading": "Quick actions",
+    "connect": {
+      "title": "Connect repository",
+      "description": "Link a GitHub repo."
+    },
+    "generate": {
+      "title": "Generate message",
+      "description": "Draft a commit from a diff."
+    },
+    "policies": {
+      "title": "Manage policies",
+      "description": "Tune commit-quality rules."
+    },
+    "llmKeys": {
+      "title": "LLM keys",
+      "description": "Store provider credentials."
+    }
   }
 }
