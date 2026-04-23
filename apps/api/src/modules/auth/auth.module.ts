@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 
 import { CryptoService } from "../../shared/crypto.service.js";
@@ -8,6 +8,7 @@ import { ApiKeyGuard } from "./api-key.guard.js";
 import { AuthTsRestController } from "./auth-ts-rest.controller.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthService } from "./auth.service.js";
+import { JwtOrApiKeyGuard } from "./jwt-or-api-key.guard.js";
 import { LlmKeysService } from "./llm-keys.service.js";
 import { SupabaseAdminService } from "./supabase-admin.service.js";
 import {
@@ -17,12 +18,14 @@ import {
 } from "./supabase-auth.guard.js";
 
 @Module({
-  imports: [CqrsModule, CommitGenerationModule],
+  // forwardRef breaks the auth ↔ commit-generation cycle.
+  imports: [CqrsModule, forwardRef(() => CommitGenerationModule)],
   controllers: [AuthController, AuthTsRestController],
   providers: [
     supabaseClientProvider,
     SupabaseAuthGuard,
     ApiKeyGuard,
+    JwtOrApiKeyGuard,
     AuthService,
     LlmKeysService,
     SupabaseAdminService,
@@ -31,6 +34,7 @@ import {
   exports: [
     SupabaseAuthGuard,
     ApiKeyGuard,
+    JwtOrApiKeyGuard,
     AuthService,
     LlmKeysService,
     SUPABASE_CLIENT,
