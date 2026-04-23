@@ -1,5 +1,6 @@
 "use client";
 
+import type { LlmApiKey } from "@commit-analyzer/contracts";
 import {
   doneFrameSchema,
   errorFrameSchema,
@@ -16,7 +17,7 @@ import {
 
 import { resolveBrowserToken, tsr } from "@/lib/api/tsr";
 
-import { generationQueryKeys } from "./queries";
+import { generationQueryKeys, llmKeysSharedQueryKey } from "./queries";
 import type { GenerateInput, StreamState } from "./types";
 
 const GENERATE_PROXY_URL = "/api/generate-proxy";
@@ -27,6 +28,19 @@ const INITIAL: StreamState = {
   error: null,
   done: null,
 };
+
+export const useLlmKeysQuery = (userId: string, initialItems: LlmApiKey[]) =>
+  tsr.auth.llmKeys.list.useQuery({
+    queryKey: [...llmKeysSharedQueryKey(userId)],
+    queryData: {},
+    initialData: {
+      status: 200,
+      body: { items: initialItems },
+      headers: new Headers(),
+    },
+    staleTime: 0,
+    retry: 0,
+  });
 
 export const usePoliciesForRepoQuery = (repoId: string | null) =>
   tsr.policies.list.useQuery({

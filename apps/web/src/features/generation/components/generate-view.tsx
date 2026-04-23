@@ -1,14 +1,14 @@
 "use client";
 
-import type { LlmProviderName } from "@commit-analyzer/contracts";
+import type { LlmApiKey, LlmProviderName } from "@commit-analyzer/contracts";
 import { Loader2, Sparkles, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 import { MODELS_BY_PROVIDER } from "../constants";
-import { useGenerateStream } from "../hooks";
+import { useGenerateStream, useLlmKeysQuery } from "../hooks";
 import type { GeneratePageData } from "../types";
 
 import { DiffInput } from "./diff-input";
@@ -18,19 +18,21 @@ import { SuggestionList } from "./suggestion-list";
 
 const MAX_DIFF_BYTES = 1_000_000;
 
-const pickInitialProvider = (
-  keys: GeneratePageData["configuredKeys"],
-): LlmProviderName | null => {
+const pickInitialProvider = (keys: LlmApiKey[]): LlmProviderName | null => {
   const usable = keys.filter((k) => k.status !== "invalid");
   const verified = usable.find((k) => k.status === "ok");
   return (verified ?? usable[0])?.provider ?? null;
 };
 
 export const GenerateView = ({
+  userId,
   configuredKeys,
   repos,
 }: GeneratePageData) => {
   const t = useTranslations("generate");
+
+  const keysQuery = useLlmKeysQuery(userId, configuredKeys);
+  const keys = keysQuery.data?.body.items ?? configuredKeys;
 
   const [diff, setDiff] = useState("");
   const [provider, setProvider] = useState<LlmProviderName | null>(() =>
@@ -46,8 +48,14 @@ export const GenerateView = ({
   const { state, start, cancel } = useGenerateStream();
   const streaming = state.status === "streaming";
 
-  // Reset the model whenever the provider changes so we never send a model
-  // string that the newly-selected provider does not recognise.
+  useEffect(() => {
+    if (provider !== null) return;
+    const next = pickInitialProvider(keys);
+    if (!next) return;
+    setProvider(next);
+    setModel(MODELS_BY_PROVIDER[next][0] ?? null);
+  }, [keys, provider]);
+
   const handleProviderChange = useCallback((next: LlmProviderName) => {
     setProvider(next);
     setModel(MODELS_BY_PROVIDER[next][0] ?? null);
@@ -84,7 +92,7 @@ export const GenerateView = ({
       <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 sm:p-6">
         <DiffInput value={diff} onChange={setDiff} disabled={streaming} />
         <ProviderSelector
-          configuredKeys={configuredKeys}
+          configuredKeys={keys}
           provider={provider}
           model={model}
           onProviderChange={handleProviderChange}
