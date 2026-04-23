@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-const FORWARD_PATH = "/v1/generate";
+const FORWARD_PATH = "/generate";
 
 const { API_URL, WEB_ORIGIN } = loadServerEnv();
 const FORWARD_URL = `${API_URL.replace(/\/$/u, "")}${FORWARD_PATH}`;
