@@ -3,6 +3,7 @@ import { initContract } from "@ts-rest/core";
 import { analyticsContract } from "./analytics.contract.js";
 import { auditContract } from "./audit.contract.js";
 import { authContract } from "./auth.contract.js";
+import { generationContract } from "./generation.contract.js";
 import { policiesContract } from "./policies.contract.js";
 import { reposContract } from "./repos.contract.js";
 
@@ -14,6 +15,7 @@ export const contracts = c.router({
   analytics: analyticsContract,
   repos: reposContract,
   policies: policiesContract,
+  generation: generationContract,
 });
 
 export type Contracts = typeof contracts;
@@ -104,6 +106,22 @@ export {
   validatePolicyInputSchema,
   validationResultSchema,
 } from "./policies.contract.js";
+
+export { generationContract } from "./generation.contract.js";
+export type {
+  DoneFrame,
+  ErrorFrame,
+  GenerateRequest,
+  SuggestionFrame,
+  TokenFrame,
+} from "./generation.contract.js";
+export {
+  doneFrameSchema,
+  errorFrameSchema,
+  generateRequestSchema,
+  suggestionFrameSchema,
+  tokenFrameSchema,
+} from "./generation.contract.js";
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";
