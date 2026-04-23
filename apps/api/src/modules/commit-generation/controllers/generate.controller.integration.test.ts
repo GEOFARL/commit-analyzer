@@ -69,7 +69,7 @@ const happyPathScript: () => AsyncIterable<SuggestionEvent> = () => ({
       {
         kind: "suggestion",
         index: 0,
-        value: { type: "feat", subject: "add user validation" },
+        value: { type: "feat", scope: null, subject: "add user validation", body: null, footer: null },
       },
       { kind: "done", tokensUsed: 123 },
     ];
@@ -94,7 +94,7 @@ const hangingScript = (
     yield {
       kind: "suggestion",
       index: 0,
-      value: { type: "feat", subject: "first" },
+      value: { type: "feat", scope: null, subject: "first", body: null, footer: null },
     };
     await new Promise<void>((resolve, reject) => {
       if (signal?.aborted) {

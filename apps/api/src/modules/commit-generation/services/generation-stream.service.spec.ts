@@ -151,9 +151,9 @@ describe("GenerationStreamService", () => {
   it("yields suggestion, done events and emits generation.completed", async () => {
     const provider = mockProvider({
       suggestions: [
-        { type: "feat", subject: "add user validation" },
-        { type: "fix", subject: "throw on missing user" },
-        { type: "refactor", subject: "guard empty input" },
+        { type: "feat", scope: null, subject: "add user validation", body: null, footer: null },
+        { type: "fix", scope: null, subject: "throw on missing user", body: null, footer: null },
+        { type: "refactor", scope: null, subject: "guard empty input", body: null, footer: null },
       ],
       tokensUsed: 321,
     });
@@ -219,8 +219,8 @@ describe("GenerationStreamService", () => {
     const controller = new AbortController();
     const provider = mockProvider({
       suggestions: [
-        { type: "feat", subject: "first suggestion" },
-        { type: "fix", subject: "second suggestion" },
+        { type: "feat", scope: null, subject: "first suggestion", body: null, footer: null },
+        { type: "fix", scope: null, subject: "second suggestion", body: null, footer: null },
       ],
       throwOn: "after-first",
       error: Object.assign(new Error("aborted"), { name: "AbortError" }),
@@ -249,7 +249,7 @@ describe("GenerationStreamService", () => {
 
   it("starts yielding the first suggestion quickly (TTFT < 2s)", async () => {
     const provider = mockProvider({
-      suggestions: [{ type: "feat", subject: "add guard" }],
+      suggestions: [{ type: "feat", scope: null, subject: "add guard", body: null, footer: null }],
     });
     const { service } = build(provider);
     const t0 = Date.now();

@@ -72,27 +72,29 @@ const DIFFS = {
 // to exercise the "some fail but ≥80% overall" acceptance criterion.
 const FIXTURE_RESPONSES: Record<keyof typeof DIFFS, LlmSuggestion[]> = {
   authGuard: [
-    { type: "feat", scope: "auth", subject: "reject login with empty user" },
-    { type: "fix", scope: "auth", subject: "throw when user is missing" },
-    { type: "feat", scope: "auth", subject: "guard login against empty input" },
-    { type: "chore", scope: "auth", subject: "clean up login flow" },
+    { type: "feat", scope: "auth", subject: "reject login with empty user", body: null, footer: null },
+    { type: "fix", scope: "auth", subject: "throw when user is missing", body: null, footer: null },
+    { type: "feat", scope: "auth", subject: "guard login against empty input", body: null, footer: null },
+    { type: "chore", scope: "auth", subject: "clean up login flow", body: null, footer: null },
   ],
   timeoutBump: [
-    { type: "fix", scope: "api", subject: "bump fetchUser timeout to 5s" },
-    { type: "feat", scope: "api", subject: "raise request timeout" },
-    { type: "fix", scope: "api", subject: "increase TIMEOUT_MS to 5000" },
+    { type: "fix", scope: "api", subject: "bump fetchUser timeout to 5s", body: null, footer: null },
+    { type: "feat", scope: "api", subject: "raise request timeout", body: null, footer: null },
+    { type: "fix", scope: "api", subject: "increase TIMEOUT_MS to 5000", body: null, footer: null },
     {
       type: "feat",
       scope: "api",
       subject:
         "extend the timeout duration so that slow backends finish successfully",
+      body: null,
+      footer: null,
     },
   ],
   docsTypo: [
-    { type: "docs", subject: "fix typo in run command" },
-    { type: "docs", subject: "correct spelling of Run" },
-    { type: "docs", subject: "fix README typo" },
-    { type: "fix", subject: "correct README wording" },
+    { type: "docs", scope: null, subject: "fix typo in run command", body: null, footer: null },
+    { type: "docs", scope: null, subject: "correct spelling of Run", body: null, footer: null },
+    { type: "docs", scope: null, subject: "fix README typo", body: null, footer: null },
+    { type: "fix", scope: null, subject: "correct README wording", body: null, footer: null },
   ],
 };
 

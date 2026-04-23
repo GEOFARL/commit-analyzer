@@ -168,9 +168,9 @@ describe("GenerateMessageHandler", () => {
     const provider = mockProvider({
       suggestions: [
         [
-          { type: "feat", subject: "add user validation to login" },
-          { type: "fix", subject: "throw on missing user" },
-          { type: "refactor", subject: "guard empty user input" },
+          { type: "feat", scope: null, subject: "add user validation to login", body: null, footer: null },
+          { type: "fix", scope: null, subject: "throw on missing user", body: null, footer: null },
+          { type: "refactor", scope: null, subject: "guard empty user input", body: null, footer: null },
         ],
       ],
       tokensUsed: 321,
@@ -205,7 +205,7 @@ describe("GenerateMessageHandler", () => {
 
   it("never persists raw diff contents — only the hash", async () => {
     const provider = mockProvider({
-      suggestions: [[{ type: "feat", subject: "add validation" }]],
+      suggestions: [[{ type: "feat", scope: null, subject: "add validation", body: null, footer: null }]],
     });
     const history = mockHistoryRepo();
     const { handler } = build({ provider, history });
@@ -232,13 +232,16 @@ describe("GenerateMessageHandler", () => {
     const provider = mockProvider({
       suggestions: [
         [
-          { type: "feat", subject: "add login guard" },
+          { type: "feat", scope: null, subject: "add login guard", body: null, footer: null },
           {
             type: "chore",
+            scope: null,
             subject:
               "rewrite the whole thing extensively with more detail to explain",
+            body: null,
+            footer: null,
           },
-          { type: "fix", subject: "throw on missing user" },
+          { type: "fix", scope: null, subject: "throw on missing user", body: null, footer: null },
         ],
       ],
     });
@@ -272,12 +275,12 @@ describe("GenerateMessageHandler", () => {
     const provider = mockProvider({
       suggestions: [
         [
-          { type: "chore", subject: "short" },
-          { type: "wip", subject: "messing around" },
+          { type: "chore", scope: null, subject: "short", body: null, footer: null },
+          { type: "wip", scope: null, subject: "messing around", body: null, footer: null },
         ],
         [
-          { type: "feat", subject: "add auth guard" },
-          { type: "fix", subject: "throw on empty user" },
+          { type: "feat", scope: null, subject: "add auth guard", body: null, footer: null },
+          { type: "fix", scope: null, subject: "throw on empty user", body: null, footer: null },
         ],
       ],
       tokensUsed: 100,
@@ -309,12 +312,12 @@ describe("GenerateMessageHandler", () => {
     const provider = mockProvider({
       suggestions: [
         [
-          { type: "chore", subject: "short" },
-          { type: "wip", subject: "messing around" },
+          { type: "chore", scope: null, subject: "short", body: null, footer: null },
+          { type: "wip", scope: null, subject: "messing around", body: null, footer: null },
         ],
         [
-          { type: "chore", subject: "still bad" },
-          { type: "wip", subject: "also bad" },
+          { type: "chore", scope: null, subject: "still bad", body: null, footer: null },
+          { type: "wip", scope: null, subject: "also bad", body: null, footer: null },
         ],
       ],
       tokensUsed: 100,
@@ -348,8 +351,8 @@ describe("GenerateMessageHandler", () => {
     const provider = mockProvider({
       suggestions: [
         [
-          { type: "chore", subject: "short" },
-          { type: "wip", subject: "messing around" },
+          { type: "chore", scope: null, subject: "short", body: null, footer: null },
+          { type: "wip", scope: null, subject: "messing around", body: null, footer: null },
         ],
       ],
     });
@@ -376,7 +379,7 @@ describe("GenerateMessageHandler", () => {
 
   it("returns result with historyId=null when persistence fails (best-effort)", async () => {
     const provider = mockProvider({
-      suggestions: [[{ type: "feat", subject: "add guard" }]],
+      suggestions: [[{ type: "feat", scope: null, subject: "add guard", body: null, footer: null }]],
     });
     const history = mockHistoryRepo({
       createOne: vi.fn().mockRejectedValue(new Error("db down")),
@@ -433,7 +436,7 @@ describe("GenerateMessageHandler", () => {
 
   it("skips policy lookup when repositoryId is given but the user does not own it", async () => {
     const provider = mockProvider({
-      suggestions: [[{ type: "chore", subject: "short" }]],
+      suggestions: [[{ type: "chore", scope: null, subject: "short", body: null, footer: null }]],
     });
     const policies = mockPolicyRepo(policyFixture());
     const { handler } = build({
@@ -462,7 +465,7 @@ describe("GenerateMessageHandler", () => {
 
   it("throws PolicyAccessDeniedError when policyId points at a repo not owned by the user", async () => {
     const provider = mockProvider({
-      suggestions: [[{ type: "feat", subject: "add guard" }]],
+      suggestions: [[{ type: "feat", scope: null, subject: "add guard", body: null, footer: null }]],
     });
     const { handler } = build({
       provider,
@@ -486,7 +489,7 @@ describe("GenerateMessageHandler", () => {
 
   it("throws PolicyAccessDeniedError when policyId does not exist", async () => {
     const provider = mockProvider({
-      suggestions: [[{ type: "feat", subject: "add guard" }]],
+      suggestions: [[{ type: "feat", scope: null, subject: "add guard", body: null, footer: null }]],
     });
     const { handler } = build({
       provider,
