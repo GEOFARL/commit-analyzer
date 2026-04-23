@@ -32,15 +32,22 @@ export abstract class BaseLLMProvider implements LLMProvider {
 
     try {
       const client = this.clientFactory(apiKey);
+      // maxRetries: 0 — verify is a UI-facing health check, so the 10s timeout
+      // covers exactly one round-trip instead of being consumed by retries with
+      // backoff (otherwise a transient 429 can mask itself as a timeout).
       await generateText({
         model: client(modelId),
         prompt: "ping",
         abortSignal: signal,
+        maxRetries: 0,
       });
       return true;
     } catch (error) {
       const mapped = mapProviderError(error);
       if (mapped instanceof AuthError) return false;
+      // Plain rate-limit is transient — let the user save the key. Quota
+      // exhaustion and timeouts propagate so the service surfaces a specific
+      // reason to the UI.
       if (mapped instanceof QuotaError) return true;
       throw mapped;
     }

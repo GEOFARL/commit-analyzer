@@ -1,4 +1,4 @@
-import { APICallError } from "ai";
+import { APICallError, RetryError } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
@@ -34,6 +34,8 @@ const { AnthropicProvider } = await import("./anthropic.provider.js");
 const {
   AuthError,
   QuotaError,
+  QuotaExhaustedError,
+  TimeoutError,
   UpstreamError,
 } = await import("./llm-provider.errors.js");
 const { LLMProviderFactory } = await import("./llm-provider.factory.js");
@@ -41,12 +43,31 @@ const { OpenAIProvider } = await import("./openai.provider.js");
 
 const buildPrompt = () => ({ system: "sys", user: "usr" });
 
-const apiCallError = (statusCode: number) =>
+const apiCallError = (
+  statusCode: number,
+  options: { data?: unknown; responseBody?: string } = {},
+) =>
   new APICallError({
     message: `status ${statusCode}`,
     url: "https://example.test/v1",
     requestBodyValues: {},
     statusCode,
+    data: options.data,
+    responseBody: options.responseBody,
+  });
+
+const insufficientQuotaError = () =>
+  apiCallError(429, {
+    data: {
+      error: {
+        message: "You exceeded your current quota",
+        type: "insufficient_quota",
+        code: "insufficient_quota",
+      },
+    },
+    responseBody: JSON.stringify({
+      error: { type: "insufficient_quota", code: "insufficient_quota" },
+    }),
   });
 
 const fakeStream = <T>(values: T[]): AsyncIterable<T> => ({
@@ -141,6 +162,68 @@ describe.each([
     it("returns true when the upstream rejects with 429 (rate limited)", async () => {
       generateTextMock.mockRejectedValueOnce(apiCallError(429));
       await expect(create().verify("sk-test")).resolves.toBe(true);
+    });
+
+    it("throws QuotaExhaustedError on 429 insufficient_quota (billing)", async () => {
+      generateTextMock.mockRejectedValueOnce(insufficientQuotaError());
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        QuotaExhaustedError,
+      );
+    });
+
+    it("throws QuotaExhaustedError when responseBody (no parsed data) indicates insufficient_quota", async () => {
+      generateTextMock.mockRejectedValueOnce(
+        apiCallError(429, {
+          responseBody: '{"error":{"code":"insufficient_quota"}}',
+        }),
+      );
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        QuotaExhaustedError,
+      );
+    });
+
+    it("unwraps a RetryError wrapping a 401 and returns false", async () => {
+      const inner = apiCallError(401);
+      generateTextMock.mockRejectedValueOnce(
+        new RetryError({
+          message: "retries exhausted",
+          reason: "maxRetriesExceeded",
+          errors: [inner],
+        }),
+      );
+      await expect(create().verify("sk-bad")).resolves.toBe(false);
+    });
+
+    it("unwraps a RetryError wrapping 429 insufficient_quota", async () => {
+      const inner = insufficientQuotaError();
+      generateTextMock.mockRejectedValueOnce(
+        new RetryError({
+          message: "retries exhausted",
+          reason: "errorNotRetryable",
+          errors: [inner],
+        }),
+      );
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        QuotaExhaustedError,
+      );
+    });
+
+    it("throws TimeoutError when the request is aborted", async () => {
+      const abort = new Error("The operation was aborted");
+      abort.name = "AbortError";
+      generateTextMock.mockRejectedValueOnce(abort);
+      await expect(create().verify("sk-test")).rejects.toBeInstanceOf(
+        TimeoutError,
+      );
+    });
+
+    it("disables SDK retries so the 10s timeout isn't split across attempts", async () => {
+      generateTextMock.mockResolvedValueOnce({ text: "pong" });
+      await create().verify("sk-test");
+      const call = generateTextMock.mock.calls[0]![0] as {
+        maxRetries?: number;
+      };
+      expect(call.maxRetries).toBe(0);
     });
 
     it("throws UpstreamError on a 500", async () => {

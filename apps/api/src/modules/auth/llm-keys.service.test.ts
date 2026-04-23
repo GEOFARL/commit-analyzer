@@ -5,13 +5,19 @@ import { NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CryptoService } from "../../shared/crypto.service.js";
-import { UpstreamError } from "../commit-generation/providers/llm-provider.errors.js";
+import {
+  QuotaExhaustedError,
+  TimeoutError,
+  UpstreamError,
+} from "../commit-generation/providers/llm-provider.errors.js";
 import type { LLMProviderFactory } from "../commit-generation/providers/llm-provider.factory.js";
 
 import { LlmKeyDeletedEvent } from "./events/llm-key-deleted.event.js";
 import { LlmKeyUpsertedEvent } from "./events/llm-key-upserted.event.js";
 import {
   InvalidLlmApiKeyException,
+  LlmProviderQuotaExhaustedException,
+  LlmProviderTimeoutException,
   LlmProviderUnavailableException,
 } from "./llm-keys.errors.js";
 import { LlmKeysService } from "./llm-keys.service.js";
@@ -133,13 +139,47 @@ describe("LlmKeysService", () => {
       );
     });
 
-    // UpstreamError is the only category `verify()` re-throws.
+    // UpstreamError is the generic re-thrown category.
     it("surfaces LlmProviderUnavailableException on upstream failures", async () => {
       verify.mockRejectedValueOnce(new UpstreamError("5xx"));
 
       await expect(
         makeService().upsert(USER_ID, "openai", "sk-working-maybe12345"),
       ).rejects.toBeInstanceOf(LlmProviderUnavailableException);
+      expect(repo.upsertForUser).not.toHaveBeenCalled();
+    });
+
+    // QuotaExhaustedError signals permanent billing exhaustion — must NOT be
+    // saved (unlike transient QuotaError), and must surface with its own code
+    // so the UI can point the user at billing.
+    it("surfaces LlmProviderQuotaExhaustedException on insufficient_quota", async () => {
+      verify.mockRejectedValueOnce(new QuotaExhaustedError("insufficient_quota"));
+
+      const error = await makeService()
+        .upsert(USER_ID, "openai", "sk-outoffunds12345")
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(LlmProviderQuotaExhaustedException);
+      const httpError = error as LlmProviderQuotaExhaustedException;
+      expect(httpError.getStatus()).toBe(422);
+      expect(httpError.getResponse()).toMatchObject({
+        error: { code: "provider_quota_exhausted" },
+      });
+      expect(repo.upsertForUser).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("surfaces LlmProviderTimeoutException on verify timeout", async () => {
+      verify.mockRejectedValueOnce(new TimeoutError("timed out"));
+
+      const error = await makeService()
+        .upsert(USER_ID, "openai", "sk-slowresponse12345")
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(LlmProviderTimeoutException);
+      expect((error as LlmProviderTimeoutException).getResponse()).toMatchObject(
+        { error: { code: "provider_timeout" } },
+      );
       expect(repo.upsertForUser).not.toHaveBeenCalled();
     });
   });
