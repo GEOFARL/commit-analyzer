@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildSplitDocs,
+  buildStrippedSplitDocs,
   syncScroll,
   type ScrollSyncTarget,
 } from "./split-view.js";
@@ -19,59 +19,68 @@ function file(hunks: { header: string; lines: string[] }[]): ParsedFile {
   };
 }
 
-describe("buildSplitDocs", () => {
-  it("aligns context lines on both sides", () => {
-    const docs = buildSplitDocs(
+describe("buildStrippedSplitDocs", () => {
+  it("returns empty docs for files with no hunks (binary)", () => {
+    const docs = buildStrippedSplitDocs(file([]));
+    expect(docs.leftDoc).toBe("");
+    expect(docs.rightDoc).toBe("");
+    expect(docs.lineCount).toBe(0);
+    expect(docs.leftSignals).toEqual([]);
+    expect(docs.rightSignals).toEqual([]);
+  });
+
+
+  it("strips +/-/space prefix so content is valid source", () => {
+    const docs = buildStrippedSplitDocs(
       file([
         {
-          header: "@@ -1,3 +1,3 @@",
-          lines: [" a", " b", " c"],
+          header: "@@ -1,2 +1,2 @@",
+          lines: [" ctx", "-oldline", "+newline"],
         },
       ]),
     );
     expect(docs.leftDoc.split("\n")).toEqual([
-      "@@ -1,3 +1,3 @@",
-      " a",
-      " b",
-      " c",
+      "@@ -1,2 +1,2 @@",
+      "ctx",
+      "oldline",
     ]);
-    expect(docs.rightDoc).toBe(docs.leftDoc);
-    expect(docs.lineCount).toBe(4);
+    expect(docs.rightDoc.split("\n")).toEqual([
+      "@@ -1,2 +1,2 @@",
+      "ctx",
+      "newline",
+    ]);
+    expect(docs.leftSignals).toEqual(["header", "context", "del"]);
+    expect(docs.rightSignals).toEqual(["header", "context", "add"]);
   });
 
-  it("pairs consecutive - and + lines", () => {
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,2 +1,2 @@",
-          lines: ["-old1", "-old2", "+new1", "+new2"],
-        },
-      ]),
-    );
-    const left = docs.leftDoc.split("\n");
-    const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,2 +1,2 @@", "-old1", "-old2"]);
-    expect(right).toEqual(["@@ -1,2 +1,2 @@", "+new1", "+new2"]);
-  });
-
-  it("pads the shorter side with empty lines when + count differs from -", () => {
-    const docs = buildSplitDocs(
+  it("emits empty padding lines with empty signal on the shorter side", () => {
+    const docs = buildStrippedSplitDocs(
       file([
         {
           header: "@@ -1,1 +1,3 @@",
-          lines: ["-only-del", "+new1", "+new2", "+new3"],
+          lines: ["-only-del", "+n1", "+n2", "+n3"],
         },
       ]),
     );
-    const left = docs.leftDoc.split("\n");
-    const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,1 +1,3 @@", "-only-del", "", ""]);
-    expect(right).toEqual(["@@ -1,1 +1,3 @@", "+new1", "+new2", "+new3"]);
-    expect(left.length).toBe(right.length);
+    expect(docs.leftDoc.split("\n")).toEqual([
+      "@@ -1,1 +1,3 @@",
+      "only-del",
+      "",
+      "",
+    ]);
+    expect(docs.rightDoc.split("\n")).toEqual([
+      "@@ -1,1 +1,3 @@",
+      "n1",
+      "n2",
+      "n3",
+    ]);
+    expect(docs.leftSignals).toEqual(["header", "del", "empty", "empty"]);
+    expect(docs.rightSignals).toEqual(["header", "add", "add", "add"]);
+    expect(docs.lineCount).toBe(4);
   });
 
-  it("handles mixed context and change blocks, keeping alignment", () => {
-    const docs = buildSplitDocs(
+  it("keeps left and right line counts aligned across mixed blocks", () => {
+    const docs = buildStrippedSplitDocs(
       file([
         {
           header: "@@ -1,4 +1,4 @@",
@@ -81,32 +90,57 @@ describe("buildSplitDocs", () => {
     );
     const left = docs.leftDoc.split("\n");
     const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,4 +1,4 @@", " ctx-a", "-del-b", " ctx-c"]);
-    expect(right).toEqual(["@@ -1,4 +1,4 @@", " ctx-a", "+add-b", " ctx-c"]);
+    expect(left.length).toBe(right.length);
+    expect(left).toEqual(["@@ -1,4 +1,4 @@", "ctx-a", "del-b", "ctx-c"]);
+    expect(right).toEqual(["@@ -1,4 +1,4 @@", "ctx-a", "add-b", "ctx-c"]);
+    expect(docs.leftSignals.length).toBe(docs.rightSignals.length);
   });
 
-  it("returns empty docs for files with no hunks (binary)", () => {
-    const docs = buildSplitDocs(file([]));
-    expect(docs.leftDoc).toBe("");
-    expect(docs.rightDoc).toBe("");
-    expect(docs.lineCount).toBe(0);
-  });
-
-  it("preserves +++/--- content inside hunk bodies (real deletions/additions)", () => {
-    // parseFileSection only emits @@-delimited bodies into hunk.lines, so
-    // `--- a/x` / `+++ b/x` never appear here — but legitimate patches can
-    // delete or add lines whose own content starts with "---" or "+++"
-    // (e.g. removing a YAML document separator). Those must be kept.
-    const docs = buildSplitDocs(
+  it("pads the right side when del count exceeds add count", () => {
+    const docs = buildStrippedSplitDocs(
       file([
         {
-          header: "@@ -1,2 +1,2 @@",
-          lines: ["---old yaml marker", "+++new yaml marker"],
+          header: "@@ -1,3 +1,1 @@",
+          lines: ["-d1", "-d2", "-d3", "+n1"],
         },
       ]),
     );
-    expect(docs.leftDoc).toBe("@@ -1,2 +1,2 @@\n---old yaml marker");
-    expect(docs.rightDoc).toBe("@@ -1,2 +1,2 @@\n+++new yaml marker");
+    expect(docs.rightDoc.split("\n")).toEqual([
+      "@@ -1,3 +1,1 @@",
+      "n1",
+      "",
+      "",
+    ]);
+    expect(docs.rightSignals).toEqual(["header", "add", "empty", "empty"]);
+  });
+
+  it("leaves lines that don't start with +/-/space unchanged (no-newline marker)", () => {
+    const docs = buildStrippedSplitDocs(
+      file([
+        {
+          header: "@@ -1,2 +1,2 @@",
+          lines: [" ctx", "\\ No newline at end of file"],
+        },
+      ]),
+    );
+    expect(docs.leftDoc.split("\n")).toEqual([
+      "@@ -1,2 +1,2 @@",
+      "ctx",
+      "\\ No newline at end of file",
+    ]);
+  });
+
+  it("preserves content that happens to start with ++/-- markers", () => {
+    const docs = buildStrippedSplitDocs(
+      file([
+        {
+          header: "@@ -1,2 +1,2 @@",
+          lines: ["---yaml-del", "+++yaml-add"],
+        },
+      ]),
+    );
+    expect(docs.leftDoc).toBe("@@ -1,2 +1,2 @@\n--yaml-del");
+    expect(docs.rightDoc).toBe("@@ -1,2 +1,2 @@\n++yaml-add");
   });
 });
 

@@ -1,22 +1,53 @@
 import type { ParsedFile } from "./index.js";
 
-type SplitDocs = {
+export type SplitLineSignal =
+  | "context"
+  | "add"
+  | "del"
+  | "empty"
+  | "header";
+
+type StrippedSplitDocs = {
   leftDoc: string;
   rightDoc: string;
   lineCount: number;
+  leftSignals: SplitLineSignal[];
+  rightSignals: SplitLineSignal[];
 };
 
-export function buildSplitDocs(file: ParsedFile): SplitDocs {
-  const left: string[] = [];
-  const right: string[] = [];
+function stripPrefix(line: string): string {
+  const ch = line.charCodeAt(0);
+  if (ch === 0x2b /* + */ || ch === 0x2d /* - */ || ch === 0x20 /* space */) {
+    return line.slice(1);
+  }
+  return line;
+}
+
+export function buildStrippedSplitDocs(file: ParsedFile): StrippedSplitDocs {
+  const leftLines: string[] = [];
+  const rightLines: string[] = [];
+  const leftSignals: SplitLineSignal[] = [];
+  const rightSignals: SplitLineSignal[] = [];
   let dels: string[] = [];
   let adds: string[] = [];
 
   const flush = () => {
     const n = Math.max(dels.length, adds.length);
     for (let i = 0; i < n; i += 1) {
-      left.push(i < dels.length ? dels[i]! : "");
-      right.push(i < adds.length ? adds[i]! : "");
+      if (i < dels.length) {
+        leftLines.push(stripPrefix(dels[i]!));
+        leftSignals.push("del");
+      } else {
+        leftLines.push("");
+        leftSignals.push("empty");
+      }
+      if (i < adds.length) {
+        rightLines.push(stripPrefix(adds[i]!));
+        rightSignals.push("add");
+      } else {
+        rightLines.push("");
+        rightSignals.push("empty");
+      }
     }
     dels = [];
     adds = [];
@@ -24,8 +55,10 @@ export function buildSplitDocs(file: ParsedFile): SplitDocs {
 
   for (const hunk of file.hunks) {
     flush();
-    left.push(hunk.header);
-    right.push(hunk.header);
+    leftLines.push(hunk.header);
+    rightLines.push(hunk.header);
+    leftSignals.push("header");
+    rightSignals.push("header");
     for (const line of hunk.lines) {
       if (line.startsWith("-")) {
         dels.push(line);
@@ -33,19 +66,25 @@ export function buildSplitDocs(file: ParsedFile): SplitDocs {
         adds.push(line);
       } else {
         flush();
-        left.push(line);
-        right.push(line);
+        const stripped = stripPrefix(line);
+        leftLines.push(stripped);
+        rightLines.push(stripped);
+        leftSignals.push("context");
+        rightSignals.push("context");
       }
     }
     flush();
   }
 
   return {
-    leftDoc: left.join("\n"),
-    rightDoc: right.join("\n"),
-    lineCount: left.length,
+    leftDoc: leftLines.join("\n"),
+    rightDoc: rightLines.join("\n"),
+    lineCount: leftLines.length,
+    leftSignals,
+    rightSignals,
   };
 }
+
 
 export type ScrollSyncTarget = {
   scrollTop: number;

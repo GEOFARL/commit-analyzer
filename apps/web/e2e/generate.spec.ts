@@ -4,6 +4,7 @@ import { expect, test } from "./fixtures";
 import {
   MULTI_FILE_DIFF,
   SAMPLE_DIFF,
+  TS_PLUS_JSON_DIFF,
   TTFT_BUDGET_MS,
 } from "./generate.constants";
 import { MOCK_ACCESS_TOKEN, MOCK_PORT, MOCK_SEEDED_REPO_ID } from "./mock-server";
@@ -277,5 +278,35 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     await expect(
       page.getByRole("radio", { name: /^split$/i }),
     ).toHaveAttribute("aria-checked", "true");
+  });
+
+  // T-6.12 — classHighlighter emits `tok-*` classes; that's the testable hook.
+  test("split mode renders language-aware syntax highlighting", async ({
+    authedPage: page,
+  }) => {
+    await openGenerate(page);
+    await setEditorDiff(page, TS_PLUS_JSON_DIFF);
+
+    const tablist = page.getByRole("tablist", { name: /files in this diff/i });
+    await expect(tablist).toBeVisible();
+
+    await page.getByRole("radio", { name: /^split$/i }).click();
+
+    const rightPane = page.locator('[data-testid="split-diff-right"]');
+    await expect(rightPane).toBeVisible();
+
+    // TS file active first → `export` keyword must pick up a tok-keyword span.
+    const keywordSpan = rightPane.locator("span.tok-keyword", {
+      hasText: "export",
+    });
+    await expect(keywordSpan.first()).toBeVisible();
+
+    // Switch to the JSON file → lang-json produces property-name spans.
+    const tabs = tablist.getByRole("tab");
+    await tabs.nth(1).click();
+    const jsonPropertySpan = rightPane.locator(
+      "span.tok-propertyName, span.tok-string",
+    );
+    await expect(jsonPropertySpan.first()).toBeVisible();
   });
 });
