@@ -10,7 +10,6 @@ import {
 } from "@codemirror/language";
 import { diff } from "@codemirror/legacy-modes/mode/diff";
 import { Compartment, EditorState } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
 import {
   EditorView,
   highlightActiveLine,
@@ -20,6 +19,7 @@ import {
   placeholder as placeholderExt,
 } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
+import { githubDark } from "@uiw/codemirror-theme-github";
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
 
@@ -134,7 +134,7 @@ export default function DiffEditor({
         baseTheme,
         themeCompartmentRef.current.of(
           isDark
-            ? [oneDark, syntaxHighlighting(darkDiffHighlight)]
+            ? [githubDark, syntaxHighlighting(darkDiffHighlight)]
             : [syntaxHighlighting(lightDiffHighlight)],
         ),
         editableCompartmentRef.current.of(EditorState.readOnly.of(!!disabled)),
@@ -188,7 +188,7 @@ export default function DiffEditor({
     view.dispatch({
       effects: themeCompartmentRef.current.reconfigure(
         isDark
-          ? [oneDark, syntaxHighlighting(darkDiffHighlight)]
+          ? [githubDark, syntaxHighlighting(darkDiffHighlight)]
           : [syntaxHighlighting(lightDiffHighlight)],
       ),
     });

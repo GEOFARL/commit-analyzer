@@ -262,21 +262,24 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     await page.keyboard.press("Home");
     await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
 
-    // Switch to split mode — persisted in localStorage.
+    // Split is the default view — verify, then toggle unified and back.
     const splitButton = page.getByRole("radio", { name: /^split$/i });
-    await splitButton.click();
     await expect(splitButton).toHaveAttribute("aria-checked", "true");
 
-    const storedMode = await page.evaluate(() =>
+    const unifiedButton = page.getByRole("radio", { name: /^unified$/i });
+    await unifiedButton.click();
+    await expect(unifiedButton).toHaveAttribute("aria-checked", "true");
+
+    const storedUnified = await page.evaluate(() =>
       window.localStorage.getItem("generate.diffViewMode"),
     );
-    expect(storedMode).toBe("split");
+    expect(storedUnified).toBe("unified");
 
-    // Reload + re-seed → split mode persists from localStorage.
+    // Reload + re-seed → chosen mode persists from localStorage.
     await page.reload();
     await setEditorDiff(page, MULTI_FILE_DIFF);
     await expect(
-      page.getByRole("radio", { name: /^split$/i }),
+      page.getByRole("radio", { name: /^unified$/i }),
     ).toHaveAttribute("aria-checked", "true");
   });
 

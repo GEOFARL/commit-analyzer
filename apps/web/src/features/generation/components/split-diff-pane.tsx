@@ -13,7 +13,6 @@ import {
   RangeSetBuilder,
   type Extension,
 } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { Decoration, EditorView, lineNumbers } from "@codemirror/view";
 import {
   extensionToLanguageKey,
@@ -25,6 +24,7 @@ import {
   type SplitLineSignal,
 } from "@commit-analyzer/diff-parser/split-view";
 import { classHighlighter, tags as t } from "@lezer/highlight";
+import { githubDark } from "@uiw/codemirror-theme-github";
 import { FileDigit } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef } from "react";
@@ -167,7 +167,7 @@ export default function SplitDiffPane({
 
     const themeExtFor = (dark: boolean) =>
       dark
-        ? [oneDark, syntaxHighlighting(diffAccentDark)]
+        ? [githubDark, syntaxHighlighting(diffAccentDark)]
         : [syntaxHighlighting(diffAccentLight)];
     const ariaExtFor = (label: string) =>
       EditorView.contentAttributes.of({ "aria-label": label });
@@ -288,7 +288,7 @@ export default function SplitDiffPane({
   useEffect(() => {
     const themeExtFor = (dark: boolean) =>
       dark
-        ? [oneDark, syntaxHighlighting(diffAccentDark)]
+        ? [githubDark, syntaxHighlighting(diffAccentDark)]
         : [syntaxHighlighting(diffAccentLight)];
     const lv = leftViewRef.current;
     const rv = rightViewRef.current;
