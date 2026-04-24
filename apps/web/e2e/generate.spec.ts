@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import { expect, test } from "./fixtures";
 import { SAMPLE_DIFF, TTFT_BUDGET_MS } from "./generate.constants";
 import { MOCK_ACCESS_TOKEN, MOCK_PORT, MOCK_SEEDED_REPO_ID } from "./mock-server";
@@ -10,6 +12,44 @@ const SUGGESTION_SUBJECTS = [
   "tidy up auth module",
 ];
 
+// Fills the CodeMirror editor by dispatching a transaction on the view that
+// DiffEditor exposes on `window.__DIFF_EDITOR_VIEW`. Playwright's `fill()`
+// routes through `execCommand`, which CM6 doesn't intercept — the text ends
+// up in the DOM but not in editor state, so `onChange` never fires and the
+// Generate button never enables. The `userEvent` annotation is what makes
+// our `updateListener` propagate the change upward (non-user programmatic
+// dispatches are ignored on purpose so value-sync round-trips don't clobber
+// the "loaded from file" pill).
+const setEditorDiff = async (page: Page, diff: string) => {
+  await page.waitForFunction(
+    () =>
+      !!(window as unknown as { __DIFF_EDITOR_VIEW?: unknown })
+        .__DIFF_EDITOR_VIEW,
+  );
+  await page.evaluate((value) => {
+    const view = (
+      window as unknown as {
+        __DIFF_EDITOR_VIEW?: {
+          state: { doc: { length: number } };
+          dispatch: (spec: unknown) => void;
+        };
+      }
+    ).__DIFF_EDITOR_VIEW;
+    if (!view) return;
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: value },
+      userEvent: "input.paste",
+    });
+  }, diff);
+};
+
+const openGenerate = async (page: Page) => {
+  await page.goto("/generate");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /generate commit message/i }),
+  ).toBeVisible();
+};
+
 // Covers UC-C1 (basic streaming generation) and UC-C2 (policy-aware
 // generation). The mock server stubs the SSE provider with a deterministic
 // 3-suggestion stream so the assertions are stable; the live-provider
@@ -18,13 +58,8 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("paste diff → first suggestion < 2 s, 3 cards with copy actions", async ({
     authedPage: page,
   }) => {
-    await page.goto("/generate");
-
-    await expect(
-      page.getByRole("heading", { level: 1, name: /generate commit message/i }),
-    ).toBeVisible();
-
-    await page.getByLabel("Diff", { exact: true }).fill(SAMPLE_DIFF);
+    await openGenerate(page);
+    await setEditorDiff(page, SAMPLE_DIFF);
 
     await page.getByRole("button", { name: /^Generate$/ }).click();
 
@@ -93,9 +128,8 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     );
     expect(activateRes.status()).toBe(200);
 
-    await page.goto("/generate");
-
-    await page.getByLabel("Diff", { exact: true }).fill(SAMPLE_DIFF);
+    await openGenerate(page);
+    await setEditorDiff(page, SAMPLE_DIFF);
 
     // Select the seeded repo + freshly-created policy.
     await page.getByLabel(/^Repository/).click();
@@ -162,5 +196,32 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     await expect(
       card2Failures.filter({ hasText: /^Type:/ }),
     ).toContainText(/['"]?chore['"]?/);
+  });
+
+  // T-6.10 — the CodeMirror editor runs a unified-diff validator; Generate
+  // must stay disabled for prose input and re-enable once the buffer holds a
+  // syntactically valid diff. Driven via the Quick-Generate sessionStorage
+  // bridge because `fill()` on CodeMirror's contenteditable doesn't route
+  // through the editor's state.
+  test("submit is gated by unified-diff validation", async ({
+    authedPage: page,
+  }) => {
+    await openGenerate(page);
+
+    const generateButton = page.getByRole("button", { name: /^Generate$/ });
+    await expect(generateButton).toBeDisabled();
+
+    await setEditorDiff(
+      page,
+      "this is prose, not a unified diff — no hunks.",
+    );
+    await expect(page.getByText(/not a valid unified diff/i)).toBeVisible();
+    await expect(generateButton).toBeDisabled();
+
+    await setEditorDiff(page, SAMPLE_DIFF);
+    await expect(
+      page.getByRole("status").filter({ hasText: /\+3\/-0/ }),
+    ).toBeVisible();
+    await expect(generateButton).toBeEnabled();
   });
 });

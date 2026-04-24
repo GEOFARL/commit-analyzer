@@ -1,5 +1,13 @@
 import { encode } from "gpt-tokenizer";
 
+export {
+  validateUnifiedDiff,
+  type DiffStats,
+  type DiffValidationIssue,
+  type DiffValidationIssueCode,
+  type DiffValidationResult,
+} from "./validate.js";
+
 export type ParsedHunk = {
   header: string;
   lines: string[];

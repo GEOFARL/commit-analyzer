@@ -12,7 +12,7 @@ import { MODELS_BY_PROVIDER } from "../constants";
 import { useGenerateStream, useLlmKeysQuery } from "../hooks";
 import type { GeneratePageData } from "../types";
 
-import { DiffInput } from "./diff-input";
+import { DiffInput, type DiffValidity } from "./diff-input";
 import { PolicyPicker } from "./policy-picker";
 import { ProviderSelector } from "./provider-selector";
 import { SuggestionList } from "./suggestion-list";
@@ -45,6 +45,9 @@ export const GenerateView = ({
   });
   const [repoId, setRepoId] = useState<string | null>(null);
   const [policyId, setPolicyId] = useState<string | null>(null);
+  const [diffValidity, setDiffValidity] = useState<DiffValidity>({
+    status: "pending",
+  });
 
   const { state, start, cancel } = useGenerateStream();
   const streaming = state.status === "streaming";
@@ -81,6 +84,7 @@ export const GenerateView = ({
     !streaming &&
     diff.trim().length > 0 &&
     !diffTooLarge &&
+    diffValidity.status === "valid" &&
     provider !== null &&
     model !== null;
 
@@ -103,7 +107,12 @@ export const GenerateView = ({
       </header>
 
       <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 sm:p-6">
-        <DiffInput value={diff} onChange={setDiff} disabled={streaming} />
+        <DiffInput
+          value={diff}
+          onChange={setDiff}
+          onValidityChange={setDiffValidity}
+          disabled={streaming}
+        />
         <ProviderSelector
           configuredKeys={keys}
           provider={provider}

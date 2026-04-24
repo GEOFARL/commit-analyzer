@@ -1,27 +1,92 @@
 "use client";
 
-import { ClipboardPaste, FileCode2 } from "lucide-react";
+import {
+  validateUnifiedDiff,
+  type DiffStats,
+  type DiffValidationIssue,
+} from "@commit-analyzer/diff-parser/validate";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ClipboardPaste,
+  FileCode2,
+} from "lucide-react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useCallback, useId, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+export type DiffValidity =
+  | { status: "pending" }
+  | { status: "valid"; stats: DiffStats }
+  | { status: "invalid"; issues: DiffValidationIssue[]; stats: DiffStats };
 
 type Props = {
   value: string;
   onChange: (next: string) => void;
+  onValidityChange?: (validity: DiffValidity) => void;
   disabled?: boolean;
 };
 
 const MAX_BYTES = 1_000_000;
 
-export const DiffInput = ({ value, onChange, disabled }: Props) => {
+const DiffEditor = dynamic(() => import("./diff-editor"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-lg border bg-card p-0">
+      <Skeleton className="h-[220px] w-full rounded-lg" />
+    </div>
+  ),
+});
+
+export const DiffInput = ({
+  value,
+  onChange,
+  onValidityChange,
+  disabled,
+}: Props) => {
   const t = useTranslations("generate.diff");
-  const textareaId = useId();
+  const editorId = useId();
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const deferredValue = useDeferredValue(value);
+  const validity = useMemo<DiffValidity>(() => {
+    if (deferredValue.trim().length === 0) return { status: "pending" };
+    const res = validateUnifiedDiff(deferredValue);
+    if (res.valid) return { status: "valid", stats: res.stats };
+    return { status: "invalid", issues: res.issues, stats: res.stats };
+  }, [deferredValue]);
+
+  useEffect(() => {
+    onValidityChange?.(validity);
+  }, [validity, onValidityChange]);
+
+  const handleEditorChange = useCallback(
+    (next: string) => {
+      onChange(next);
+      setFileName(null);
+    },
+    [onChange],
+  );
+  // DiffEditor's updateListener only fires handleEditorChange on user input —
+  // the value-sync effect inside the editor dispatches programmatic
+  // transactions without a userEvent annotation, so setFileName(null) no
+  // longer clobbers the pill after an Upload → subsequent remount of value.
 
   const handlePaste = useCallback(async () => {
     try {
@@ -62,10 +127,28 @@ export const DiffInput = ({ value, onChange, disabled }: Props) => {
     [readFile],
   );
 
+  const firstIssue =
+    validity.status === "invalid" ? validity.issues[0] : undefined;
+
+  const resolveIssueReason = (issue: DiffValidationIssue): string => {
+    switch (issue.code) {
+      case "empty":
+        return t("validation.issueEmpty");
+      case "missing-header":
+        return t("validation.issueMissingHeader");
+      case "bad-hunk-header":
+        return t("validation.issueBadHunkHeader");
+      case "hunk-count-mismatch":
+        return t("validation.issueHunkCountMismatch");
+      case "bad-line-prefix":
+        return t("validation.issueBadLinePrefix");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <label htmlFor={textareaId} className="text-sm font-medium">
+        <label htmlFor={editorId} className="text-sm font-medium">
           {t("label")}
         </label>
         <div className="flex items-center gap-2">
@@ -113,26 +196,66 @@ export const DiffInput = ({ value, onChange, disabled }: Props) => {
         onDrop={handleDrop}
         className={cn(
           "rounded-lg border bg-card transition-colors",
+          "focus-within:ring-2 focus-within:ring-ring",
           dragOver && "border-primary ring-2 ring-primary/30",
         )}
       >
-        <textarea
-          id={textareaId}
+        <DiffEditor
+          id={editorId}
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setFileName(null);
-          }}
+          onChange={handleEditorChange}
           disabled={disabled}
-          spellCheck={false}
           placeholder={t("placeholder")}
-          className={cn(
-            "block min-h-[220px] w-full resize-y rounded-lg bg-transparent px-3 py-2 font-mono text-xs leading-relaxed text-foreground",
-            "placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "disabled:cursor-not-allowed disabled:opacity-60",
-          )}
+          ariaLabel={t("label")}
+          className="min-h-[220px]"
         />
       </div>
+
+      {validity.status === "valid" ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+        >
+          <CheckCircle2
+            aria-hidden="true"
+            className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+          />
+          <span>
+            {t("validation.statsBanner", {
+              files: validity.stats.files,
+              additions: validity.stats.additions,
+              deletions: validity.stats.deletions,
+            })}
+          </span>
+        </div>
+      ) : null}
+
+      {validity.status === "invalid" && firstIssue ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
+          <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium">{t("validation.invalidTitle")}</span>
+            <span>
+              {firstIssue.file
+                ? t("validation.locationWithFile", {
+                    file: firstIssue.file,
+                    line: firstIssue.line,
+                    reason: resolveIssueReason(firstIssue),
+                  })
+                : t("validation.locationWithoutFile", {
+                    line: firstIssue.line,
+                    reason: resolveIssueReason(firstIssue),
+                  })}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{fileName ? t("fromFile", { name: fileName }) : t("hint")}</span>
         <span>{t("chars", { count: value.length })}</span>

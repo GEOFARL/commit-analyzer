@@ -1,3 +1,4 @@
+import { validateUnifiedDiff } from "@commit-analyzer/diff-parser/validate";
 import { initContract } from "@ts-rest/core";
 import { z } from "zod";
 
@@ -9,8 +10,29 @@ const c = initContract();
 
 const llmProviderSchema = z.enum(["openai", "anthropic"]);
 
+// Server-side message is debug-only — the web UI maps `code` to localized
+// copy via `generate.diff.validation.*` before rendering.
+const unifiedDiffRefinement = (value: string, ctx: z.RefinementCtx): void => {
+  const result = validateUnifiedDiff(value);
+  if (result.valid) return;
+  const first = result.issues[0];
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: first
+      ? `Not a valid unified diff (${first.code} at line ${first.line}).`
+      : "Not a valid unified diff.",
+  });
+};
+
+// Defense-in-depth: matches the 1 MB client cap (Module C §2, 09-security §3).
+const MAX_DIFF_BYTES = 1_000_000;
+
 export const generateRequestSchema = z.object({
-  diff: z.string().min(1),
+  diff: z
+    .string()
+    .min(1)
+    .max(MAX_DIFF_BYTES)
+    .superRefine(unifiedDiffRefinement),
   provider: llmProviderSchema,
   model: z.string().min(1).max(128),
   repositoryId: z.string().uuid().optional(),
