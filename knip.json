@@ -25,7 +25,12 @@
       ],
       "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts", "playwright.config.ts"],
       "ignore": ["src/components/ui/**"],
-      "ignoreDependencies": ["tailwindcss", "tw-animate-css", "@playwright/test"]
+      "ignoreDependencies": [
+        "tailwindcss",
+        "tw-animate-css",
+        "@playwright/test",
+        "@babel/runtime"
+      ]
     },
     "packages/contracts": {
       "entry": ["src/index.ts"],
