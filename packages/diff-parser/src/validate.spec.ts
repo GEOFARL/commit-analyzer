@@ -282,6 +282,21 @@ describe("validateUnifiedDiff — file header variants", () => {
     expect(res.issues.some((i) => i.code === "hunk-count-mismatch")).toBe(true);
   });
 
+  it("tolerates a trailing newline after a satisfied hunk", () => {
+    const diff =
+      [
+        "diff --git a/x b/x",
+        "--- a/x",
+        "+++ b/x",
+        "@@ -0,0 +1,3 @@",
+        "+a",
+        "+b",
+        "+c",
+      ].join("\n") + "\n";
+    const res = validateUnifiedDiff(diff);
+    expect(res.valid).toBe(true);
+  });
+
   it("does not count a malformed `diff --git` header toward the file count", () => {
     const diff = [
       "diff --git garbage without-paths",

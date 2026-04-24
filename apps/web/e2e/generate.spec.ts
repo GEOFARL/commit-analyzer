@@ -12,22 +12,42 @@ const SUGGESTION_SUBJECTS = [
   "tidy up auth module",
 ];
 
-// Hydrates the generate form with a diff via the app's existing sessionStorage
-// bridge (`QUICK_GENERATE_DIFF_STORAGE_KEY`, see `generate-view.tsx`). Used
-// instead of Playwright's `fill()` because the editor is now a CodeMirror 6
-// instance — `fill()` on its contenteditable goes through `execCommand` and
-// doesn't flow into CodeMirror's state, so onChange never fires and the
-// Generate button never enables.
-//
-// We navigate first so sessionStorage is scoped to the target origin, then
-// reload — the generate-view mount effect reads and clears the key on every
-// mount, so the reload is the handoff point.
-const seedDiffAndOpen = async (page: Page, diff: string) => {
-  await page.goto("/generate");
+// Fills the CodeMirror editor by dispatching a transaction on the view that
+// DiffEditor exposes on `window.__DIFF_EDITOR_VIEW`. Playwright's `fill()`
+// routes through `execCommand`, which CM6 doesn't intercept — the text ends
+// up in the DOM but not in editor state, so `onChange` never fires and the
+// Generate button never enables. The `userEvent` annotation is what makes
+// our `updateListener` propagate the change upward (non-user programmatic
+// dispatches are ignored on purpose so value-sync round-trips don't clobber
+// the "loaded from file" pill).
+const setEditorDiff = async (page: Page, diff: string) => {
+  await page.waitForFunction(
+    () =>
+      !!(window as unknown as { __DIFF_EDITOR_VIEW?: unknown })
+        .__DIFF_EDITOR_VIEW,
+  );
   await page.evaluate((value) => {
-    window.sessionStorage.setItem("dashboard.quickGenerateDiff", value);
+    const view = (
+      window as unknown as {
+        __DIFF_EDITOR_VIEW?: {
+          state: { doc: { length: number } };
+          dispatch: (spec: unknown) => void;
+        };
+      }
+    ).__DIFF_EDITOR_VIEW;
+    if (!view) return;
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: value },
+      userEvent: "input.paste",
+    });
   }, diff);
-  await page.reload();
+};
+
+const openGenerate = async (page: Page) => {
+  await page.goto("/generate");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /generate commit message/i }),
+  ).toBeVisible();
 };
 
 // Covers UC-C1 (basic streaming generation) and UC-C2 (policy-aware
@@ -38,11 +58,8 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("paste diff → first suggestion < 2 s, 3 cards with copy actions", async ({
     authedPage: page,
   }) => {
-    await seedDiffAndOpen(page, SAMPLE_DIFF);
-
-    await expect(
-      page.getByRole("heading", { level: 1, name: /generate commit message/i }),
-    ).toBeVisible();
+    await openGenerate(page);
+    await setEditorDiff(page, SAMPLE_DIFF);
 
     await page.getByRole("button", { name: /^Generate$/ }).click();
 
@@ -111,7 +128,8 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     );
     expect(activateRes.status()).toBe(200);
 
-    await seedDiffAndOpen(page, SAMPLE_DIFF);
+    await openGenerate(page);
+    await setEditorDiff(page, SAMPLE_DIFF);
 
     // Select the seeded repo + freshly-created policy.
     await page.getByLabel(/^Repository/).click();
@@ -188,25 +206,19 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("submit is gated by unified-diff validation", async ({
     authedPage: page,
   }) => {
-    await seedDiffAndOpen(
+    await openGenerate(page);
+
+    const generateButton = page.getByRole("button", { name: /^Generate$/ });
+    await expect(generateButton).toBeDisabled();
+
+    await setEditorDiff(
       page,
       "this is prose, not a unified diff — no hunks.",
     );
-
-    const generateButton = page.getByRole("button", { name: /^Generate$/ });
-    await expect(
-      page.getByText(/not a valid unified diff/i),
-    ).toBeVisible();
+    await expect(page.getByText(/not a valid unified diff/i)).toBeVisible();
     await expect(generateButton).toBeDisabled();
 
-    // Swap the buffer for a valid diff via the same bridge + reload. The
-    // generate page clears the sessionStorage key on mount so we re-seed
-    // between navigations.
-    await page.evaluate((value) => {
-      window.sessionStorage.setItem("dashboard.quickGenerateDiff", value);
-    }, SAMPLE_DIFF);
-    await page.reload();
-
+    await setEditorDiff(page, SAMPLE_DIFF);
     await expect(
       page.getByRole("status").filter({ hasText: /\+3\/-0/ }),
     ).toBeVisible();

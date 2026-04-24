@@ -25,6 +25,10 @@ import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
+type WindowWithDiffEditorView = Window & {
+  __DIFF_EDITOR_VIEW?: EditorView;
+};
+
 export type DiffEditorProps = {
   value: string;
   onChange: (next: string) => void;
@@ -148,8 +152,21 @@ export default function DiffEditor({
 
     const view = new EditorView({ state, parent });
     viewRef.current = view;
+    // Test handle: expose the active view on the window so e2e can drive the
+    // editor deterministically (CodeMirror's contenteditable is opaque to
+    // Playwright's `fill()`). No prod effect — the attribute is read only by
+    // e2e, and is removed on unmount.
+    if (typeof window !== "undefined") {
+      (window as WindowWithDiffEditorView).__DIFF_EDITOR_VIEW = view;
+    }
 
     return () => {
+      if (
+        typeof window !== "undefined" &&
+        (window as WindowWithDiffEditorView).__DIFF_EDITOR_VIEW === view
+      ) {
+        delete (window as WindowWithDiffEditorView).__DIFF_EDITOR_VIEW;
+      }
       view.destroy();
       viewRef.current = null;
     };

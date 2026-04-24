@@ -161,6 +161,12 @@ export function validateUnifiedDiff(raw: string): DiffValidationResult {
       }
 
       if (!stillExpecting) {
+        // A blank trailing line is how many diffs terminate — tolerate it
+        // once the hunk body is satisfied instead of reporting over-run.
+        if (line.length === 0) {
+          hunkOpen = false;
+          continue;
+        }
         issues.push({
           line: lineNo,
           file: currentPath,
