@@ -31,6 +31,28 @@
       "issueBadHunkHeader": "Malformed hunk header — expected `@@ -a,b +c,d @@`.",
       "issueHunkCountMismatch": "Hunk body does not match the declared line range.",
       "issueBadLinePrefix": "Unexpected line prefix — expected ` `, `+`, `-`, or `\\`."
+    },
+    "viewer": {
+      "unified": "Unified",
+      "split": "Split",
+      "viewMode": {
+        "label": "Diff view mode"
+      },
+      "tabs": {
+        "listLabel": "Files in this diff",
+        "untitled": "Untitled file",
+        "renamed": "Renamed",
+        "binary": "Binary file",
+        "added": "Added",
+        "modified": "Modified",
+        "deleted": "Deleted"
+      },
+      "binary": "Binary file — no text preview.",
+      "empty": "No content to display.",
+      "splitPane": {
+        "leftAria": "Old version (deletions)",
+        "rightAria": "New version (additions)"
+      }
     }
   },
   "provider": {

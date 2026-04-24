@@ -13,6 +13,10 @@
     "./validate": {
       "types": "./dist/validate.d.ts",
       "default": "./dist/validate.js"
+    },
+    "./split-view": {
+      "types": "./dist/split-view.d.ts",
+      "default": "./dist/split-view.js"
     }
   },
   "files": [

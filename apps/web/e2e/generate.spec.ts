@@ -1,7 +1,11 @@
 import type { Page } from "@playwright/test";
 
 import { expect, test } from "./fixtures";
-import { SAMPLE_DIFF, TTFT_BUDGET_MS } from "./generate.constants";
+import {
+  MULTI_FILE_DIFF,
+  SAMPLE_DIFF,
+  TTFT_BUDGET_MS,
+} from "./generate.constants";
 import { MOCK_ACCESS_TOKEN, MOCK_PORT, MOCK_SEEDED_REPO_ID } from "./mock-server";
 
 const MOCK_API_BASE = `http://127.0.0.1:${MOCK_PORT}`;
@@ -223,5 +227,55 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
       page.getByRole("status").filter({ hasText: /\+3\/-0/ }),
     ).toBeVisible();
     await expect(generateButton).toBeEnabled();
+  });
+
+  // T-6.11 — the diff viewer renders one tab per file, supports arrow-key
+  // navigation between tabs, and persists the unified/split view mode toggle
+  // across reloads via localStorage.
+  test("multi-file diff → file tabs + arrow nav + split toggle", async ({
+    authedPage: page,
+  }) => {
+    await openGenerate(page);
+    await setEditorDiff(page, MULTI_FILE_DIFF);
+
+    const tablist = page.getByRole("tablist", { name: /files in this diff/i });
+    await expect(tablist).toBeVisible();
+
+    const tabs = tablist.getByRole("tab");
+    await expect(tabs).toHaveCount(3);
+
+    // First tab is active by default.
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "false");
+
+    // ArrowRight moves selection forward.
+    await tabs.nth(0).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+
+    // End jumps to last.
+    await page.keyboard.press("End");
+    await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+
+    // Home jumps back to first.
+    await page.keyboard.press("Home");
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+
+    // Switch to split mode — persisted in localStorage.
+    const splitButton = page.getByRole("radio", { name: /^split$/i });
+    await splitButton.click();
+    await expect(splitButton).toHaveAttribute("aria-checked", "true");
+
+    const storedMode = await page.evaluate(() =>
+      window.localStorage.getItem("generate.diffViewMode"),
+    );
+    expect(storedMode).toBe("split");
+
+    // Reload + re-seed → split mode persists from localStorage.
+    await page.reload();
+    await setEditorDiff(page, MULTI_FILE_DIFF);
+    await expect(
+      page.getByRole("radio", { name: /^split$/i }),
+    ).toHaveAttribute("aria-checked", "true");
   });
 });

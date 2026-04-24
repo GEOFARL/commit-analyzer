@@ -28,6 +28,24 @@ export type ParsedDiff = {
   truncated: boolean;
 };
 
+export type DiffFileChangeKind =
+  | "added"
+  | "modified"
+  | "deleted"
+  | "renamed"
+  | "binary";
+
+export type DiffFileTab = {
+  path: string;
+  previousPath: string | null;
+  changeKind: DiffFileChangeKind;
+  additions: number;
+  deletions: number;
+  isBinary: boolean;
+  rangeStart: number;
+  rangeEnd: number;
+};
+
 export const DIFF_TOKEN_BUDGET = 4000;
 export const UNKNOWN_PATH = "<unknown>";
 
@@ -204,6 +222,149 @@ function buildSummary(files: ParsedFile[]): string {
 
 function renderFiles(files: ParsedFile[]): string {
   return files.map(renderFile).join("\n");
+}
+
+type TabAccumulator = {
+  path: string;
+  previousPath: string | null;
+  oldPathFromMinus: string | null;
+  newPathFromPlus: string | null;
+  renameFrom: string | null;
+  renameTo: string | null;
+  isBinary: boolean;
+  isNewFile: boolean;
+  isDeletedFile: boolean;
+  additions: number;
+  deletions: number;
+  rangeStart: number;
+  rangeEnd: number;
+};
+
+function createAccumulator(
+  headerLine: string,
+  lineNumber: number,
+): TabAccumulator {
+  const m = /^diff --git a\/(.+?) b\/(.+)$/.exec(headerLine);
+  const defaultPath = m ? m[2]! : UNKNOWN_PATH;
+  return {
+    path: defaultPath,
+    previousPath: null,
+    oldPathFromMinus: null,
+    newPathFromPlus: null,
+    renameFrom: null,
+    renameTo: null,
+    isBinary: false,
+    isNewFile: false,
+    isDeletedFile: false,
+    additions: 0,
+    deletions: 0,
+    rangeStart: lineNumber,
+    rangeEnd: lineNumber,
+  };
+}
+
+function finalizeTab(acc: TabAccumulator): DiffFileTab {
+  const path = acc.renameTo ?? acc.newPathFromPlus ?? acc.path;
+  let previousPath: string | null = null;
+  if (acc.renameFrom && acc.renameTo && acc.renameFrom !== acc.renameTo) {
+    previousPath = acc.renameFrom;
+  } else if (
+    acc.oldPathFromMinus &&
+    acc.newPathFromPlus &&
+    acc.oldPathFromMinus !== acc.newPathFromPlus
+  ) {
+    previousPath = acc.oldPathFromMinus;
+  }
+
+  let changeKind: DiffFileChangeKind;
+  if (acc.isBinary) {
+    changeKind = "binary";
+  } else if (acc.renameFrom && acc.renameTo) {
+    changeKind = "renamed";
+  } else if (acc.isNewFile || acc.oldPathFromMinus === null) {
+    changeKind = "added";
+  } else if (acc.isDeletedFile || acc.newPathFromPlus === null) {
+    changeKind = "deleted";
+  } else {
+    changeKind = "modified";
+  }
+
+  return {
+    path,
+    previousPath,
+    changeKind,
+    additions: acc.additions,
+    deletions: acc.deletions,
+    isBinary: acc.isBinary,
+    rangeStart: acc.rangeStart,
+    rangeEnd: acc.rangeEnd,
+  };
+}
+
+export function parseDiffFileTabs(raw: string): DiffFileTab[] {
+  if (!raw) return [];
+  const lines = raw.split("\n");
+  const tabs: DiffFileTab[] = [];
+  let current: TabAccumulator | null = null;
+  let inHunk = false;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!;
+    const lineNo = i + 1;
+
+    if (line.startsWith("diff --git ")) {
+      if (current) tabs.push(finalizeTab(current));
+      current = createAccumulator(line, lineNo);
+      inHunk = false;
+      continue;
+    }
+
+    if (!current) continue;
+
+    current.rangeEnd = lineNo;
+
+    if (line.startsWith("@@")) {
+      inHunk = true;
+      continue;
+    }
+
+    if (inHunk) {
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        current.additions += 1;
+      } else if (line.startsWith("-") && !line.startsWith("---")) {
+        current.deletions += 1;
+      }
+      continue;
+    }
+
+    if (line.startsWith("new file mode")) current.isNewFile = true;
+    else if (line.startsWith("deleted file mode")) current.isDeletedFile = true;
+    else if (line.startsWith("rename from ")) {
+      current.renameFrom = line.slice(12);
+    } else if (line.startsWith("rename to ")) {
+      current.renameTo = line.slice(10);
+    } else if (
+      line.startsWith("Binary files ") ||
+      line.startsWith("GIT binary patch")
+    ) {
+      current.isBinary = true;
+    } else if (line.startsWith("--- ")) {
+      if (line === "--- /dev/null") current.oldPathFromMinus = null;
+      else if (line.startsWith("--- a/")) current.oldPathFromMinus = line.slice(6);
+      else current.oldPathFromMinus = line.slice(4);
+    } else if (line.startsWith("+++ ")) {
+      if (line === "+++ /dev/null") current.newPathFromPlus = null;
+      else if (line.startsWith("+++ b/")) current.newPathFromPlus = line.slice(6);
+      else current.newPathFromPlus = line.slice(4);
+    }
+  }
+
+  if (current) tabs.push(finalizeTab(current));
+  return tabs;
+}
+
+export function parseAllFiles(raw: string): ParsedFile[] {
+  return splitIntoFileSections(raw).map(parseFileSection);
 }
 
 export function parseAndStripDiff(raw: string): ParsedDiff {
