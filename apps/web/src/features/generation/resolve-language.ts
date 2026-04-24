@@ -1,11 +1,5 @@
 import type { Extension } from "@codemirror/state";
-import {
-  extensionToLanguageKey,
-  type LanguageKey,
-} from "@commit-analyzer/diff-parser";
-
-export { extensionToLanguageKey };
-export type { LanguageKey };
+import type { LanguageKey } from "@commit-analyzer/diff-parser";
 
 const cache = new Map<LanguageKey, Promise<Extension>>();
 

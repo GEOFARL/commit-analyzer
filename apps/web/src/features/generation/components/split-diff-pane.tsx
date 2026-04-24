@@ -15,7 +15,10 @@ import {
 } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Decoration, EditorView, lineNumbers } from "@codemirror/view";
-import type { ParsedFile } from "@commit-analyzer/diff-parser";
+import {
+  extensionToLanguageKey,
+  type ParsedFile,
+} from "@commit-analyzer/diff-parser";
 import {
   buildStrippedSplitDocs,
   syncScroll,
@@ -28,10 +31,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-import {
-  extensionToLanguageKey,
-  loadLanguageExtension,
-} from "../resolve-language";
+import { loadLanguageExtension } from "../resolve-language";
 
 type Props = {
   file: ParsedFile;
@@ -102,12 +102,12 @@ const SIGNAL_CLASS: Record<SplitLineSignal, string | null> = {
 
 function buildLineDecorations(
   doc: string,
-  signals: SplitLineSignal[],
+  signals: readonly SplitLineSignal[],
 ): Extension {
   const builder = new RangeSetBuilder<Decoration>();
   let pos = 0;
-  for (let i = 0; i < signals.length; i += 1) {
-    const cls = SIGNAL_CLASS[signals[i]!];
+  for (const sig of signals) {
+    const cls = SIGNAL_CLASS[sig];
     if (cls) {
       builder.add(pos, pos, Decoration.line({ class: cls }));
     }

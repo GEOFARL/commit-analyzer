@@ -7,12 +7,6 @@ export type SplitLineSignal =
   | "empty"
   | "header";
 
-type SplitDocs = {
-  leftDoc: string;
-  rightDoc: string;
-  lineCount: number;
-};
-
 type StrippedSplitDocs = {
   leftDoc: string;
   rightDoc: string;
@@ -91,46 +85,6 @@ export function buildStrippedSplitDocs(file: ParsedFile): StrippedSplitDocs {
   };
 }
 
-export function buildSplitDocs(file: ParsedFile): SplitDocs {
-  const left: string[] = [];
-  const right: string[] = [];
-  let dels: string[] = [];
-  let adds: string[] = [];
-
-  const flush = () => {
-    const n = Math.max(dels.length, adds.length);
-    for (let i = 0; i < n; i += 1) {
-      left.push(i < dels.length ? dels[i]! : "");
-      right.push(i < adds.length ? adds[i]! : "");
-    }
-    dels = [];
-    adds = [];
-  };
-
-  for (const hunk of file.hunks) {
-    flush();
-    left.push(hunk.header);
-    right.push(hunk.header);
-    for (const line of hunk.lines) {
-      if (line.startsWith("-")) {
-        dels.push(line);
-      } else if (line.startsWith("+")) {
-        adds.push(line);
-      } else {
-        flush();
-        left.push(line);
-        right.push(line);
-      }
-    }
-    flush();
-  }
-
-  return {
-    leftDoc: left.join("\n"),
-    rightDoc: right.join("\n"),
-    lineCount: left.length,
-  };
-}
 
 export type ScrollSyncTarget = {
   scrollTop: number;

@@ -163,75 +163,75 @@ export const DiffFileTabs = ({
           onKeyDown={handleKeyDown}
           className="flex items-stretch gap-1 overflow-x-auto whitespace-nowrap px-1 py-1 scrollbar-thin"
         >
-        {tabs.map((tab, idx) => {
-          const Icon = ICON_BY_KIND[tab.changeKind];
-          const iconClass = ICON_CLASS_BY_KIND[tab.changeKind];
-          const isActive = idx === safeActive;
-          const tabId = `${tabListId}-tab-${idx}`;
-          return (
-            <Tooltip key={`${tab.path}-${idx}`}>
-              <TooltipTrigger asChild>
-                <button
-                  ref={(el) => {
-                    buttonsRef.current[idx] = el;
-                  }}
-                  type="button"
-                  role="tab"
-                  id={tabId}
-                  aria-selected={isActive}
-                  aria-controls={panelId}
-                  tabIndex={isActive ? 0 : -1}
-                  onClick={() => onSelect(idx)}
-                  data-kind={tab.changeKind}
-                  className={cn(
-                    "group relative flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    "border border-transparent",
-                    isActive
-                      ? "bg-background text-foreground shadow-sm border-border after:absolute after:inset-x-2 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-primary after:content-['']"
-                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
-                  )}
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className={cn("size-3.5 shrink-0", iconClass)}
-                  />
-                  <span
-                    dir="rtl"
-                    className="max-w-[16rem] truncate text-left font-mono"
+          {tabs.map((tab, idx) => {
+            const Icon = ICON_BY_KIND[tab.changeKind];
+            const iconClass = ICON_CLASS_BY_KIND[tab.changeKind];
+            const isActive = idx === safeActive;
+            const tabId = `${tabListId}-tab-${idx}`;
+            return (
+              <Tooltip key={`${tab.path}-${idx}`}>
+                <TooltipTrigger asChild>
+                  <button
+                    ref={(el) => {
+                      buttonsRef.current[idx] = el;
+                    }}
+                    type="button"
+                    role="tab"
+                    id={tabId}
+                    aria-selected={isActive}
+                    aria-controls={panelId}
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => onSelect(idx)}
+                    data-kind={tab.changeKind}
+                    className={cn(
+                      "group relative flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "border border-transparent",
+                      isActive
+                        ? "bg-background text-foreground shadow-sm border-border after:absolute after:inset-x-2 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-primary after:content-['']"
+                        : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                    )}
                   >
-                    {tab.path}
-                  </span>
-                  {!tab.isBinary &&
-                  (tab.additions > 0 || tab.deletions > 0) ? (
-                    <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium tabular-nums">
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        +{tab.additions}
-                      </span>
-                      <span className="text-rose-600 dark:text-rose-400">
-                        -{tab.deletions}
-                      </span>
+                    <Icon
+                      aria-hidden="true"
+                      className={cn("size-3.5 shrink-0", iconClass)}
+                    />
+                    <span
+                      dir="rtl"
+                      className="max-w-[16rem] truncate text-left font-mono"
+                    >
+                      {tab.path}
                     </span>
-                  ) : null}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start">
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-mono text-[11px]">
-                    {tabLabel(tab)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {tab.changeKind === "added" && t("tabs.added")}
-                    {tab.changeKind === "modified" && t("tabs.modified")}
-                    {tab.changeKind === "deleted" && t("tabs.deleted")}
-                    {tab.changeKind === "renamed" && t("tabs.renamed")}
-                    {tab.changeKind === "binary" && t("tabs.binary")}
-                  </span>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+                    {!tab.isBinary &&
+                    (tab.additions > 0 || tab.deletions > 0) ? (
+                      <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium tabular-nums">
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          +{tab.additions}
+                        </span>
+                        <span className="text-rose-600 dark:text-rose-400">
+                          -{tab.deletions}
+                        </span>
+                      </span>
+                    ) : null}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-mono text-[11px]">
+                      {tabLabel(tab)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {tab.changeKind === "added" && t("tabs.added")}
+                      {tab.changeKind === "modified" && t("tabs.modified")}
+                      {tab.changeKind === "deleted" && t("tabs.deleted")}
+                      {tab.changeKind === "renamed" && t("tabs.renamed")}
+                      {tab.changeKind === "binary" && t("tabs.binary")}
+                    </span>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
         </div>
       </div>
     </TooltipProvider>

@@ -280,10 +280,7 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     ).toHaveAttribute("aria-checked", "true");
   });
 
-  // T-6.12 — split mode must show language-aware highlighting (classHighlighter
-  // maps keywords/strings/etc. to `tok-*` classes, which are the testable hook
-  // here). A TS file gets a `tok-keyword` span on "export"; a JSON file picks
-  // up property-name/string classes via the lang-json parser.
+  // T-6.12 — classHighlighter emits `tok-*` classes; that's the testable hook.
   test("split mode renders language-aware syntax highlighting", async ({
     authedPage: page,
   }) => {

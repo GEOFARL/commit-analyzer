@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildSplitDocs,
   buildStrippedSplitDocs,
   syncScroll,
   type ScrollSyncTarget,
@@ -20,98 +19,17 @@ function file(hunks: { header: string; lines: string[] }[]): ParsedFile {
   };
 }
 
-describe("buildSplitDocs", () => {
-  it("aligns context lines on both sides", () => {
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,3 +1,3 @@",
-          lines: [" a", " b", " c"],
-        },
-      ]),
-    );
-    expect(docs.leftDoc.split("\n")).toEqual([
-      "@@ -1,3 +1,3 @@",
-      " a",
-      " b",
-      " c",
-    ]);
-    expect(docs.rightDoc).toBe(docs.leftDoc);
-    expect(docs.lineCount).toBe(4);
-  });
-
-  it("pairs consecutive - and + lines", () => {
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,2 +1,2 @@",
-          lines: ["-old1", "-old2", "+new1", "+new2"],
-        },
-      ]),
-    );
-    const left = docs.leftDoc.split("\n");
-    const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,2 +1,2 @@", "-old1", "-old2"]);
-    expect(right).toEqual(["@@ -1,2 +1,2 @@", "+new1", "+new2"]);
-  });
-
-  it("pads the shorter side with empty lines when + count differs from -", () => {
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,1 +1,3 @@",
-          lines: ["-only-del", "+new1", "+new2", "+new3"],
-        },
-      ]),
-    );
-    const left = docs.leftDoc.split("\n");
-    const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,1 +1,3 @@", "-only-del", "", ""]);
-    expect(right).toEqual(["@@ -1,1 +1,3 @@", "+new1", "+new2", "+new3"]);
-    expect(left.length).toBe(right.length);
-  });
-
-  it("handles mixed context and change blocks, keeping alignment", () => {
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,4 +1,4 @@",
-          lines: [" ctx-a", "-del-b", "+add-b", " ctx-c"],
-        },
-      ]),
-    );
-    const left = docs.leftDoc.split("\n");
-    const right = docs.rightDoc.split("\n");
-    expect(left).toEqual(["@@ -1,4 +1,4 @@", " ctx-a", "-del-b", " ctx-c"]);
-    expect(right).toEqual(["@@ -1,4 +1,4 @@", " ctx-a", "+add-b", " ctx-c"]);
-  });
-
+describe("buildStrippedSplitDocs", () => {
   it("returns empty docs for files with no hunks (binary)", () => {
-    const docs = buildSplitDocs(file([]));
+    const docs = buildStrippedSplitDocs(file([]));
     expect(docs.leftDoc).toBe("");
     expect(docs.rightDoc).toBe("");
     expect(docs.lineCount).toBe(0);
+    expect(docs.leftSignals).toEqual([]);
+    expect(docs.rightSignals).toEqual([]);
   });
 
-  it("preserves +++/--- content inside hunk bodies (real deletions/additions)", () => {
-    // parseFileSection only emits @@-delimited bodies into hunk.lines, so
-    // `--- a/x` / `+++ b/x` never appear here — but legitimate patches can
-    // delete or add lines whose own content starts with "---" or "+++"
-    // (e.g. removing a YAML document separator). Those must be kept.
-    const docs = buildSplitDocs(
-      file([
-        {
-          header: "@@ -1,2 +1,2 @@",
-          lines: ["---old yaml marker", "+++new yaml marker"],
-        },
-      ]),
-    );
-    expect(docs.leftDoc).toBe("@@ -1,2 +1,2 @@\n---old yaml marker");
-    expect(docs.rightDoc).toBe("@@ -1,2 +1,2 @@\n+++new yaml marker");
-  });
-});
 
-describe("buildStrippedSplitDocs", () => {
   it("strips +/-/space prefix so content is valid source", () => {
     const docs = buildStrippedSplitDocs(
       file([
