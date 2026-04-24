@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   DIFF_TOKEN_BUDGET,
   parseAndStripDiff,
+  parseDiffFileTabs,
   renderParsedDiff,
   type ParsedDiff,
 } from "./index.js";
@@ -268,5 +269,158 @@ describe("parseAndStripDiff — edge cases", () => {
       ].join("\n"),
     );
     expect(parsed.summary).toBe("a.ts\nb.ts");
+  });
+});
+
+describe("parseDiffFileTabs", () => {
+  it("returns [] for empty input", () => {
+    expect(parseDiffFileTabs("")).toEqual([]);
+  });
+
+  it("detects modified file with additions and deletions", () => {
+    const diff = [
+      "diff --git a/src/foo.ts b/src/foo.ts",
+      "index 1..2 100644",
+      "--- a/src/foo.ts",
+      "+++ b/src/foo.ts",
+      "@@ -1,2 +1,2 @@",
+      " context",
+      "-old",
+      "+new",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab).toMatchObject({
+      path: "src/foo.ts",
+      previousPath: null,
+      changeKind: "modified",
+      additions: 1,
+      deletions: 1,
+      isBinary: false,
+    });
+    expect(tab!.rangeStart).toBe(1);
+    expect(tab!.rangeEnd).toBeGreaterThanOrEqual(8);
+  });
+
+  it("detects new file (new file mode)", () => {
+    const diff = [
+      "diff --git a/added.ts b/added.ts",
+      "new file mode 100644",
+      "index 0000000..abc",
+      "--- /dev/null",
+      "+++ b/added.ts",
+      "@@ -0,0 +1,2 @@",
+      "+first",
+      "+second",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.changeKind).toBe("added");
+    expect(tab!.path).toBe("added.ts");
+    expect(tab!.previousPath).toBeNull();
+    expect(tab!.additions).toBe(2);
+    expect(tab!.deletions).toBe(0);
+  });
+
+  it("detects deleted file (/dev/null on new side)", () => {
+    const diff = [
+      "diff --git a/gone.ts b/gone.ts",
+      "deleted file mode 100644",
+      "index abc..0000000",
+      "--- a/gone.ts",
+      "+++ /dev/null",
+      "@@ -1,2 +0,0 @@",
+      "-one",
+      "-two",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.changeKind).toBe("deleted");
+    expect(tab!.path).toBe("gone.ts");
+    expect(tab!.deletions).toBe(2);
+    expect(tab!.additions).toBe(0);
+  });
+
+  it("detects rename and exposes previousPath", () => {
+    const diff = [
+      "diff --git a/old/path.ts b/new/path.ts",
+      "similarity index 95%",
+      "rename from old/path.ts",
+      "rename to new/path.ts",
+      "--- a/old/path.ts",
+      "+++ b/new/path.ts",
+      "@@ -1 +1 @@",
+      "-old",
+      "+new",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.changeKind).toBe("renamed");
+    expect(tab!.path).toBe("new/path.ts");
+    expect(tab!.previousPath).toBe("old/path.ts");
+  });
+
+  it("detects binary file", () => {
+    const diff = [
+      "diff --git a/img.png b/img.png",
+      "index 1..2 100644",
+      "Binary files a/img.png and b/img.png differ",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.changeKind).toBe("binary");
+    expect(tab!.isBinary).toBe(true);
+    expect(tab!.additions).toBe(0);
+    expect(tab!.deletions).toBe(0);
+  });
+
+  it("handles multi-file diffs and tracks range boundaries per file", () => {
+    const diff = [
+      "diff --git a/a.ts b/a.ts",
+      "index 1..2 100644",
+      "--- a/a.ts",
+      "+++ b/a.ts",
+      "@@ -1 +1 @@",
+      "-a",
+      "+A",
+      "diff --git a/b.ts b/b.ts",
+      "index 3..4 100644",
+      "--- a/b.ts",
+      "+++ b/b.ts",
+      "@@ -1 +1 @@",
+      "-b",
+      "+B",
+    ].join("\n");
+    const tabs = parseDiffFileTabs(diff);
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0]!.path).toBe("a.ts");
+    expect(tabs[0]!.rangeStart).toBe(1);
+    expect(tabs[0]!.rangeEnd).toBe(7);
+    expect(tabs[1]!.path).toBe("b.ts");
+    expect(tabs[1]!.rangeStart).toBe(8);
+    expect(tabs[1]!.rangeEnd).toBe(14);
+  });
+
+  it("does not count +++ / --- metadata as additions/deletions", () => {
+    const diff = [
+      "diff --git a/x.ts b/x.ts",
+      "--- a/x.ts",
+      "+++ b/x.ts",
+      "@@ -1 +1 @@",
+      "-old",
+      "+new",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.additions).toBe(1);
+    expect(tab!.deletions).toBe(1);
+  });
+
+  it("counts hunk-body lines whose content begins with --- or +++ (e.g. yaml markers)", () => {
+    const diff = [
+      "diff --git a/doc.yaml b/doc.yaml",
+      "--- a/doc.yaml",
+      "+++ b/doc.yaml",
+      "@@ -1,2 +1,2 @@",
+      "----- old separator",
+      "+++++ new separator",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.additions).toBe(1);
+    expect(tab!.deletions).toBe(1);
   });
 });

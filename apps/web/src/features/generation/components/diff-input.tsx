@@ -11,7 +11,6 @@ import {
   ClipboardPaste,
   FileCode2,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -26,8 +25,9 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+import { DiffViewer } from "./diff-viewer";
 
 export type DiffValidity =
   | { status: "pending" }
@@ -42,15 +42,6 @@ type Props = {
 };
 
 const MAX_BYTES = 1_000_000;
-
-const DiffEditor = dynamic(() => import("./diff-editor"), {
-  ssr: false,
-  loading: () => (
-    <div className="rounded-lg border bg-card p-0">
-      <Skeleton className="h-[220px] w-full rounded-lg" />
-    </div>
-  ),
-});
 
 export const DiffInput = ({
   value,
@@ -195,19 +186,18 @@ export const DiffInput = ({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          "rounded-lg border bg-card transition-colors",
+          "rounded-lg transition-colors",
           "focus-within:ring-2 focus-within:ring-ring",
-          dragOver && "border-primary ring-2 ring-primary/30",
+          dragOver && "ring-2 ring-primary/30",
         )}
       >
-        <DiffEditor
-          id={editorId}
+        <DiffViewer
+          editorId={editorId}
           value={value}
           onChange={handleEditorChange}
           disabled={disabled}
           placeholder={t("placeholder")}
           ariaLabel={t("label")}
-          className="min-h-[220px]"
         />
       </div>
 

@@ -37,6 +37,7 @@ export type DiffEditorProps = {
   id?: string;
   ariaLabel?: string;
   className?: string;
+  onViewReady?: (view: EditorView | null) => void;
 };
 
 const USER_EVENT_KINDS = [
@@ -92,6 +93,7 @@ export default function DiffEditor({
   id,
   ariaLabel,
   className,
+  onViewReady,
 }: DiffEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -152,10 +154,7 @@ export default function DiffEditor({
 
     const view = new EditorView({ state, parent });
     viewRef.current = view;
-    // Test handle: expose the active view on the window so e2e can drive the
-    // editor deterministically (CodeMirror's contenteditable is opaque to
-    // Playwright's `fill()`). No prod effect — the attribute is read only by
-    // e2e, and is removed on unmount.
+    onViewReady?.(view);
     if (typeof window !== "undefined") {
       (window as WindowWithDiffEditorView).__DIFF_EDITOR_VIEW = view;
     }
@@ -167,6 +166,7 @@ export default function DiffEditor({
       ) {
         delete (window as WindowWithDiffEditorView).__DIFF_EDITOR_VIEW;
       }
+      onViewReady?.(null);
       view.destroy();
       viewRef.current = null;
     };
