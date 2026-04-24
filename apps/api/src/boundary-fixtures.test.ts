@@ -42,7 +42,7 @@ describe("module boundary rule fixtures", () => {
   });
 
   it("cli: sibling command import fails boundaries/dependencies", async () => {
-    const rules = await lint(cliFixtures, "src/commands/beta/beta.ts");
+    const rules = await lint(cliFixtures, "src/commands/beta.ts");
     expect(rules).toContain("boundaries/dependencies");
   });
 });
