@@ -329,9 +329,9 @@ export function parseDiffFileTabs(raw: string): DiffFileTab[] {
     }
 
     if (inHunk) {
-      if (line.startsWith("+") && !line.startsWith("+++")) {
+      if (line.startsWith("+")) {
         current.additions += 1;
-      } else if (line.startsWith("-") && !line.startsWith("---")) {
+      } else if (line.startsWith("-")) {
         current.deletions += 1;
       }
       continue;

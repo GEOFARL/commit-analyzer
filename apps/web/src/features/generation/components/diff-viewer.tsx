@@ -17,6 +17,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
 } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,25 +86,27 @@ export const DiffViewer = ({
 }: Props) => {
   const t = useTranslations("generate.diff.viewer");
   const [mode, setMode] = useState<DiffViewMode>("unified");
+  const [hydrated, setHydrated] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const editorViewRef = useRef<EditorView | null>(null);
+  const unifiedRadioRef = useRef<HTMLButtonElement | null>(null);
+  const splitRadioRef = useRef<HTMLButtonElement | null>(null);
   const tabListId = useId();
   const panelId = useId();
   const toggleId = useId();
 
   useEffect(() => {
     setMode(readStoredMode());
+    setHydrated(true);
   }, []);
 
-  const tabs: DiffFileTab[] = useMemo(
-    () => parseDiffFileTabs(value),
-    [value],
-  );
-
-  const parsedFiles: ParsedFile[] = useMemo(() => {
-    if (mode !== "split" || tabs.length === 0) return [];
-    return parseAllFiles(value);
-  }, [mode, tabs.length, value]);
+  const parsed = useMemo<{ tabs: DiffFileTab[]; files: ParsedFile[] }>(() => {
+    const tabs = parseDiffFileTabs(value);
+    if (tabs.length === 0) return { tabs, files: [] };
+    return { tabs, files: parseAllFiles(value) };
+  }, [value]);
+  const tabs = parsed.tabs;
+  const parsedFiles = parsed.files;
 
   useEffect(() => {
     if (activeIndex >= tabs.length && tabs.length > 0) {
@@ -115,6 +118,18 @@ export const DiffViewer = ({
     setMode(next);
     writeStoredMode(next);
   }, []);
+
+  const handleRadioKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const next: DiffViewMode = mode === "unified" ? "split" : "unified";
+      setModePersist(next);
+      const targetRef = next === "unified" ? unifiedRadioRef : splitRadioRef;
+      targetRef.current?.focus();
+    },
+    [mode, setModePersist],
+  );
 
   const handleSelectTab = useCallback(
     (idx: number) => {
@@ -158,43 +173,55 @@ export const DiffViewer = ({
               tabListId={tabListId}
               panelId={panelId}
             />
-            <div
-              role="radiogroup"
-              aria-label={t("viewMode.label")}
-              id={toggleId}
-              className="ml-auto inline-flex shrink-0 overflow-hidden rounded-md border bg-background p-0.5 text-xs"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === "unified"}
-                onClick={() => setModePersist("unified")}
-                className={cn(
-                  "cursor-pointer rounded px-2 py-1 transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  mode === "unified"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
+            {hydrated ? (
+              <div
+                role="radiogroup"
+                aria-label={t("viewMode.label")}
+                id={toggleId}
+                onKeyDown={handleRadioKeyDown}
+                className="ml-auto inline-flex shrink-0 overflow-hidden rounded-md border bg-background p-0.5 text-xs"
               >
-                {t("unified")}
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === "split"}
-                onClick={() => setModePersist("split")}
-                className={cn(
-                  "cursor-pointer rounded px-2 py-1 transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  mode === "split"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t("split")}
-              </button>
-            </div>
+                <button
+                  ref={unifiedRadioRef}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === "unified"}
+                  tabIndex={mode === "unified" ? 0 : -1}
+                  onClick={() => setModePersist("unified")}
+                  className={cn(
+                    "cursor-pointer rounded px-2 py-1 transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    mode === "unified"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t("unified")}
+                </button>
+                <button
+                  ref={splitRadioRef}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === "split"}
+                  tabIndex={mode === "split" ? 0 : -1}
+                  onClick={() => setModePersist("split")}
+                  className={cn(
+                    "cursor-pointer rounded px-2 py-1 transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    mode === "split"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t("split")}
+                </button>
+              </div>
+            ) : (
+              <div
+                aria-hidden="true"
+                className="ml-auto inline-flex h-7 w-[7.5rem] shrink-0 animate-pulse rounded-md border bg-muted/40"
+              />
+            )}
           </div>
         </div>
       ) : null}

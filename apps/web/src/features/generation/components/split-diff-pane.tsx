@@ -72,6 +72,8 @@ export default function SplitDiffPane({
   const rightViewRef = useRef<EditorView | null>(null);
   const themeCompartmentLeft = useRef(new Compartment());
   const themeCompartmentRight = useRef(new Compartment());
+  const ariaCompartmentLeft = useRef(new Compartment());
+  const ariaCompartmentRight = useRef(new Compartment());
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -89,6 +91,8 @@ export default function SplitDiffPane({
       dark
         ? [oneDark, syntaxHighlighting(darkHighlight)]
         : [syntaxHighlighting(lightHighlight)];
+    const ariaExtFor = (label: string) =>
+      EditorView.contentAttributes.of({ "aria-label": label });
 
     const leftState = EditorState.create({
       doc: leftDoc,
@@ -98,9 +102,9 @@ export default function SplitDiffPane({
         paneTheme,
         EditorState.readOnly.of(true),
         EditorView.editable.of(false),
-        EditorView.contentAttributes.of({ "aria-label": leftAriaLabel }),
         EditorView.lineWrapping,
         themeCompartmentLeft.current.of(themeExtFor(isDark)),
+        ariaCompartmentLeft.current.of(ariaExtFor(leftAriaLabel)),
       ],
     });
     const rightState = EditorState.create({
@@ -111,9 +115,9 @@ export default function SplitDiffPane({
         paneTheme,
         EditorState.readOnly.of(true),
         EditorView.editable.of(false),
-        EditorView.contentAttributes.of({ "aria-label": rightAriaLabel }),
         EditorView.lineWrapping,
         themeCompartmentRight.current.of(themeExtFor(isDark)),
+        ariaCompartmentRight.current.of(ariaExtFor(rightAriaLabel)),
       ],
     });
 
@@ -122,9 +126,7 @@ export default function SplitDiffPane({
     leftViewRef.current = leftView;
     rightViewRef.current = rightView;
 
-    const leftScroller = leftView.scrollDOM;
-    const rightScroller = rightView.scrollDOM;
-    const cleanup = syncScroll(leftScroller, rightScroller);
+    const cleanup = syncScroll(leftView.scrollDOM, rightView.scrollDOM);
 
     return () => {
       cleanup();
@@ -168,6 +170,23 @@ export default function SplitDiffPane({
     }
   }, [isDark]);
 
+  useEffect(() => {
+    const ariaExtFor = (label: string) =>
+      EditorView.contentAttributes.of({ "aria-label": label });
+    const lv = leftViewRef.current;
+    const rv = rightViewRef.current;
+    if (lv) {
+      lv.dispatch({
+        effects: ariaCompartmentLeft.current.reconfigure(ariaExtFor(leftAriaLabel)),
+      });
+    }
+    if (rv) {
+      rv.dispatch({
+        effects: ariaCompartmentRight.current.reconfigure(ariaExtFor(rightAriaLabel)),
+      });
+    }
+  }, [leftAriaLabel, rightAriaLabel]);
+
   const hasContent = leftDoc.length > 0 || rightDoc.length > 0;
 
   if (file.isBinary) {
@@ -192,12 +211,10 @@ export default function SplitDiffPane({
       <div
         ref={leftRef}
         className={cn("min-w-0 bg-rose-50/30 dark:bg-rose-950/20")}
-        aria-label={leftAriaLabel}
       />
       <div
         ref={rightRef}
         className={cn("min-w-0 bg-emerald-50/30 dark:bg-emerald-950/20")}
-        aria-label={rightAriaLabel}
       />
     </div>
   );

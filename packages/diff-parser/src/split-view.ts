@@ -27,8 +27,6 @@ export function buildSplitDocs(file: ParsedFile): SplitDocs {
     left.push(hunk.header);
     right.push(hunk.header);
     for (const line of hunk.lines) {
-      if (line.startsWith("---")) continue;
-      if (line.startsWith("+++")) continue;
       if (line.startsWith("-")) {
         dels.push(line);
       } else if (line.startsWith("+")) {

@@ -92,17 +92,21 @@ describe("buildSplitDocs", () => {
     expect(docs.lineCount).toBe(0);
   });
 
-  it("ignores +++/--- lines inside hunk bodies", () => {
+  it("preserves +++/--- content inside hunk bodies (real deletions/additions)", () => {
+    // parseFileSection only emits @@-delimited bodies into hunk.lines, so
+    // `--- a/x` / `+++ b/x` never appear here — but legitimate patches can
+    // delete or add lines whose own content starts with "---" or "+++"
+    // (e.g. removing a YAML document separator). Those must be kept.
     const docs = buildSplitDocs(
       file([
         {
-          header: "@@ -1 +1 @@",
-          lines: ["--- a/x", "+++ b/x", "-old", "+new"],
+          header: "@@ -1,2 +1,2 @@",
+          lines: ["---old yaml marker", "+++new yaml marker"],
         },
       ]),
     );
-    expect(docs.leftDoc).toBe("@@ -1 +1 @@\n-old");
-    expect(docs.rightDoc).toBe("@@ -1 +1 @@\n+new");
+    expect(docs.leftDoc).toBe("@@ -1,2 +1,2 @@\n---old yaml marker");
+    expect(docs.rightDoc).toBe("@@ -1,2 +1,2 @@\n+++new yaml marker");
   });
 });
 
@@ -158,46 +162,19 @@ describe("syncScroll", () => {
   it("prevents feedback loops via the in-flight lock", async () => {
     const a = createTarget();
     const b = createTarget();
-
-    // Wrap b.fire so setting b.scrollTop via sync re-fires b's handlers.
-    const originalBFire = b.fire;
-    const setter = (target: SpyTarget) => ({
-      set(v: number) {
-        Object.defineProperty(target, "scrollTop", {
-          value: v,
-          configurable: true,
-          writable: true,
-        });
-        target.fire();
-      },
-    });
-
     syncScroll(a, b);
 
-    // Simulate: a scrolls → triggers onA → sets b.scrollTop → fires b → onB
-    // should be a no-op because the lock is held.
-    let bFireCount = 0;
-    b.fire = () => {
-      bFireCount += 1;
-      originalBFire();
-    };
-
-    const aFireOnce = () => {
-      a.scrollTop = 42;
-      a.fire();
-    };
-
-    aFireOnce();
-    // After the reflexive fire from setting b.scrollTop, the lock was held,
-    // so onB did not write back to a. We assert a.scrollTop stayed at 42.
+    a.scrollTop = 42;
+    a.fire();
+    // Reflexive fire: setting b.scrollTop inside onA would trigger onB and
+    // write back to a if the lock weren't held. Firing b explicitly here
+    // simulates that reflex; a.scrollTop must stay at 42.
     b.fire();
-    void setter;
-    void bFireCount;
 
     expect(a.scrollTop).toBe(42);
     expect(b.scrollTop).toBe(42);
 
-    // Let microtask release the lock so subsequent scrolls propagate again.
+    // Microtask releases the lock; a subsequent scroll on b propagates back.
     await Promise.resolve();
     b.scrollTop = 99;
     b.fire();

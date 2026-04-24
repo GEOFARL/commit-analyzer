@@ -409,4 +409,18 @@ describe("parseDiffFileTabs", () => {
     expect(tab!.additions).toBe(1);
     expect(tab!.deletions).toBe(1);
   });
+
+  it("counts hunk-body lines whose content begins with --- or +++ (e.g. yaml markers)", () => {
+    const diff = [
+      "diff --git a/doc.yaml b/doc.yaml",
+      "--- a/doc.yaml",
+      "+++ b/doc.yaml",
+      "@@ -1,2 +1,2 @@",
+      "----- old separator",
+      "+++++ new separator",
+    ].join("\n");
+    const [tab] = parseDiffFileTabs(diff);
+    expect(tab!.additions).toBe(1);
+    expect(tab!.deletions).toBe(1);
+  });
 });

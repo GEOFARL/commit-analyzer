@@ -133,7 +133,6 @@ export const DiffFileTabs = ({
           const iconClass = ICON_CLASS_BY_KIND[tab.changeKind];
           const isActive = idx === safeActive;
           const tabId = `${tabListId}-tab-${idx}`;
-          const shortLabel = shortenPath(tab.path);
           return (
             <Tooltip key={`${tab.path}-${idx}`}>
               <TooltipTrigger asChild>
@@ -162,8 +161,11 @@ export const DiffFileTabs = ({
                     aria-hidden="true"
                     className={cn("size-3.5 shrink-0", iconClass)}
                   />
-                  <span className="max-w-[16rem] truncate font-mono">
-                    {shortLabel}
+                  <span
+                    dir="rtl"
+                    className="max-w-[16rem] truncate text-left font-mono"
+                  >
+                    {tab.path}
                   </span>
                   {!tab.isBinary &&
                   (tab.additions > 0 || tab.deletions > 0) ? (
@@ -199,13 +201,3 @@ export const DiffFileTabs = ({
     </TooltipProvider>
   );
 };
-
-function shortenPath(path: string): string {
-  const MAX = 48;
-  if (path.length <= MAX) return path;
-  const parts = path.split("/");
-  if (parts.length <= 2) return path.slice(0, MAX - 1) + "…";
-  const first = parts[0]!;
-  const last = parts[parts.length - 1]!;
-  return `${first}/…/${last}`;
-}
