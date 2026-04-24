@@ -1,4 +1,4 @@
 // Intentional boundary violation: commands may not call sibling commands.
-import { alpha } from "../alpha/alpha.js";
+import { alpha } from "./alpha.js";
 
 export const beta = alpha;

@@ -15,11 +15,12 @@ const elements = [
   { type: "entry", mode: "file", pattern: "index.ts" },
   {
     type: "commands",
-    pattern: "src/commands/*",
+    mode: "file",
+    pattern: "src/commands/*.ts",
     capture: ["name"],
   },
-  { type: "services", pattern: "src/services" },
-  { type: "lib", pattern: "src/lib" },
+  { type: "services", pattern: "src/services/**" },
+  { type: "lib", pattern: "src/lib/**" },
 ];
 
 const crossAppBan = {
