@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
+    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/diff-parser --filter @commit-analyzer/contracts build",
     "build": "next build",
-    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
+    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/diff-parser --filter @commit-analyzer/contracts build",
     "dev": "next dev",
     "start": "next start",
     "test": "node scripts/check-messages.mjs",

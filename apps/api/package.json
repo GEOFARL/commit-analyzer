@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
+    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/diff-parser --filter @commit-analyzer/contracts build",
     "build": "tsc",
     "start": "node --enable-source-maps dist/bootstrap.js",
-    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/contracts build",
+    "predev": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/diff-parser --filter @commit-analyzer/contracts build",
     "dev": "node --import @swc-node/register/esm-register --watch --env-file=.env src/bootstrap.ts",
     "test": "vitest run",
     "test:watch": "vitest",
