@@ -168,14 +168,16 @@ export default function SplitDiffPane({
     const themeExtFor = (dark: boolean) =>
       dark
         ? [githubDark, syntaxHighlighting(diffAccentDark)]
-        : [syntaxHighlighting(diffAccentLight)];
+        : [
+            syntaxHighlighting(defaultHighlightStyle),
+            syntaxHighlighting(diffAccentLight),
+          ];
     const ariaExtFor = (label: string) =>
       EditorView.contentAttributes.of({ "aria-label": label });
 
     const commonExtensions = [
       lineNumbers(),
       paneTheme,
-      syntaxHighlighting(defaultHighlightStyle),
       syntaxHighlighting(classHighlighter),
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
@@ -289,7 +291,10 @@ export default function SplitDiffPane({
     const themeExtFor = (dark: boolean) =>
       dark
         ? [githubDark, syntaxHighlighting(diffAccentDark)]
-        : [syntaxHighlighting(diffAccentLight)];
+        : [
+            syntaxHighlighting(defaultHighlightStyle),
+            syntaxHighlighting(diffAccentLight),
+          ];
     const lv = leftViewRef.current;
     const rv = rightViewRef.current;
     if (lv) {
