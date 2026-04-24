@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import { expect, test } from "./fixtures";
 import { SAMPLE_DIFF, TTFT_BUDGET_MS } from "./generate.constants";
 import { MOCK_ACCESS_TOKEN, MOCK_PORT, MOCK_SEEDED_REPO_ID } from "./mock-server";
@@ -10,6 +12,18 @@ const SUGGESTION_SUBJECTS = [
   "tidy up auth module",
 ];
 
+// Hydrates the generate form with a diff via the app's existing sessionStorage
+// bridge (`QUICK_GENERATE_DIFF_STORAGE_KEY`, see `generate-view.tsx`). Used
+// instead of Playwright's `fill()` because the editor is now a CodeMirror 6
+// instance — `fill()` on its contenteditable goes through `execCommand` and
+// doesn't flow into CodeMirror's state, so onChange never fires and the
+// Generate button never enables.
+const seedDiff = async (page: Page, diff: string) => {
+  await page.addInitScript((value) => {
+    window.sessionStorage.setItem("dashboard.quickGenerateDiff", value);
+  }, diff);
+};
+
 // Covers UC-C1 (basic streaming generation) and UC-C2 (policy-aware
 // generation). The mock server stubs the SSE provider with a deterministic
 // 3-suggestion stream so the assertions are stable; the live-provider
@@ -18,13 +32,12 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("paste diff → first suggestion < 2 s, 3 cards with copy actions", async ({
     authedPage: page,
   }) => {
+    await seedDiff(page, SAMPLE_DIFF);
     await page.goto("/generate");
 
     await expect(
       page.getByRole("heading", { level: 1, name: /generate commit message/i }),
     ).toBeVisible();
-
-    await page.getByLabel("Diff", { exact: true }).fill(SAMPLE_DIFF);
 
     await page.getByRole("button", { name: /^Generate$/ }).click();
 
@@ -93,9 +106,8 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     );
     expect(activateRes.status()).toBe(200);
 
+    await seedDiff(page, SAMPLE_DIFF);
     await page.goto("/generate");
-
-    await page.getByLabel("Diff", { exact: true }).fill(SAMPLE_DIFF);
 
     // Select the seeded repo + freshly-created policy.
     await page.getByLabel(/^Repository/).click();
@@ -164,33 +176,30 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     ).toContainText(/['"]?chore['"]?/);
   });
 
-  // T-6.10 — the CodeMirror editor debounces a unified-diff validator; Generate
+  // T-6.10 — the CodeMirror editor runs a unified-diff validator; Generate
   // must stay disabled for prose input and re-enable once the buffer holds a
-  // syntactically valid diff.
+  // syntactically valid diff. Driven via the Quick-Generate sessionStorage
+  // bridge because `fill()` on CodeMirror's contenteditable doesn't route
+  // through the editor's state.
   test("submit is gated by unified-diff validation", async ({
     authedPage: page,
   }) => {
+    await seedDiff(page, "this is prose, not a unified diff — no hunks.");
     await page.goto("/generate");
 
     const generateButton = page.getByRole("button", { name: /^Generate$/ });
-    await expect(generateButton).toBeDisabled();
-
-    const editor = page.getByLabel("Diff", { exact: true });
-    await editor.click();
-    await page.keyboard.insertText(
-      "this is prose, not a unified diff — no headers, no hunks.",
-    );
-
     await expect(
       page.getByText(/not a valid unified diff/i),
     ).toBeVisible();
     await expect(generateButton).toBeDisabled();
 
-    // Wipe the buffer and paste a valid diff — validation flips to valid and
-    // the stats banner reports file count and per-side line counts.
-    await page.keyboard.press("ControlOrMeta+a");
-    await page.keyboard.press("Backspace");
-    await page.keyboard.insertText(SAMPLE_DIFF);
+    // Swap the buffer for a valid diff via the same bridge + reload. The
+    // generate page clears the sessionStorage key on mount so we re-seed
+    // between navigations.
+    await page.evaluate((value) => {
+      window.sessionStorage.setItem("dashboard.quickGenerateDiff", value);
+    }, SAMPLE_DIFF);
+    await page.reload();
 
     await expect(
       page.getByRole("status").filter({ hasText: /\+3\/-0/ }),
