@@ -14,6 +14,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type KeyboardEvent,
 } from "react";
 
@@ -66,6 +67,8 @@ export const DiffFileTabs = ({
   const t = useTranslations("generate.diff.viewer");
   const listRef = useRef<HTMLDivElement | null>(null);
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const safeActive = useMemo(() => {
     if (tabs.length === 0) return 0;
@@ -79,6 +82,25 @@ export const DiffFileTabs = ({
     if (!btn) return;
     btn.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [safeActive]);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const update = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = el;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    ro?.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      ro?.disconnect();
+    };
+  }, [tabs.length]);
 
   const focusTab = useCallback((index: number) => {
     const btn = buttonsRef.current[index];
@@ -119,15 +141,28 @@ export const DiffFileTabs = ({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div
-        ref={listRef}
-        id={tabListId}
-        role="tablist"
-        aria-orientation="horizontal"
-        aria-label={t("tabs.listLabel")}
-        onKeyDown={handleKeyDown}
-        className="flex min-w-0 flex-1 items-stretch gap-1 overflow-x-auto whitespace-nowrap px-1 py-1 scrollbar-thin"
-      >
+      <div className="relative min-w-0 flex-1">
+        {canScrollLeft ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-muted/60 via-muted/20 to-transparent"
+          />
+        ) : null}
+        {canScrollRight ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-muted/60 via-muted/20 to-transparent"
+          />
+        ) : null}
+        <div
+          ref={listRef}
+          id={tabListId}
+          role="tablist"
+          aria-orientation="horizontal"
+          aria-label={t("tabs.listLabel")}
+          onKeyDown={handleKeyDown}
+          className="flex items-stretch gap-1 overflow-x-auto whitespace-nowrap px-1 py-1 scrollbar-thin"
+        >
         {tabs.map((tab, idx) => {
           const Icon = ICON_BY_KIND[tab.changeKind];
           const iconClass = ICON_CLASS_BY_KIND[tab.changeKind];
@@ -149,7 +184,7 @@ export const DiffFileTabs = ({
                   onClick={() => onSelect(idx)}
                   data-kind={tab.changeKind}
                   className={cn(
-                    "group relative flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors",
+                    "group relative flex shrink-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-xs transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "border border-transparent",
                     isActive
@@ -197,6 +232,7 @@ export const DiffFileTabs = ({
             </Tooltip>
           );
         })}
+        </div>
       </div>
     </TooltipProvider>
   );

@@ -15,6 +15,26 @@ index e69de29..b6fc4c6 100644
 +};
 `;
 
+export const TS_PLUS_JSON_DIFF = `diff --git a/src/util.ts b/src/util.ts
+index 1111111..2222222 100644
+--- a/src/util.ts
++++ b/src/util.ts
+@@ -1,2 +1,3 @@
+-const old = 1;
++export const answer = 42;
++export function greet(name: string) { return "hi " + name; }
+ const keep = true;
+diff --git a/config/app.json b/config/app.json
+index 3333333..4444444 100644
+--- a/config/app.json
++++ b/config/app.json
+@@ -1,3 +1,3 @@
+ {
+-  "version": "1.0.0"
++  "version": "1.1.0"
+ }
+`;
+
 export const MULTI_FILE_DIFF = `diff --git a/src/a.ts b/src/a.ts
 index 1111111..2222222 100644
 --- a/src/a.ts

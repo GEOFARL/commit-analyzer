@@ -8,6 +8,12 @@ export {
   type DiffValidationResult,
 } from "./validate.js";
 
+export {
+  extensionToLanguageKey,
+  LANGUAGE_KEYS,
+  type LanguageKey,
+} from "./language-key.js";
+
 export type ParsedHunk = {
   header: string;
   lines: string[];

@@ -3,20 +3,35 @@
 import {
   HighlightStyle,
   StreamLanguage,
+  defaultHighlightStyle,
   syntaxHighlighting,
 } from "@codemirror/language";
 import { diff } from "@codemirror/legacy-modes/mode/diff";
-import { Compartment, EditorState } from "@codemirror/state";
+import {
+  Compartment,
+  EditorState,
+  RangeSetBuilder,
+  type Extension,
+} from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorView, lineNumbers } from "@codemirror/view";
+import { Decoration, EditorView, lineNumbers } from "@codemirror/view";
 import type { ParsedFile } from "@commit-analyzer/diff-parser";
-import { buildSplitDocs, syncScroll } from "@commit-analyzer/diff-parser/split-view";
-import { tags as t } from "@lezer/highlight";
+import {
+  buildStrippedSplitDocs,
+  syncScroll,
+  type SplitLineSignal,
+} from "@commit-analyzer/diff-parser/split-view";
+import { classHighlighter, tags as t } from "@lezer/highlight";
 import { FileDigit } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+
+import {
+  extensionToLanguageKey,
+  loadLanguageExtension,
+} from "../resolve-language";
 
 type Props = {
   file: ParsedFile;
@@ -41,23 +56,67 @@ const paneTheme = EditorView.theme({
     color: "var(--muted-foreground)",
   },
   ".cm-line": { padding: "0 8px" },
+  ".cm-line.cm-diff-add": {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+  },
+  ".cm-line.cm-diff-del": {
+    backgroundColor: "rgba(244, 63, 94, 0.12)",
+  },
+  ".cm-line.cm-diff-empty": {
+    backgroundColor: "rgba(148, 163, 184, 0.08)",
+  },
+  ".cm-line.cm-diff-header": {
+    color: "var(--muted-foreground)",
+    fontStyle: "italic",
+  },
+  "&.cm-dark .cm-line.cm-diff-add": {
+    backgroundColor: "rgba(34, 197, 94, 0.18)",
+  },
+  "&.cm-dark .cm-line.cm-diff-del": {
+    backgroundColor: "rgba(244, 63, 94, 0.2)",
+  },
+  "&.cm-dark .cm-line.cm-diff-empty": {
+    backgroundColor: "rgba(148, 163, 184, 0.14)",
+  },
 });
 
-const lightHighlight = HighlightStyle.define([
-  { tag: t.inserted, color: "#15803d" },
-  { tag: t.deleted, color: "#b91c1c" },
+const diffAccentLight = HighlightStyle.define([
   { tag: t.heading, color: "#0f172a", fontWeight: "600" },
   { tag: t.meta, color: "#64748b" },
 ]);
 
-const darkHighlight = HighlightStyle.define([
-  { tag: t.inserted, color: "#86efac" },
-  { tag: t.deleted, color: "#fca5a5" },
+const diffAccentDark = HighlightStyle.define([
   { tag: t.heading, color: "#f1f5f9", fontWeight: "600" },
   { tag: t.meta, color: "#94a3b8" },
 ]);
 
 const diffLanguage = StreamLanguage.define(diff);
+
+const SIGNAL_CLASS: Record<SplitLineSignal, string | null> = {
+  context: null,
+  add: "cm-diff-add",
+  del: "cm-diff-del",
+  empty: "cm-diff-empty",
+  header: "cm-diff-header",
+};
+
+function buildLineDecorations(
+  doc: string,
+  signals: SplitLineSignal[],
+): Extension {
+  const builder = new RangeSetBuilder<Decoration>();
+  let pos = 0;
+  for (let i = 0; i < signals.length; i += 1) {
+    const cls = SIGNAL_CLASS[signals[i]!];
+    if (cls) {
+      builder.add(pos, pos, Decoration.line({ class: cls }));
+    }
+    const nl = doc.indexOf("\n", pos);
+    if (nl < 0) break;
+    pos = nl + 1;
+  }
+  return EditorView.decorations.of(builder.finish());
+}
 
 export default function SplitDiffPane({
   file,
@@ -74,13 +133,32 @@ export default function SplitDiffPane({
   const themeCompartmentRight = useRef(new Compartment());
   const ariaCompartmentLeft = useRef(new Compartment());
   const ariaCompartmentRight = useRef(new Compartment());
+  const langCompartmentLeft = useRef(new Compartment());
+  const langCompartmentRight = useRef(new Compartment());
+  const decoCompartmentLeft = useRef(new Compartment());
+  const decoCompartmentRight = useRef(new Compartment());
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  const { leftDoc, rightDoc } = file.isBinary
-    ? { leftDoc: binaryPlaceholder, rightDoc: binaryPlaceholder }
-    : buildSplitDocs(file);
+  const stripped = useMemo(() => {
+    if (file.isBinary) {
+      return {
+        leftDoc: binaryPlaceholder,
+        rightDoc: binaryPlaceholder,
+        lineCount: 0,
+        leftSignals: [] as SplitLineSignal[],
+        rightSignals: [] as SplitLineSignal[],
+      };
+    }
+    return buildStrippedSplitDocs(file);
+  }, [file, binaryPlaceholder]);
+
+  const { leftDoc, rightDoc, leftSignals, rightSignals } = stripped;
+  const languageKey = useMemo(
+    () => (file.isBinary ? null : extensionToLanguageKey(file.path)),
+    [file.isBinary, file.path],
+  );
 
   useEffect(() => {
     const leftParent = leftRef.current;
@@ -89,20 +167,29 @@ export default function SplitDiffPane({
 
     const themeExtFor = (dark: boolean) =>
       dark
-        ? [oneDark, syntaxHighlighting(darkHighlight)]
-        : [syntaxHighlighting(lightHighlight)];
+        ? [oneDark, syntaxHighlighting(diffAccentDark)]
+        : [syntaxHighlighting(diffAccentLight)];
     const ariaExtFor = (label: string) =>
       EditorView.contentAttributes.of({ "aria-label": label });
+
+    const commonExtensions = [
+      lineNumbers(),
+      paneTheme,
+      syntaxHighlighting(defaultHighlightStyle),
+      syntaxHighlighting(classHighlighter),
+      EditorState.readOnly.of(true),
+      EditorView.editable.of(false),
+      EditorView.lineWrapping,
+    ];
 
     const leftState = EditorState.create({
       doc: leftDoc,
       extensions: [
-        lineNumbers(),
-        diffLanguage,
-        paneTheme,
-        EditorState.readOnly.of(true),
-        EditorView.editable.of(false),
-        EditorView.lineWrapping,
+        ...commonExtensions,
+        langCompartmentLeft.current.of(diffLanguage),
+        decoCompartmentLeft.current.of(
+          buildLineDecorations(leftDoc, leftSignals),
+        ),
         themeCompartmentLeft.current.of(themeExtFor(isDark)),
         ariaCompartmentLeft.current.of(ariaExtFor(leftAriaLabel)),
       ],
@@ -110,12 +197,11 @@ export default function SplitDiffPane({
     const rightState = EditorState.create({
       doc: rightDoc,
       extensions: [
-        lineNumbers(),
-        diffLanguage,
-        paneTheme,
-        EditorState.readOnly.of(true),
-        EditorView.editable.of(false),
-        EditorView.lineWrapping,
+        ...commonExtensions,
+        langCompartmentRight.current.of(diffLanguage),
+        decoCompartmentRight.current.of(
+          buildLineDecorations(rightDoc, rightSignals),
+        ),
         themeCompartmentRight.current.of(themeExtFor(isDark)),
         ariaCompartmentRight.current.of(ariaExtFor(rightAriaLabel)),
       ],
@@ -144,18 +230,66 @@ export default function SplitDiffPane({
     const currentLeft = lv.state.doc.toString();
     const currentRight = rv.state.doc.toString();
     if (currentLeft !== leftDoc) {
-      lv.dispatch({ changes: { from: 0, to: currentLeft.length, insert: leftDoc } });
+      lv.dispatch({
+        changes: { from: 0, to: currentLeft.length, insert: leftDoc },
+      });
     }
     if (currentRight !== rightDoc) {
-      rv.dispatch({ changes: { from: 0, to: currentRight.length, insert: rightDoc } });
+      rv.dispatch({
+        changes: { from: 0, to: currentRight.length, insert: rightDoc },
+      });
     }
-  }, [leftDoc, rightDoc]);
+    lv.dispatch({
+      effects: decoCompartmentLeft.current.reconfigure(
+        buildLineDecorations(leftDoc, leftSignals),
+      ),
+    });
+    rv.dispatch({
+      effects: decoCompartmentRight.current.reconfigure(
+        buildLineDecorations(rightDoc, rightSignals),
+      ),
+    });
+  }, [leftDoc, rightDoc, leftSignals, rightSignals]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const lv = leftViewRef.current;
+    const rv = rightViewRef.current;
+    if (!lv || !rv) return;
+    if (!languageKey) {
+      lv.dispatch({
+        effects: langCompartmentLeft.current.reconfigure(diffLanguage),
+      });
+      rv.dispatch({
+        effects: langCompartmentRight.current.reconfigure(diffLanguage),
+      });
+      return;
+    }
+    void loadLanguageExtension(languageKey).then((ext) => {
+      if (cancelled) return;
+      const lvNow = leftViewRef.current;
+      const rvNow = rightViewRef.current;
+      if (lvNow) {
+        lvNow.dispatch({
+          effects: langCompartmentLeft.current.reconfigure(ext),
+        });
+      }
+      if (rvNow) {
+        rvNow.dispatch({
+          effects: langCompartmentRight.current.reconfigure(ext),
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [languageKey]);
 
   useEffect(() => {
     const themeExtFor = (dark: boolean) =>
       dark
-        ? [oneDark, syntaxHighlighting(darkHighlight)]
-        : [syntaxHighlighting(lightHighlight)];
+        ? [oneDark, syntaxHighlighting(diffAccentDark)]
+        : [syntaxHighlighting(diffAccentLight)];
     const lv = leftViewRef.current;
     const rv = rightViewRef.current;
     if (lv) {
@@ -210,11 +344,13 @@ export default function SplitDiffPane({
     <div className="grid grid-cols-2 divide-x overflow-hidden rounded-b-lg border border-t-0 bg-card">
       <div
         ref={leftRef}
-        className={cn("min-w-0 bg-rose-50/30 dark:bg-rose-950/20")}
+        data-testid="split-diff-left"
+        className={cn("min-w-0 bg-rose-50/20 dark:bg-rose-950/10")}
       />
       <div
         ref={rightRef}
-        className={cn("min-w-0 bg-emerald-50/30 dark:bg-emerald-950/20")}
+        data-testid="split-diff-right"
+        className={cn("min-w-0 bg-emerald-50/20 dark:bg-emerald-950/10")}
       />
     </div>
   );
