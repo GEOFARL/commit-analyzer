@@ -58,7 +58,7 @@ const SAMPLE_DIFF = [
   "index 1..2 100644",
   "--- a/a.ts",
   "+++ b/a.ts",
-  "@@ -1,2 +1,3 @@",
+  "@@ -1,1 +1,2 @@",
   " line",
   "+added",
 ].join("\n");

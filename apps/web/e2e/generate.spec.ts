@@ -163,4 +163,40 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
       card2Failures.filter({ hasText: /^Type:/ }),
     ).toContainText(/['"]?chore['"]?/);
   });
+
+  // T-6.10 — the CodeMirror editor debounces a unified-diff validator; Generate
+  // must stay disabled for prose input and re-enable once the buffer holds a
+  // syntactically valid diff.
+  test("submit is gated by unified-diff validation", async ({
+    authedPage: page,
+  }) => {
+    await page.goto("/generate");
+
+    const generateButton = page.getByRole("button", { name: /^Generate$/ });
+    await expect(generateButton).toBeDisabled();
+
+    const editor = page.getByLabel("Diff", { exact: true });
+    await editor.click();
+    await page.keyboard.insertText(
+      "this is prose, not a unified diff — no headers, no hunks.",
+    );
+
+    await expect(
+      page.getByRole("alert", { name: "" }).filter({
+        hasText: /not a valid unified diff/i,
+      }),
+    ).toBeVisible();
+    await expect(generateButton).toBeDisabled();
+
+    // Wipe the buffer and paste a valid diff — validation flips to valid and
+    // the stats banner reports file count and per-side line counts.
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.insertText(SAMPLE_DIFF);
+
+    await expect(
+      page.getByRole("status").filter({ hasText: /\+3\/-0/ }),
+    ).toBeVisible();
+    await expect(generateButton).toBeEnabled();
+  });
 });

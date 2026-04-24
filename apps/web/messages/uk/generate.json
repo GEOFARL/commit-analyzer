@@ -20,7 +20,18 @@
     "pasteEmpty": "Буфер обміну порожній.",
     "pasteError": "Не вдалося прочитати буфер обміну.",
     "uploadFile": "Завантажити .patch",
-    "fileTooLarge": "Файл завеликий (макс. 1 МБ)."
+    "fileTooLarge": "Файл завеликий (макс. 1 МБ).",
+    "validation": {
+      "invalidTitle": "Некоректний уніфікований diff",
+      "statsBanner": "{files, plural, one {# файл} few {# файли} many {# файлів} other {# файлів}}, +{additions}/-{deletions}",
+      "locationWithFile": "{file} · рядок {line} — {reason}",
+      "locationWithoutFile": "Рядок {line} — {reason}",
+      "issueEmpty": "Порожній ввід.",
+      "issueMissingHeader": "Відсутній заголовок файлу — очікується `diff --git` або `--- / +++`.",
+      "issueBadHunkHeader": "Некоректний заголовок hunk — очікується `@@ -a,b +c,d @@`.",
+      "issueHunkCountMismatch": "Тіло hunk не відповідає задекларованому діапазону.",
+      "issueBadLinePrefix": "Невідомий префікс рядка — очікується ` `, `+`, `-` або `\\`."
+    }
   },
   "provider": {
     "providerLabel": "Провайдер",

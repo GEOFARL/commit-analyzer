@@ -20,7 +20,18 @@
     "pasteEmpty": "Clipboard is empty.",
     "pasteError": "Could not read clipboard.",
     "uploadFile": "Upload .patch",
-    "fileTooLarge": "File is too large (max 1 MB)."
+    "fileTooLarge": "File is too large (max 1 MB).",
+    "validation": {
+      "invalidTitle": "Not a valid unified diff",
+      "statsBanner": "{files, plural, one {# file} other {# files}}, +{additions}/-{deletions}",
+      "locationWithFile": "{file} · line {line} — {reason}",
+      "locationWithoutFile": "Line {line} — {reason}",
+      "issueEmpty": "Input is empty.",
+      "issueMissingHeader": "Missing file header — expected `diff --git` or `--- / +++`.",
+      "issueBadHunkHeader": "Malformed hunk header — expected `@@ -a,b +c,d @@`.",
+      "issueHunkCountMismatch": "Hunk body does not match the declared line range.",
+      "issueBadLinePrefix": "Unexpected line prefix — expected ` `, `+`, `-`, or `\\`."
+    }
   },
   "provider": {
     "providerLabel": "Provider",
