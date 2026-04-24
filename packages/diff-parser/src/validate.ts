@@ -84,7 +84,15 @@ export function validateUnifiedDiff(raw: string): DiffValidationResult {
 
     if (line.startsWith("diff --git ")) {
       closeHunkIfUnfinished();
-      currentPath = pathFromDiffHeader(line);
+      const parsedPath = pathFromDiffHeader(line);
+      if (parsedPath === null) {
+        // Malformed `diff --git` header — don't count this as a file; a
+        // following `--- a/x` + `+++ b/x` block (if present) will open the
+        // file properly.
+        sawGitHeader = false;
+        continue;
+      }
+      currentPath = parsedPath;
       stats.files += 1;
       sawGitHeader = true;
       state = "in-file";

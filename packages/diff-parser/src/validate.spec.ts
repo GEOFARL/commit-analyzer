@@ -282,6 +282,20 @@ describe("validateUnifiedDiff — file header variants", () => {
     expect(res.issues.some((i) => i.code === "hunk-count-mismatch")).toBe(true);
   });
 
+  it("does not count a malformed `diff --git` header toward the file count", () => {
+    const diff = [
+      "diff --git garbage without-paths",
+      "--- a/x",
+      "+++ b/x",
+      "@@ -1 +1 @@",
+      "-a",
+      "+b",
+    ].join("\n");
+    const res = validateUnifiedDiff(diff);
+    expect(res.valid).toBe(true);
+    expect(res.stats.files).toBe(1);
+  });
+
   it("flags an unfinished hunk when a new unified-diff header starts", () => {
     const diff = [
       "--- a/x",

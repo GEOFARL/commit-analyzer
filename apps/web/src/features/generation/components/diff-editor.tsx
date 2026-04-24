@@ -35,11 +35,19 @@ export type DiffEditorProps = {
   className?: string;
 };
 
+const USER_EVENT_KINDS = [
+  "input",
+  "delete",
+  "move",
+  "select",
+  "undo",
+  "redo",
+] as const;
+
 const diffLanguage = StreamLanguage.define(diff);
 
 const baseTheme = EditorView.theme({
   "&": { height: "100%", fontSize: "12px" },
-  "&.cm-focused": { outline: "none" },
   ".cm-scroller": {
     fontFamily:
       "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
@@ -85,8 +93,19 @@ export default function DiffEditor({
   const viewRef = useRef<EditorView | null>(null);
   const themeCompartmentRef = useRef(new Compartment());
   const editableCompartmentRef = useRef(new Compartment());
+  const placeholderCompartmentRef = useRef(new Compartment());
+  const contentAttrsCompartmentRef = useRef(new Compartment());
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const contentAttrsExt = (labelId?: string, label?: string) =>
+    EditorView.contentAttributes.of({
+      ...(labelId ? { id: labelId } : {}),
+      ...(label ? { "aria-label": label } : {}),
+    });
+
+  const placeholderExtFor = (text?: string) =>
+    text ? placeholderExt(text) : [];
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -113,15 +132,15 @@ export default function DiffEditor({
             : [syntaxHighlighting(lightDiffHighlight)],
         ),
         editableCompartmentRef.current.of(EditorState.readOnly.of(!!disabled)),
-        placeholder ? placeholderExt(placeholder) : [],
-        EditorView.contentAttributes.of({
-          ...(id ? { id } : {}),
-          ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
-        }),
+        placeholderCompartmentRef.current.of(placeholderExtFor(placeholder)),
+        contentAttrsCompartmentRef.current.of(contentAttrsExt(id, ariaLabel)),
         EditorView.updateListener.of((v) => {
-          if (v.docChanged) {
-            onChangeRef.current(v.state.doc.toString());
-          }
+          if (!v.docChanged) return;
+          const isUser = v.transactions.some((tr) =>
+            USER_EVENT_KINDS.some((kind) => tr.isUserEvent(kind)),
+          );
+          if (!isUser) return;
+          onChangeRef.current(v.state.doc.toString());
         }),
         EditorView.lineWrapping,
       ],
@@ -168,10 +187,30 @@ export default function DiffEditor({
     });
   }, [disabled]);
 
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: placeholderCompartmentRef.current.reconfigure(
+        placeholderExtFor(placeholder),
+      ),
+    });
+  }, [placeholder]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: contentAttrsCompartmentRef.current.reconfigure(
+        contentAttrsExt(id, ariaLabel),
+      ),
+    });
+  }, [id, ariaLabel]);
+
   return (
     <div
       ref={containerRef}
-      aria-disabled={disabled || undefined}
+      aria-readonly={disabled || undefined}
       className={cn(
         "overflow-hidden rounded-lg bg-transparent",
         disabled && "opacity-60",

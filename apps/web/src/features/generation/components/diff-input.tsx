@@ -83,6 +83,10 @@ export const DiffInput = ({
     },
     [onChange],
   );
+  // DiffEditor's updateListener only fires handleEditorChange on user input —
+  // the value-sync effect inside the editor dispatches programmatic
+  // transactions without a userEvent annotation, so setFileName(null) no
+  // longer clobbers the pill after an Upload → subsequent remount of value.
 
   const handlePaste = useCallback(async () => {
     try {
@@ -192,6 +196,7 @@ export const DiffInput = ({
         onDrop={handleDrop}
         className={cn(
           "rounded-lg border bg-card transition-colors",
+          "focus-within:ring-2 focus-within:ring-ring",
           dragOver && "border-primary ring-2 ring-primary/30",
         )}
       >
@@ -228,7 +233,8 @@ export const DiffInput = ({
 
       {validity.status === "invalid" && firstIssue ? (
         <div
-          role="alert"
+          role="status"
+          aria-live="polite"
           className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
           <AlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />

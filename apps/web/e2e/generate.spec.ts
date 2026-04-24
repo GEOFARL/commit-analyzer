@@ -182,9 +182,7 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     );
 
     await expect(
-      page.getByRole("alert", { name: "" }).filter({
-        hasText: /not a valid unified diff/i,
-      }),
+      page.getByText(/not a valid unified diff/i),
     ).toBeVisible();
     await expect(generateButton).toBeDisabled();
 
