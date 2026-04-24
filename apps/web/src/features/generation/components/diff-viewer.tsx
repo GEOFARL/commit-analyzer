@@ -57,14 +57,14 @@ type Props = {
 };
 
 function readStoredMode(): DiffViewMode {
-  if (typeof window === "undefined") return "unified";
+  if (typeof window === "undefined") return "split";
   try {
     const v = window.localStorage.getItem(STORAGE_KEY);
     if (v === "split" || v === "unified") return v;
   } catch {
     // localStorage may be disabled (privacy mode, SSR) — fall back silently.
   }
-  return "unified";
+  return "split";
 }
 
 function writeStoredMode(mode: DiffViewMode): void {
