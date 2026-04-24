@@ -18,10 +18,16 @@ const SUGGESTION_SUBJECTS = [
 // instance — `fill()` on its contenteditable goes through `execCommand` and
 // doesn't flow into CodeMirror's state, so onChange never fires and the
 // Generate button never enables.
-const seedDiff = async (page: Page, diff: string) => {
-  await page.addInitScript((value) => {
+//
+// We navigate first so sessionStorage is scoped to the target origin, then
+// reload — the generate-view mount effect reads and clears the key on every
+// mount, so the reload is the handoff point.
+const seedDiffAndOpen = async (page: Page, diff: string) => {
+  await page.goto("/generate");
+  await page.evaluate((value) => {
     window.sessionStorage.setItem("dashboard.quickGenerateDiff", value);
   }, diff);
+  await page.reload();
 };
 
 // Covers UC-C1 (basic streaming generation) and UC-C2 (policy-aware
@@ -32,8 +38,7 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("paste diff → first suggestion < 2 s, 3 cards with copy actions", async ({
     authedPage: page,
   }) => {
-    await seedDiff(page, SAMPLE_DIFF);
-    await page.goto("/generate");
+    await seedDiffAndOpen(page, SAMPLE_DIFF);
 
     await expect(
       page.getByRole("heading", { level: 1, name: /generate commit message/i }),
@@ -106,8 +111,7 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
     );
     expect(activateRes.status()).toBe(200);
 
-    await seedDiff(page, SAMPLE_DIFF);
-    await page.goto("/generate");
+    await seedDiffAndOpen(page, SAMPLE_DIFF);
 
     // Select the seeded repo + freshly-created policy.
     await page.getByLabel(/^Repository/).click();
@@ -184,8 +188,10 @@ test.describe("generate — streaming, TTFT, copy, policy badges", () => {
   test("submit is gated by unified-diff validation", async ({
     authedPage: page,
   }) => {
-    await seedDiff(page, "this is prose, not a unified diff — no hunks.");
-    await page.goto("/generate");
+    await seedDiffAndOpen(
+      page,
+      "this is prose, not a unified diff — no hunks.",
+    );
 
     const generateButton = page.getByRole("button", { name: /^Generate$/ });
     await expect(
