@@ -29,6 +29,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@babel/runtime": "^7",
     "@codemirror/commands": "^6",
     "@codemirror/lang-css": "^6",
     "@codemirror/lang-html": "^6",
