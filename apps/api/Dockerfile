@@ -23,9 +23,9 @@ COPY packages/database packages/database
 COPY packages/diff-parser packages/diff-parser
 COPY apps/api apps/api
 RUN pnpm --filter @commit-analyzer/shared-types build \
+ && pnpm --filter @commit-analyzer/diff-parser build \
  && pnpm --filter @commit-analyzer/contracts build \
  && pnpm --filter @commit-analyzer/database build \
- && pnpm --filter @commit-analyzer/diff-parser build \
  && pnpm --filter @commit-analyzer/api build
 
 FROM base AS runner
