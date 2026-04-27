@@ -1,0 +1,30 @@
+{
+  "title": "Default policy",
+  "subtitle": "Auto-apply this rule set to repositories you connect from now on.",
+  "helper": "When you connect a new repository, these rules become its initial active policy. Existing repositories aren't changed.",
+  "enabled": {
+    "title": "Auto-apply on connect",
+    "description": "Toggle off to keep the template saved without applying it to new repositories.",
+    "toggleLabel": "Apply this template to newly connected repositories"
+  },
+  "rulesTitle": "Rules",
+  "rulesDescription": "Add one rule per commit-message check.",
+  "save": "Save template",
+  "saving": "Saving…",
+  "saved": "All changes saved",
+  "unsaved": "Unsaved changes",
+  "clear": "Clear template",
+  "hasErrors": "Fix the highlighted rules before saving.",
+  "toast": {
+    "saved": "Default policy saved.",
+    "saveError": "Failed to save default policy.",
+    "cleared": "Default policy cleared.",
+    "clearError": "Failed to clear default policy."
+  },
+  "clearDialog": {
+    "title": "Clear default policy?",
+    "description": "Newly connected repositories won't get an auto-applied policy. Existing repositories keep their current policies.",
+    "cancel": "Cancel",
+    "confirm": "Clear template"
+  }
+}

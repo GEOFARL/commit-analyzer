@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   createPolicySchema,
+  defaultPolicyTemplateResponseSchema,
+  defaultPolicyTemplateSchema,
   policiesContract,
   policyDtoSchema,
   policyRuleSchema,
@@ -179,5 +181,69 @@ describe("policiesContract", () => {
     expect(policiesContract.delete.metadata).toEqual(expected);
     expect(policiesContract.activate.metadata).toEqual(expected);
     expect(policiesContract.validate.metadata).toEqual(expected);
+    expect(policiesContract.defaults.get.metadata).toEqual(expected);
+    expect(policiesContract.defaults.update.metadata).toEqual(expected);
+    expect(policiesContract.defaults.clear.metadata).toEqual(expected);
+  });
+
+  it("declares the defaults sub-routes at the settings path", () => {
+    expect(policiesContract.defaults.get.method).toBe("GET");
+    expect(policiesContract.defaults.get.path).toBe("/settings/default-policy");
+    expect(policiesContract.defaults.update.method).toBe("PUT");
+    expect(policiesContract.defaults.update.path).toBe(
+      "/settings/default-policy",
+    );
+    expect(policiesContract.defaults.clear.method).toBe("DELETE");
+    expect(policiesContract.defaults.clear.path).toBe(
+      "/settings/default-policy",
+    );
+  });
+});
+
+describe("defaultPolicyTemplateSchema", () => {
+  it("defaults rules to empty when omitted", () => {
+    expect(defaultPolicyTemplateSchema.parse({ enabled: true })).toEqual({
+      enabled: true,
+      rules: [],
+    });
+  });
+
+  it("requires enabled flag", () => {
+    expect(() =>
+      defaultPolicyTemplateSchema.parse({ rules: [] }),
+    ).toThrow();
+  });
+
+  it("rejects invalid rule shapes", () => {
+    expect(() =>
+      defaultPolicyTemplateSchema.parse({
+        enabled: true,
+        rules: [{ ruleType: "allowedTypes", ruleValue: [] }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("defaultPolicyTemplateResponseSchema", () => {
+  it("accepts a null template", () => {
+    expect(
+      defaultPolicyTemplateResponseSchema.parse({ template: null }),
+    ).toEqual({ template: null });
+  });
+
+  it("accepts a populated template", () => {
+    expect(
+      defaultPolicyTemplateResponseSchema.parse({
+        template: {
+          enabled: false,
+          rules: [{ ruleType: "bodyRequired", ruleValue: false }],
+        },
+      }),
+    ).toEqual({
+      template: {
+        enabled: false,
+        rules: [{ ruleType: "bodyRequired", ruleValue: false }],
+      },
+    });
   });
 });
