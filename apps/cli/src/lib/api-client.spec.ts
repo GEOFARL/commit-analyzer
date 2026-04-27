@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createApiClient, listPolicies, streamGenerate, whoami } from "./api-client.js";
+import {
+  createApiClient,
+  listApiKeys,
+  listPolicies,
+  streamGenerate,
+  whoami,
+} from "./api-client.js";
 import {
   AbortError,
   ApiResponseError,
@@ -143,6 +149,31 @@ describe("createApiClient", () => {
     expect(user.id).toBe("00000000-0000-0000-0000-000000000000");
     expect(captured!.url).toContain("/me");
     expect(captured!.headers.get("x-api-key")).toBe("git_secret");
+  });
+
+  it("listApiKeys hits /api-keys and unwraps items", async () => {
+    let url: string | null = null;
+    let headers: Headers | null = null;
+    const apiKey = {
+      id: "00000000-0000-0000-0000-000000000001",
+      name: "laptop",
+      prefix: "git_abcd",
+      lastUsedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    globalThis.fetch = fakeFetch((input, init) => {
+      url = inputUrl(input);
+      headers = new Headers(init?.headers);
+      return new Response(JSON.stringify({ items: [apiKey] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+    const client = createApiClient({ apiUrl: "https://example.test", apiKey: "git_x" });
+    const items = await listApiKeys(client);
+    expect(items).toEqual([apiKey]);
+    expect(url).toContain("/api-keys");
+    expect(headers!.get("x-api-key")).toBe("git_x");
   });
 
   it("listPolicies hits the /repos/:repoId/policies route", async () => {
