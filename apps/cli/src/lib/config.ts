@@ -40,13 +40,18 @@ export async function loadConfig(): Promise<CliConfig> {
     return finalize(found, `no config at PROJECTRC_PATH=${envPath}. Run \`git-insight configure\`.`);
   }
 
+  const home = homedir();
   const rcExplorer = cosmiconfig(CONFIG_MODULE_NAME, {
     searchPlaces: [".projectrc", ".projectrc.json"],
+    stopDir: home,
   });
   const rcHit = await rcExplorer.search();
   if (rcHit && !rcHit.isEmpty) return finalize(rcHit);
 
-  const pkgExplorer = cosmiconfig(CONFIG_MODULE_NAME, { searchPlaces: ["package.json"] });
+  const pkgExplorer = cosmiconfig(CONFIG_MODULE_NAME, {
+    searchPlaces: ["package.json"],
+    stopDir: home,
+  });
   const pkgHit = await pkgExplorer.search();
   return finalize(pkgHit, "no config found. Run `git-insight configure` to create one.");
 }

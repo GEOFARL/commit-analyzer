@@ -109,9 +109,15 @@ describe("loadConfig", () => {
   });
 
   it("throws ConfigError MISSING when no config found", async () => {
-    const err = await loadConfig().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(ConfigError);
-    expect((err as ConfigError).code).toBe("MISSING");
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      const err = await loadConfig().catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ConfigError);
+      expect((err as ConfigError).code).toBe("MISSING");
+    } finally {
+      process.chdir(prevCwd);
+    }
   });
 
   it("throws ConfigError MISSING when PROJECTRC_PATH points at nothing", async () => {
