@@ -8,6 +8,7 @@ import {
   type DiffFileTab,
   type ParsedFile,
 } from "@commit-analyzer/diff-parser";
+import { X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import {
@@ -173,13 +174,29 @@ export const DiffViewer = ({
               tabListId={tabListId}
               panelId={panelId}
             />
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              {value.length > 0 && !disabled ? (
+                <button
+                  type="button"
+                  onClick={() => onChange("")}
+                  aria-label={t("clear")}
+                  title={t("clear")}
+                  className={cn(
+                    "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors",
+                    "hover:text-foreground hover:bg-muted/50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                >
+                  <X aria-hidden="true" className="size-3.5" />
+                </button>
+              ) : null}
             {hydrated ? (
               <div
                 role="radiogroup"
                 aria-label={t("viewMode.label")}
                 id={toggleId}
                 onKeyDown={handleRadioKeyDown}
-                className="ml-auto inline-flex shrink-0 overflow-hidden rounded-md border bg-background p-0.5 text-xs"
+                className="inline-flex shrink-0 overflow-hidden rounded-md border bg-background p-0.5 text-xs"
               >
                 <button
                   ref={unifiedRadioRef}
@@ -219,9 +236,10 @@ export const DiffViewer = ({
             ) : (
               <div
                 aria-hidden="true"
-                className="ml-auto inline-flex h-7 w-[7.5rem] shrink-0 animate-pulse rounded-md border bg-muted/40"
+                className="inline-flex h-7 w-[7.5rem] shrink-0 animate-pulse rounded-md border bg-muted/40"
               />
             )}
+            </div>
           </div>
         </div>
       ) : null}

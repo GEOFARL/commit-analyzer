@@ -35,6 +35,7 @@
     "viewer": {
       "unified": "Єдиний",
       "split": "Поруч",
+      "clear": "Очистити diff",
       "viewMode": {
         "label": "Режим перегляду diff"
       },
