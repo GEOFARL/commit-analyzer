@@ -4,6 +4,7 @@ import {
   errorEnvelopeSchema,
   errorFrameSchema,
   suggestionFrameSchema,
+  type ApiKey,
   type DoneFrame,
   type ErrorEnvelope,
   type ErrorFrame,
@@ -61,7 +62,10 @@ type CallArg = { fetchOptions?: { signal?: AbortSignal } };
 type ListPoliciesArg = CallArg & { params: { repoId: string } };
 
 interface ProxyShape {
-  auth: { me: (args?: CallArg) => Promise<RouteResponse> };
+  auth: {
+    me: (args?: CallArg) => Promise<RouteResponse>;
+    apiKeys: { list: (args?: CallArg) => Promise<RouteResponse> };
+  };
   policies: { list: (args: ListPoliciesArg) => Promise<RouteResponse> };
 }
 
@@ -78,6 +82,16 @@ export async function whoami(client: ApiClient, options: CallOptions = {}): Prom
   if (res.status === 200) return res.body as User;
   throwResponseError(res);
 }
+
+export async function listApiKeys(client: ApiClient, options: CallOptions = {}): Promise<ApiKey[]> {
+  const res = await asTyped(client).auth.apiKeys.list({
+    fetchOptions: options.signal ? { signal: options.signal } : {},
+  });
+  if (res.status === 200) return (res.body as { items: ApiKey[] }).items;
+  throwResponseError(res);
+}
+
+export type { ApiClient };
 
 export async function listPolicies(
   client: ApiClient,
