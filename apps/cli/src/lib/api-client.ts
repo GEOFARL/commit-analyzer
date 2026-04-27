@@ -34,22 +34,14 @@ type FetchLike = typeof globalThis.fetch;
 interface ApiClientConfig {
   apiUrl: string;
   apiKey: string;
-  /** Per-request timeout for ts-rest unary calls. Default 30s. */
   requestTimeoutMs?: number;
-  /** Stream idle timeout — aborts when no bytes arrive for this many ms. */
   streamIdleTimeoutMs?: number;
-  /** Inject for tests. */
   fetch?: FetchLike;
 }
 
 export function createApiClient(cfg: ApiClientConfig) {
   const baseHeaders: Record<string, string> = { [API_KEY_HEADER]: cfg.apiKey };
-  // `c.noBody()` in `apiKeys.revoke` / `llmKeys.delete` produces a unique
-  // symbol type. With NodeNext, the contracts package's @ts-rest/core copy
-  // is a different physical install from the cli's, so the symbols don't
-  // match and initClient refuses the router. Runtime shape is identical;
-  // mirror the api app's `as never` workaround in
-  // auth-ts-rest.controller.ts.
+  // `c.noBody()` unique-symbol from contracts' ts-rest install does not match the cli's; runtime shape is identical.
   return initClient(contracts as never, {
     baseUrl: stripTrailingSlash(cfg.apiUrl),
     baseHeaders,
