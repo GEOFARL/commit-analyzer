@@ -12,6 +12,7 @@ import type metadata from "../messages/en/metadata.json";
 import type nav from "../messages/en/nav.json";
 import type placeholders from "../messages/en/placeholders.json";
 import type policies from "../messages/en/policies.json";
+import type profile from "../messages/en/profile.json";
 import type repositories from "../messages/en/repositories.json";
 import type sync from "../messages/en/sync.json";
 import type userMenu from "../messages/en/userMenu.json";
@@ -33,6 +34,7 @@ type Messages = {
   nav: typeof nav;
   placeholders: typeof placeholders;
   policies: typeof policies;
+  profile: typeof profile;
   repositories: typeof repositories;
   sync: typeof sync;
   userMenu: typeof userMenu;

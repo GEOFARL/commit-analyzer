@@ -30,4 +30,14 @@ export class SupabaseAdminService {
     }
     return toSupabaseAuthIdentity(data.user);
   }
+
+  async deleteUserById(userId: string): Promise<void> {
+    const { error } = await this.client.auth.admin.deleteUser(userId);
+    if (error) {
+      this.logger.error(
+        `supabase.admin.deleteUser failed: ${error.message}`,
+      );
+      throw new Error(`failed to delete supabase user: ${error.message}`);
+    }
+  }
 }

@@ -128,6 +128,11 @@ export class AuthService {
     );
   }
 
+  async deleteAccount(userId: string): Promise<void> {
+    await this.supabaseAdmin.deleteUserById(userId);
+    this.logger.log(`account deleted: user=${userId}`);
+  }
+
   async revokeApiKey(userId: string, apiKeyId: string): Promise<void> {
     const record = await this.apiKeys.findActiveByIdForUser(apiKeyId, userId);
     if (!record) throw new NotFoundException("api key not found");

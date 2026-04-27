@@ -84,6 +84,18 @@ export const authContract = c.router(
         "Mirror the authenticated Supabase user into public.users and store the encrypted GitHub provider token",
       metadata: { auth: "jwt", rateLimit: "default" } as const,
     },
+    deleteAccount: {
+      method: "DELETE",
+      path: "/me",
+      body: c.noBody(),
+      responses: {
+        204: c.noBody(),
+        401: errorEnvelopeSchema,
+      },
+      summary:
+        "Delete the authenticated user; cascades from auth.users → public.users and downstream tables",
+      metadata: { auth: "jwt", rateLimit: "auth" } as const,
+    },
     apiKeys: c.router(
       {
         list: {

@@ -88,6 +88,15 @@ describe("authContract", () => {
     expect(authContract.apiKeys.create.metadata).toEqual({ auth: "jwt", rateLimit: "auth" });
     expect(authContract.apiKeys.revoke.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
   });
+
+  it("declares deleteAccount on DELETE /me with auth-tier throttle", () => {
+    expect(authContract.deleteAccount.method).toBe("DELETE");
+    expect(authContract.deleteAccount.path).toBe("/me");
+    expect(authContract.deleteAccount.metadata).toEqual({
+      auth: "jwt",
+      rateLimit: "auth",
+    });
+  });
 });
 
 const validLlmKey = {

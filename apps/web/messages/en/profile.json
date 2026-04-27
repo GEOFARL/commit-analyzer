@@ -1,0 +1,26 @@
+{
+  "title": "Profile",
+  "subtitle": "Your account, signed in via GitHub.",
+  "unknownName": "Unknown",
+  "identityHint": "Read-only — managed by GitHub.",
+  "fields": {
+    "githubLogin": "GitHub login",
+    "email": "Email"
+  },
+  "session": {
+    "title": "Session",
+    "description": "Sign out of this device. Your data stays intact.",
+    "signOut": "Sign out"
+  },
+  "danger": {
+    "title": "Danger zone",
+    "description": "Permanently delete your account and all associated repositories, policies, generation history, and API keys. This cannot be undone.",
+    "deleteAccount": "Delete account"
+  },
+  "deleteDialog": {
+    "title": "Delete your account?",
+    "description": "This permanently removes your account and all associated data — repositories, policies, generation history, API keys, and LLM keys. This cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete account"
+  }
+}

@@ -61,6 +61,7 @@ describe("AuthService", () => {
   };
   const supabaseAdmin = {
     getUserById: vi.fn(),
+    deleteUserById: vi.fn(),
   };
   const crypto = {
     encryptParts: vi.fn(() => ({
@@ -252,6 +253,21 @@ describe("AuthService", () => {
       expect(event.apiKeyId).toBe(saved.id);
       expect(event.name).toBe(saved.name);
       expect(event.keyPrefix).toBe(saved.keyPrefix);
+    });
+  });
+
+  describe("deleteAccount", () => {
+    it("delegates to supabaseAdmin.deleteUserById; cascades clean up downstream rows", async () => {
+      supabaseAdmin.deleteUserById.mockResolvedValue(undefined);
+      await expect(service.deleteAccount(USER_ID)).resolves.toBeUndefined();
+      expect(supabaseAdmin.deleteUserById).toHaveBeenCalledWith(USER_ID);
+    });
+
+    it("propagates errors from supabaseAdmin.deleteUserById", async () => {
+      supabaseAdmin.deleteUserById.mockRejectedValue(new Error("admin boom"));
+      await expect(service.deleteAccount(USER_ID)).rejects.toThrow(
+        "admin boom",
+      );
     });
   });
 
