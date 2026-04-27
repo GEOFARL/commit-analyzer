@@ -121,11 +121,63 @@ export const validatePolicyInputSchema = z.object({
 });
 export type ValidatePolicyInput = z.infer<typeof validatePolicyInputSchema>;
 
+export const defaultPolicyTemplateSchema = z.object({
+  enabled: z.boolean(),
+  rules: z.array(policyRuleSchema).default([]),
+});
+export type DefaultPolicyTemplate = z.infer<typeof defaultPolicyTemplateSchema>;
+
+export const defaultPolicyTemplateResponseSchema = z.object({
+  template: defaultPolicyTemplateSchema.nullable(),
+});
+export type DefaultPolicyTemplateResponse = z.infer<
+  typeof defaultPolicyTemplateResponseSchema
+>;
+
 const repoPathParams = z.object({ repoId: z.string().uuid() });
 const repoAndPolicyPathParams = z.object({
   repoId: z.string().uuid(),
   id: z.string().uuid(),
 });
+
+const defaultsContract = c.router(
+  {
+    get: {
+      method: "GET",
+      path: "/settings/default-policy",
+      responses: {
+        200: defaultPolicyTemplateResponseSchema,
+        401: errorEnvelopeSchema,
+      },
+      summary: "Get the user's default policy template",
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
+    },
+    update: {
+      method: "PUT",
+      path: "/settings/default-policy",
+      body: defaultPolicyTemplateSchema,
+      responses: {
+        200: defaultPolicyTemplateResponseSchema,
+        400: errorEnvelopeSchema,
+        401: errorEnvelopeSchema,
+      },
+      summary: "Set the user's default policy template",
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
+    },
+    clear: {
+      method: "DELETE",
+      path: "/settings/default-policy",
+      body: c.noBody(),
+      responses: {
+        204: c.noBody(),
+        401: errorEnvelopeSchema,
+      },
+      summary: "Clear the user's default policy template",
+      metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
+    },
+  },
+  { strictStatusCodes: true },
+);
 
 export const policiesContract = c.router(
   {
@@ -223,6 +275,7 @@ export const policiesContract = c.router(
       summary: "Validate a commit message against a policy",
       metadata: { auth: "jwt", rateLimit: "default" } satisfies RouteMetadata,
     },
+    defaults: defaultsContract,
   },
   { strictStatusCodes: true },
 );

@@ -89,6 +89,7 @@ export default [
     files: [
       "src/app/**/*.{ts,tsx}",
       "src/components/layout/**/*.{ts,tsx}",
+      "src/components/shared/**/*.{ts,tsx}",
       "src/features/**/components/**/*.{ts,tsx}",
     ],
     plugins: { i18next },

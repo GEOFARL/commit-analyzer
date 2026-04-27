@@ -112,4 +112,11 @@ describe("DefaultPolicyService", () => {
     });
   });
 
+  describe("clearDefaultPolicyTemplate", () => {
+    it("persists null to clear the stored template", async () => {
+      await service.clearDefaultPolicyTemplate(USER_ID);
+
+      expect(setStored).toHaveBeenCalledWith(USER_ID, null);
+    });
+  });
 });

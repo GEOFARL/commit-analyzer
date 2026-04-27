@@ -4,13 +4,14 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { AuthModule } from "../auth/auth.module.js";
 
 import { ApplyDefaultPolicyOnRepoConnected } from "./apply-default-policy.handler.js";
+import { DefaultPolicyController } from "./default-policy.controller.js";
 import { DefaultPolicyService } from "./default-policy.service.js";
 import { PoliciesController } from "./policies.controller.js";
 import { PolicyService } from "./policy.service.js";
 
 @Module({
   imports: [CqrsModule, AuthModule],
-  controllers: [PoliciesController],
+  controllers: [PoliciesController, DefaultPolicyController],
   providers: [
     PolicyService,
     DefaultPolicyService,
