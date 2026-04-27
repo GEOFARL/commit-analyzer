@@ -3,6 +3,7 @@ import type apiKeys from "../messages/en/apiKeys.json";
 import type auth from "../messages/en/auth.json";
 import type common from "../messages/en/common.json";
 import type dashboard from "../messages/en/dashboard.json";
+import type defaultPolicy from "../messages/en/defaultPolicy.json";
 import type errors from "../messages/en/errors.json";
 import type generate from "../messages/en/generate.json";
 import type landing from "../messages/en/landing.json";
@@ -25,6 +26,7 @@ type Messages = {
   auth: typeof auth;
   common: typeof common;
   dashboard: typeof dashboard;
+  defaultPolicy: typeof defaultPolicy;
   errors: typeof errors;
   generate: typeof generate;
   landing: typeof landing;

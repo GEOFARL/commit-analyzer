@@ -13,8 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-import type { RuleFormState } from "../rule-form";
+import type { RuleFormState } from "@/lib/policy-rules/rule-form";
 
 type Props = {
   uid: string;
