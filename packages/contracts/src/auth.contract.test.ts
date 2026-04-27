@@ -82,11 +82,23 @@ describe("authContract", () => {
     expect(authContract.apiKeys.revoke.path).toBe("/api-keys/:id");
   });
 
-  it("tags every auth endpoint with jwt", () => {
-    expect(authContract.me.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
-    expect(authContract.apiKeys.list.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
-    expect(authContract.apiKeys.create.metadata).toEqual({ auth: "jwt", rateLimit: "auth" });
-    expect(authContract.apiKeys.revoke.metadata).toEqual({ auth: "jwt", rateLimit: "default" });
+  it("tags read endpoints jwtOrApiKey, mutating endpoints jwt", () => {
+    expect(authContract.me.metadata).toEqual({
+      auth: "jwtOrApiKey",
+      rateLimit: "default",
+    });
+    expect(authContract.apiKeys.list.metadata).toEqual({
+      auth: "jwtOrApiKey",
+      rateLimit: "default",
+    });
+    expect(authContract.apiKeys.create.metadata).toEqual({
+      auth: "jwt",
+      rateLimit: "auth",
+    });
+    expect(authContract.apiKeys.revoke.metadata).toEqual({
+      auth: "jwt",
+      rateLimit: "default",
+    });
   });
 
   it("declares deleteAccount on DELETE /me with auth-tier throttle", () => {
@@ -166,9 +178,9 @@ describe("authContract.llmKeys", () => {
     expect(authContract.llmKeys.delete.path).toBe("/llm-keys/:provider");
   });
 
-  it("tags jwt + correct throttle tiers", () => {
+  it("tags list jwtOrApiKey, mutating endpoints jwt with correct throttle tiers", () => {
     expect(authContract.llmKeys.list.metadata).toEqual({
-      auth: "jwt",
+      auth: "jwtOrApiKey",
       rateLimit: "default",
     });
     expect(authContract.llmKeys.upsert.metadata).toEqual({

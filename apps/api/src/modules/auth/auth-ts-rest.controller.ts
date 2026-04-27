@@ -7,11 +7,12 @@ import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.deco
 import { toApiKeyDto, toLlmApiKeyDto, toUserDto } from "./auth.mappers.js";
 import { AuthService } from "./auth.service.js";
 import { CurrentUser } from "./current-user.decorator.js";
+import { JwtOrApiKeyGuard } from "./jwt-or-api-key.guard.js";
 import { LlmKeysService } from "./llm-keys.service.js";
 import { SupabaseAuthGuard } from "./supabase-auth.guard.js";
 
 @Controller()
-@UseGuards(SupabaseAuthGuard)
+@UseGuards(JwtOrApiKeyGuard)
 @ThrottleTierDecorator("default")
 export class AuthTsRestController {
   constructor(
@@ -28,6 +29,7 @@ export class AuthTsRestController {
     });
   }
 
+  @UseGuards(SupabaseAuthGuard)
   @TsRestHandler(authContract.sync)
   sync(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.sync, async ({ body }) => {
@@ -40,6 +42,7 @@ export class AuthTsRestController {
   }
 
   // Same `c.noBody()` typing quirk as apiKeys.revoke — see that handler below.
+  @UseGuards(SupabaseAuthGuard)
   @ThrottleTierDecorator("auth")
   @TsRestHandler(authContract.deleteAccount as never)
   deleteAccount(@CurrentUser() userId: string): unknown {
@@ -60,6 +63,7 @@ export class AuthTsRestController {
     });
   }
 
+  @UseGuards(SupabaseAuthGuard)
   @ThrottleTierDecorator("auth")
   @TsRestHandler(authContract.apiKeys.create)
   createApiKey(@CurrentUser() userId: string): unknown {
@@ -78,6 +82,7 @@ export class AuthTsRestController {
   // `c.noBody()` on the 204 response produces a unique-symbol type that the
   // current @ts-rest/nest `tsRestHandler` generic rejects; runtime shape is
   // correct, so we cast through the contract for this one route.
+  @UseGuards(SupabaseAuthGuard)
   @TsRestHandler(authContract.apiKeys.revoke as never)
   revokeApiKey(@CurrentUser() userId: string): unknown {
     return tsRestHandler(
@@ -97,6 +102,7 @@ export class AuthTsRestController {
     });
   }
 
+  @UseGuards(SupabaseAuthGuard)
   @ThrottleTierDecorator("auth")
   @TsRestHandler(authContract.llmKeys.upsert)
   upsertLlmKey(@CurrentUser() userId: string): unknown {
@@ -114,6 +120,7 @@ export class AuthTsRestController {
   }
 
   // Same `c.noBody()` typing quirk as apiKeys.revoke — see that handler above.
+  @UseGuards(SupabaseAuthGuard)
   @TsRestHandler(authContract.llmKeys.delete as never)
   deleteLlmKey(@CurrentUser() userId: string): unknown {
     return tsRestHandler(

@@ -70,7 +70,7 @@ export const authContract = c.router(
         401: errorEnvelopeSchema,
       },
       summary: "Get the currently authenticated user",
-      metadata: { auth: "jwt", rateLimit: "default" } as const,
+      metadata: { auth: "jwtOrApiKey", rateLimit: "default" } as const,
     },
     sync: {
       method: "POST",
@@ -106,7 +106,7 @@ export const authContract = c.router(
             401: errorEnvelopeSchema,
           },
           summary: "List API keys for the current user",
-          metadata: { auth: "jwt", rateLimit: "default" } as const,
+          metadata: { auth: "jwtOrApiKey", rateLimit: "default" } as const,
         },
         create: {
           method: "POST",
@@ -146,7 +146,7 @@ export const authContract = c.router(
             401: errorEnvelopeSchema,
           },
           summary: "List LLM API keys for the current user",
-          metadata: { auth: "jwt", rateLimit: "default" } as const,
+          metadata: { auth: "jwtOrApiKey", rateLimit: "default" } as const,
         },
         upsert: {
           method: "PUT",
