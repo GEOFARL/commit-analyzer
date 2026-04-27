@@ -32,32 +32,32 @@ export class ConfigError extends Error {
 
 type ConfigErrorCode = "MISSING" | "INVALID" | "PERMISSIONS" | "READ";
 
-function defaultConfigPath(): string {
-  return join(homedir(), ".projectrc");
-}
-
 export async function loadConfig(): Promise<CliConfig> {
-  const explorer = cosmiconfig(CONFIG_MODULE_NAME, {
-    searchPlaces: [
-      ".projectrc",
-      ".projectrc.json",
-      "package.json",
-      join(homedir(), ".projectrc"),
-    ],
-  });
-
   const envPath = process.env.PROJECTRC_PATH;
-  const found = envPath ? await loadAt(explorer, envPath) : await explorer.search();
-
-  if (!found || found.isEmpty) {
-    throw new ConfigError(
-      "MISSING",
-      envPath
-        ? `no config at PROJECTRC_PATH=${envPath}. Run \`git-insight configure\`.`
-        : "no config found. Run `git-insight configure` to create one.",
-    );
+  if (envPath) {
+    const loader = cosmiconfig(CONFIG_MODULE_NAME);
+    const found = await loadAt(loader, envPath);
+    return finalize(found, `no config at PROJECTRC_PATH=${envPath}. Run \`git-insight configure\`.`);
   }
 
+  const rcExplorer = cosmiconfig(CONFIG_MODULE_NAME, {
+    searchPlaces: [".projectrc", ".projectrc.json"],
+  });
+  const rcHit = await rcExplorer.search();
+  if (rcHit && !rcHit.isEmpty) return finalize(rcHit);
+
+  const pkgExplorer = cosmiconfig(CONFIG_MODULE_NAME, { searchPlaces: ["package.json"] });
+  const pkgHit = await pkgExplorer.search();
+  return finalize(pkgHit, "no config found. Run `git-insight configure` to create one.");
+}
+
+async function finalize(
+  found: LoadResult | null,
+  missingMessage = "no config found. Run `git-insight configure` to create one.",
+): Promise<CliConfig> {
+  if (!found || found.isEmpty) {
+    throw new ConfigError("MISSING", missingMessage);
+  }
   if (found.filepath) await assertSecureMode(found.filepath);
 
   const parsed = configSchema.safeParse(found.config);
@@ -107,7 +107,10 @@ async function assertSecureMode(path: string): Promise<void> {
   }
 }
 
-export async function saveConfig(config: CliConfig, path = defaultConfigPath()): Promise<string> {
+export async function saveConfig(
+  config: CliConfig,
+  path = join(homedir(), ".projectrc"),
+): Promise<string> {
   const validated = configSchema.parse(config);
   const json = `${JSON.stringify(validated, null, 2)}\n`;
   const handle = await fs.open(path, "w", CONFIG_FILE_MODE);

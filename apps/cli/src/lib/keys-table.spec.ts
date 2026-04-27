@@ -24,7 +24,7 @@ describe("formatKeysTable", () => {
     expect(out).toContain("CREATED");
     expect(out).toContain("laptop");
     expect(out).toContain("git_abcd");
-    expect(out).toContain(sample.lastUsedAt as string);
+    expect(out).toContain("2026-04-01T12:00:00.000Z");
     expect(out).toContain(sample.createdAt);
   });
 

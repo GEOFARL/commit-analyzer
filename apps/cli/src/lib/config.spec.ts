@@ -96,6 +96,18 @@ describe("loadConfig", () => {
     expect(await loadConfig()).toEqual(VALID);
   });
 
+  it("finds ~/.projectrc via upward walk", async () => {
+    const path = join(dir, ".projectrc");
+    await fs.writeFile(path, JSON.stringify(VALID), { mode: 0o600 });
+    const prevCwd = process.cwd();
+    process.chdir(dir);
+    try {
+      expect(await loadConfig()).toEqual(VALID);
+    } finally {
+      process.chdir(prevCwd);
+    }
+  });
+
   it("throws ConfigError MISSING when no config found", async () => {
     const err = await loadConfig().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ConfigError);

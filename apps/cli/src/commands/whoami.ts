@@ -13,9 +13,9 @@ export function registerWhoamiCommand(program: Command): void {
         const cfg = await loadConfig();
         const client = createApiClient({ apiUrl: cfg.apiUrl, apiKey: cfg.apiKey });
         const user = await whoami(client);
-        const email = user.email ?? "—";
-        const name = user.name ?? "—";
-        process.stdout.write(`email: ${email}\nname:  ${name}\n`);
+        const email = user.email ?? "(unknown)";
+        const name = user.name ?? "(unknown)";
+        process.stdout.write(`email: ${email}\nname: ${name}\n`);
       } catch (err) {
         if (err instanceof ConfigError) {
           process.stderr.write(`error: ${err.message}\n`);
