@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link } from "@/i18n/navigation";
 
 type UserMenuProps = {
   email: string | null;
@@ -65,8 +66,10 @@ export const UserMenu = ({ email, name, avatarUrl }: UserMenuProps) => {
           ) : null}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserIcon /> {t("profile")}
+        <DropdownMenuItem asChild>
+          <Link href="/settings">
+            <UserIcon /> {t("profile")}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action="/auth/sign-out" method="post" className="contents">

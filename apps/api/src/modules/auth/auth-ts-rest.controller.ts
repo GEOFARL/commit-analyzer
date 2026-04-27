@@ -39,6 +39,19 @@ export class AuthTsRestController {
     });
   }
 
+  // Same `c.noBody()` typing quirk as apiKeys.revoke — see that handler below.
+  @ThrottleTierDecorator("auth")
+  @TsRestHandler(authContract.deleteAccount as never)
+  deleteAccount(@CurrentUser() userId: string): unknown {
+    return tsRestHandler(
+      authContract.deleteAccount as never,
+      (async () => {
+        await this.authService.deleteAccount(userId);
+        return { status: 204, body: undefined };
+      }) as never,
+    );
+  }
+
   @TsRestHandler(authContract.apiKeys.list)
   listApiKeys(@CurrentUser() userId: string): unknown {
     return tsRestHandler(authContract.apiKeys.list, async () => {

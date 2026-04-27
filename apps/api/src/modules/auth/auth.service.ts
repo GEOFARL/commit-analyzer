@@ -128,6 +128,14 @@ export class AuthService {
     );
   }
 
+  async deleteAccount(userId: string): Promise<void> {
+    // No audit_events row is written: that table FK-cascades on user delete,
+    // so any inserted row would be wiped immediately. Server log is the
+    // surviving trail. See 09-security.md.
+    await this.supabaseAdmin.deleteUserById(userId);
+    this.logger.log({ event: "account.deleted", userId });
+  }
+
   async revokeApiKey(userId: string, apiKeyId: string): Promise<void> {
     const record = await this.apiKeys.findActiveByIdForUser(apiKeyId, userId);
     if (!record) throw new NotFoundException("api key not found");

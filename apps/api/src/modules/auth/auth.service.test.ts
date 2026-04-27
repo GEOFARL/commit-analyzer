@@ -3,6 +3,7 @@ import "reflect-metadata";
 import type { ApiKey, User } from "@commit-analyzer/database";
 import {
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -61,6 +62,7 @@ describe("AuthService", () => {
   };
   const supabaseAdmin = {
     getUserById: vi.fn(),
+    deleteUserById: vi.fn(),
   };
   const crypto = {
     encryptParts: vi.fn(() => ({
@@ -252,6 +254,37 @@ describe("AuthService", () => {
       expect(event.apiKeyId).toBe(saved.id);
       expect(event.name).toBe(saved.name);
       expect(event.keyPrefix).toBe(saved.keyPrefix);
+    });
+  });
+
+  describe("deleteAccount", () => {
+    it("delegates to supabaseAdmin.deleteUserById and emits a structured account.deleted log", async () => {
+      supabaseAdmin.deleteUserById.mockResolvedValue(undefined);
+      const logSpy = vi
+        .spyOn(Logger.prototype, "log")
+        .mockImplementation(() => undefined);
+
+      await expect(service.deleteAccount(USER_ID)).resolves.toBeUndefined();
+
+      expect(supabaseAdmin.deleteUserById).toHaveBeenCalledWith(USER_ID);
+      expect(logSpy).toHaveBeenCalledWith({
+        event: "account.deleted",
+        userId: USER_ID,
+      });
+      logSpy.mockRestore();
+    });
+
+    it("propagates errors from supabaseAdmin.deleteUserById and does not log success", async () => {
+      supabaseAdmin.deleteUserById.mockRejectedValue(new Error("admin boom"));
+      const logSpy = vi
+        .spyOn(Logger.prototype, "log")
+        .mockImplementation(() => undefined);
+
+      await expect(service.deleteAccount(USER_ID)).rejects.toThrow(
+        "admin boom",
+      );
+      expect(logSpy).not.toHaveBeenCalled();
+      logSpy.mockRestore();
     });
   });
 
