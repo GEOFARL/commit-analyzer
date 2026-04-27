@@ -162,12 +162,24 @@ importers:
 
   apps/cli:
     dependencies:
+      '@commit-analyzer/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@commit-analyzer/diff-parser':
         specifier: workspace:*
         version: link:../../packages/diff-parser
+      '@ts-rest/core':
+        specifier: ^3.51.0
+        version: 3.52.1(@types/node@22.19.17)(zod@3.25.76)
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      eventsource-parser:
+        specifier: ^3.0.8
+        version: 3.0.8
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@commit-analyzer/eslint-config':
         specifier: workspace:*
@@ -8149,7 +8161,7 @@ snapshots:
 
   '@types/pg@8.20.0':
     dependencies:
-      '@types/node': 25.6.0
+      '@types/node': 22.19.17
       pg-protocol: 1.13.0
       pg-types: 2.2.0
 
