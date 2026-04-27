@@ -21,6 +21,10 @@
     "title": "Delete your account?",
     "description": "This permanently removes your account and all associated data — repositories, policies, generation history, API keys, and LLM keys. This cannot be undone.",
     "cancel": "Cancel",
-    "confirm": "Delete account"
+    "confirm": "Delete account",
+    "deleting": "Deleting…"
+  },
+  "toast": {
+    "deleteError": "Failed to delete account. Please try again."
   }
 }

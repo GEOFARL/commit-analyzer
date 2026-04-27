@@ -1,8 +1,10 @@
 "use client";
 
 import { LogOut, Trash2, User as UserIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   Avatar,
@@ -25,8 +27,8 @@ import { DeleteAccountDialog } from "./delete-account-dialog";
 const initialsFor = (name: string | null, email: string | null): string => {
   const source = name ?? email ?? "";
   const parts = source.trim().split(/\s+/u);
-  if (parts.length >= 2 && parts[0] && parts[1]) {
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  if (parts.length >= 2) {
+    return `${parts[0]![0]!}${parts[1]![0]!}`.toUpperCase();
   }
   return source.slice(0, 2).toUpperCase() || "?";
 };
@@ -34,12 +36,35 @@ const initialsFor = (name: string | null, email: string | null): string => {
 export const ProfileView = ({ user }: ProfilePageData) => {
   const t = useTranslations("profile");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
+  const toastedRef = useRef<string | null>(null);
 
-  const handleConfirmDelete = (): void => {
-    const form = document.getElementById(
-      "delete-account-form",
-    ) as HTMLFormElement | null;
-    form?.requestSubmit();
+  useEffect(() => {
+    if (errorParam === "delete_failed" && toastedRef.current !== errorParam) {
+      toastedRef.current = errorParam;
+      toast.error(t("toast.deleteError"));
+    }
+  }, [errorParam, t]);
+
+  const handleConfirmDelete = async (): Promise<void> => {
+    setDeleting(true);
+    try {
+      const res = await fetch("/auth/delete-account", { method: "POST" });
+      if (res.redirected) {
+        window.location.href = res.url;
+        return;
+      }
+      if (!res.ok) {
+        toast.error(t("toast.deleteError"));
+      }
+    } catch {
+      toast.error(t("toast.deleteError"));
+    } finally {
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
   };
 
   return (
@@ -117,27 +142,27 @@ export const ProfileView = ({ user }: ProfilePageData) => {
           <CardDescription>{t("danger.description")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            id="delete-account-form"
-            action="/auth/delete-account"
-            method="post"
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setDeleteOpen(true)}
+            disabled={deleting}
           >
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 />
-              {t("danger.deleteAccount")}
-            </Button>
-          </form>
+            <Trash2 />
+            {t("danger.deleteAccount")}
+          </Button>
         </CardContent>
       </Card>
 
       <DeleteAccountDialog
         open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        onClose={() => {
+          if (!deleting) setDeleteOpen(false);
+        }}
+        onConfirm={() => {
+          void handleConfirmDelete();
+        }}
       />
     </div>
   );

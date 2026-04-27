@@ -12,7 +12,7 @@ export const POST = async (request: Request) => {
   } = await supabase.auth.getSession();
 
   if (!session?.access_token) {
-    return NextResponse.redirect(new URL("/", request.url), { status: 303 });
+    return new Response(null, { status: 401 });
   }
 
   try {
@@ -23,19 +23,23 @@ export const POST = async (request: Request) => {
     });
     if (!response.ok) {
       console.error("delete-account failed", response.status);
-      return NextResponse.json(
-        { error: "delete-account failed" },
-        { status: response.status },
+      return NextResponse.redirect(
+        new URL("/settings?error=delete_failed", request.url),
+        { status: 303 },
       );
     }
   } catch (err) {
     console.error("delete-account threw", err);
-    return NextResponse.json(
-      { error: "delete-account failed" },
-      { status: 500 },
+    return NextResponse.redirect(
+      new URL("/settings?error=delete_failed", request.url),
+      { status: 303 },
     );
   }
 
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.warn("supabase.signOut after account delete threw", err);
+  }
   return NextResponse.redirect(new URL("/", request.url), { status: 303 });
 };

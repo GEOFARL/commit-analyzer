@@ -15,11 +15,17 @@ import {
 
 type Props = {
   open: boolean;
+  loading?: boolean;
   onClose: () => void;
   onConfirm: () => void;
 };
 
-export const DeleteAccountDialog = ({ open, onClose, onConfirm }: Props) => {
+export const DeleteAccountDialog = ({
+  open,
+  loading,
+  onClose,
+  onConfirm,
+}: Props) => {
   const t = useTranslations("profile.deleteDialog");
 
   return (
@@ -35,14 +41,18 @@ export const DeleteAccountDialog = ({ open, onClose, onConfirm }: Props) => {
           <AlertDialogDescription>{t("description")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="cursor-pointer">
+          <AlertDialogCancel disabled={loading} className="cursor-pointer">
             {t("cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            disabled={loading}
+            onClick={(e) => {
+              e.preventDefault();
+              onConfirm();
+            }}
             className="cursor-pointer bg-destructive text-destructive-foreground hover:brightness-110"
           >
-            {t("confirm")}
+            {loading ? t("deleting") : t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
