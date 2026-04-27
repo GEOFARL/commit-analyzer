@@ -16,7 +16,7 @@ export const configSchema = z.object({
 
 export type CliConfig = z.infer<typeof configSchema>;
 
-export const CONFIG_MODULE_NAME = "projectrc";
+const CONFIG_MODULE_NAME = "projectrc";
 export const CONFIG_FILE_MODE = 0o600;
 const PERMISSION_MASK = 0o077;
 
@@ -32,7 +32,7 @@ export class ConfigError extends Error {
 
 type ConfigErrorCode = "MISSING" | "INVALID" | "PERMISSIONS" | "READ";
 
-export function defaultConfigPath(): string {
+function defaultConfigPath(): string {
   return join(homedir(), ".projectrc");
 }
 

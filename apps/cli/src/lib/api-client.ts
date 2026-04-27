@@ -91,8 +91,6 @@ export async function listApiKeys(client: ApiClient, options: CallOptions = {}):
   throwResponseError(res);
 }
 
-export type { ApiClient };
-
 export async function listPolicies(
   client: ApiClient,
   repoId: string,
