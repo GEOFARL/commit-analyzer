@@ -13,10 +13,13 @@ import {
   YAxis,
 } from "recharts";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+
 import { useQualityTrendQuery } from "../hooks";
 import type { AnalyticsPageData } from "../types";
 
-import { ChartCard, ChartEmpty, ChartError } from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 type QualityTrendChartProps = {
   repoId: string;
@@ -44,9 +47,14 @@ export const QualityTrendChart = ({
       description={t("qualityTrend.description")}
     >
       {query.isError ? (
-        <ChartError message={t("error.load")} />
+        <ErrorState
+          size="compact"
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : data.length === 0 ? (
-        <ChartEmpty message={t("qualityTrend.empty")} />
+        <EmptyState size="compact" title={t("qualityTrend.empty")} />
       ) : (
         <div
           role="img"

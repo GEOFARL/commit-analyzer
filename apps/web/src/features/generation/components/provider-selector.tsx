@@ -1,10 +1,11 @@
 "use client";
 
 import type { LlmApiKey, LlmProviderName } from "@commit-analyzer/contracts";
-import { AlertCircle, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -45,25 +46,20 @@ export const ProviderSelector = ({
 
   if (usableKeys.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-4 text-sm">
-        <div className="flex items-start gap-3">
-          <AlertCircle
-            className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <div className="flex flex-col gap-2">
-            <p className="font-medium">{t("noKeysTitle")}</p>
-            <p className="text-muted-foreground">{t("noKeysDescription")}</p>
-            <Link
-              href="/settings/llm-keys"
-              className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              <KeyRound className="h-4 w-4" aria-hidden="true" />
-              {t("addKeysCta")}
-            </Link>
-          </div>
-        </div>
-      </div>
+      <EmptyState
+        icon={<KeyRound className="h-6 w-6" aria-hidden="true" />}
+        title={t("noKeysTitle")}
+        description={t("noKeysDescription")}
+        action={
+          <Link
+            href="/settings/llm-keys"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            <KeyRound className="h-4 w-4" aria-hidden="true" />
+            {t("addKeysCta")}
+          </Link>
+        }
+      />
     );
   }
 

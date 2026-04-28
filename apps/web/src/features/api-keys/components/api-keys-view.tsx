@@ -1,10 +1,12 @@
 "use client";
 
-import { AlertCircle, Key, Plus } from "lucide-react";
+import { Key, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   useApiKeysQuery,
   useCreateApiKeyMutation,
@@ -73,24 +75,27 @@ export const ApiKeysView = ({ userId, initialItems }: ApiKeysPageData) => {
       </header>
 
       {query.isError ? (
-        <div role="alert" className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{t("error.load")}</span>
-        </div>
+        <ErrorState
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-          <Key className="h-8 w-8" aria-hidden="true" />
-          <p className="text-sm font-medium">{t("empty.title")}</p>
-          <p className="text-xs">{t("empty.description")}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus />
-            {t("empty.cta")}
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Key className="h-6 w-6" aria-hidden="true" />}
+          title={t("empty.title")}
+          description={t("empty.description")}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus />
+              {t("empty.cta")}
+            </Button>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {items.map((apiKey) => (

@@ -2,7 +2,6 @@
 
 import type { ConnectedRepo } from "@commit-analyzer/contracts";
 import {
-  AlertCircle,
   BarChart3,
   Github,
   Loader2,
@@ -15,6 +14,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { OPTIMISTIC_ID_PREFIX } from "@/features/repositories/constants";
 import {
   useConnectedReposQuery,
@@ -28,7 +29,6 @@ import { Link } from "@/i18n/navigation";
 
 import { DisconnectDialog } from "./disconnect-dialog";
 import { EmptyGitGraph } from "./empty-git-graph";
-import { EmptyState } from "./empty-state";
 import { RepoCard } from "./repo-card";
 import { RepoCardSkeleton } from "./repo-card-skeleton";
 import { RepoPagination } from "./repo-pagination";
@@ -119,7 +119,11 @@ export const RepositoriesView = ({
             ))}
           </div>
         ) : connectedQuery.isError ? (
-          <ErrorCard message={t("error.load")} />
+          <ErrorState
+            title={t("error.load")}
+            onRetry={() => { void connectedQuery.refetch(); }}
+            retryDisabled={connectedQuery.isFetching}
+          />
         ) : filteredConnected.length === 0 ? (
           hasActiveSearch ? (
             <FilteredEmptyState
@@ -206,7 +210,11 @@ export const RepositoriesView = ({
             ))}
           </div>
         ) : githubQuery.isError ? (
-          <ErrorCard message={t("error.load")} />
+          <ErrorState
+            title={t("error.load")}
+            onRetry={() => { void githubQuery.refetch(); }}
+            retryDisabled={githubQuery.isFetching}
+          />
         ) : filters.paginated.length === 0 ? (
           hasActiveSearch ? (
             <FilteredEmptyState
@@ -299,16 +307,6 @@ export const RepositoriesView = ({
     </div>
   );
 };
-
-const ErrorCard = ({ message }: { message: string }) => (
-  <div
-    role="alert"
-    className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
-  >
-    <AlertCircle aria-hidden="true" className="h-4 w-4 shrink-0" />
-    <span>{message}</span>
-  </div>
-);
 
 const FilteredEmptyState = ({
   title,

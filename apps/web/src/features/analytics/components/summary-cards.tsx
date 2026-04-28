@@ -9,10 +9,12 @@ import {
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { ErrorState } from "@/components/ui/error-state";
+
 import { useSummaryQuery } from "../hooks";
 import type { AnalyticsPageData } from "../types";
 
-import { ChartCard, ChartError } from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 type SummaryCardsProps = {
   repoId: string;
@@ -44,7 +46,12 @@ export const SummaryCards = ({ repoId, initial }: SummaryCardsProps) => {
       description={t("summary.description")}
     >
       {query.isError ? (
-        <ChartError message={t("error.load")} />
+        <ErrorState
+          size="compact"
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryTile

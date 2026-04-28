@@ -2,12 +2,14 @@
 
 import { useTranslations } from "next-intl";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { cn } from "@/lib/utils";
 
 import { useContributorsQuery } from "../hooks";
 import type { AnalyticsPageData } from "../types";
 
-import { ChartCard, ChartEmpty, ChartError } from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 type ContributorsTableProps = {
   repoId: string;
@@ -39,9 +41,14 @@ export const ContributorsTable = ({
       description={t("contributors.description")}
     >
       {query.isError ? (
-        <ChartError message={t("error.load")} />
+        <ErrorState
+          size="compact"
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : items.length === 0 ? (
-        <ChartEmpty message={t("contributors.empty")} />
+        <EmptyState size="compact" title={t("contributors.empty")} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
