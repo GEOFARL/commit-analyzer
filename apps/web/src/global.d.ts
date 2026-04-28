@@ -6,6 +6,7 @@ import type dashboard from "../messages/en/dashboard.json";
 import type defaultPolicy from "../messages/en/defaultPolicy.json";
 import type errors from "../messages/en/errors.json";
 import type generate from "../messages/en/generate.json";
+import type history from "../messages/en/history.json";
 import type landing from "../messages/en/landing.json";
 import type llmKeys from "../messages/en/llmKeys.json";
 import type login from "../messages/en/login.json";
@@ -29,6 +30,7 @@ type Messages = {
   defaultPolicy: typeof defaultPolicy;
   errors: typeof errors;
   generate: typeof generate;
+  history: typeof history;
   landing: typeof landing;
   llmKeys: typeof llmKeys;
   login: typeof login;

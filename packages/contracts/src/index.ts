@@ -4,6 +4,7 @@ import { analyticsContract } from "./analytics.contract.js";
 import { auditContract } from "./audit.contract.js";
 import { authContract } from "./auth.contract.js";
 import { generationContract } from "./generation.contract.js";
+import { historyContract } from "./history.contract.js";
 import { policiesContract } from "./policies.contract.js";
 import { reposContract } from "./repos.contract.js";
 
@@ -16,6 +17,7 @@ export const contracts = c.router({
   repos: reposContract,
   policies: policiesContract,
   generation: generationContract,
+  history: historyContract,
 });
 
 export type Contracts = typeof contracts;
@@ -126,6 +128,19 @@ export {
   suggestionFrameSchema,
   tokenFrameSchema,
 } from "./generation.contract.js";
+
+export { historyContract } from "./history.contract.js";
+export type {
+  HistoryEntry,
+  HistoryListResponse,
+  HistorySuggestion,
+} from "./history.contract.js";
+export {
+  generationStatusSchema,
+  historyEntrySchema,
+  historyListResponseSchema,
+  historySuggestionSchema,
+} from "./history.contract.js";
 
 export { errorEnvelopeSchema } from "./shared/error.js";
 export type { ErrorEnvelope } from "./shared/error.js";

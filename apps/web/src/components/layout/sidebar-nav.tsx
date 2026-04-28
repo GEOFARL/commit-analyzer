@@ -2,6 +2,7 @@
 
 import {
   GitBranch,
+  History,
   LayoutDashboard,
   Settings,
   ShieldCheck,
@@ -14,9 +15,21 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  href: "/dashboard" | "/repositories" | "/generate" | "/policies" | "/settings";
+  href:
+    | "/dashboard"
+    | "/repositories"
+    | "/generate"
+    | "/history"
+    | "/policies"
+    | "/settings";
   icon: LucideIcon;
-  labelKey: "dashboard" | "repositories" | "generate" | "policies" | "settings";
+  labelKey:
+    | "dashboard"
+    | "repositories"
+    | "generate"
+    | "history"
+    | "policies"
+    | "settings";
   isActive: (pathname: string) => boolean;
 };
 
@@ -46,6 +59,12 @@ const items: NavItem[] = [
     icon: Sparkles,
     labelKey: "generate",
     isActive: startsWithMatcher("/generate"),
+  },
+  {
+    href: "/history",
+    icon: History,
+    labelKey: "history",
+    isActive: startsWithMatcher("/history"),
   },
   {
     href: "/policies",
