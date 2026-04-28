@@ -22,6 +22,7 @@ import { ValidatorService } from "../../shared/policy-validation/validator.servi
 import {
   formatSuggestionAsCommitMessage,
   toValidatorPolicy,
+  uniqueIds,
 } from "./history.mappers.js";
 import type { ListHistoryOptions, ListHistoryResult } from "./history.types.js";
 
@@ -56,8 +57,8 @@ export class HistoryService {
         ? encodeGenerationHistoryCursor(page[page.length - 1]!)
         : null;
 
-    const repoIds = unique(page.map((r) => r.repositoryId).filter(isString));
-    const policyIds = unique(page.map((r) => r.policyId).filter(isString));
+    const repoIds = uniqueIds(page.map((r) => r.repositoryId));
+    const policyIds = uniqueIds(page.map((r) => r.policyId));
 
     const [repoEntries, policyEntries] = await Promise.all([
       Promise.all(
@@ -128,6 +129,3 @@ export class HistoryService {
     };
   }
 }
-
-const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
-const isString = (value: unknown): value is string => typeof value === "string";
