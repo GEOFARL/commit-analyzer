@@ -116,6 +116,9 @@ export type {
   DoneFrame,
   ErrorFrame,
   GenerateRequest,
+  HistoryEntry,
+  HistoryListResponse,
+  HistorySuggestion,
   SuggestionFrame,
   TokenFrame,
 } from "./generation.contract.js";
@@ -123,6 +126,9 @@ export {
   doneFrameSchema,
   errorFrameSchema,
   generateRequestSchema,
+  historyEntrySchema,
+  historyListResponseSchema,
+  historySuggestionSchema,
   suggestionFrameSchema,
   tokenFrameSchema,
 } from "./generation.contract.js";

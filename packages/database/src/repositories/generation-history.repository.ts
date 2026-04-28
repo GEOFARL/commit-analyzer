@@ -7,6 +7,13 @@ import type { DataSource, Repository as OrmRepository } from "typeorm";
 
 import { GenerationHistory } from "../entities/generation-history.entity.js";
 
+export class InvalidGenerationHistoryCursorError extends Error {
+  constructor(message = "invalid generation history cursor") {
+    super(message);
+    this.name = "InvalidGenerationHistoryCursorError";
+  }
+}
+
 export interface GenerationHistoryCursor {
   createdAt: string;
   id: string;
@@ -16,6 +23,7 @@ export interface GenerationHistoryListOptions {
   userId: string;
   limit: number;
   cursor?: GenerationHistoryCursor;
+  repositoryId?: string;
 }
 
 export interface CreateGenerationHistoryInput {
@@ -35,6 +43,10 @@ export interface GenerationHistoryRepository
   listByUser(
     options: GenerationHistoryListOptions,
   ): Promise<GenerationHistory[]>;
+  findByIdForUser(
+    id: string,
+    userId: string,
+  ): Promise<GenerationHistory | null>;
   createOne(input: CreateGenerationHistoryInput): Promise<GenerationHistory>;
 }
 
@@ -51,7 +63,7 @@ export const decodeGenerationHistoryCursor = (
 ): GenerationHistoryCursor => {
   const sep = raw.indexOf("|");
   if (sep <= 0 || sep === raw.length - 1) {
-    throw new Error("invalid generation history cursor");
+    throw new InvalidGenerationHistoryCursorError();
   }
   return { createdAt: raw.slice(0, sep), id: raw.slice(sep + 1) };
 };
@@ -62,18 +74,22 @@ export const createGenerationHistoryRepository = (
   const base = dataSource.getRepository(GenerationHistory);
   const extensions: Pick<
     GenerationHistoryRepository,
-    "listByUser" | "createOne"
+    "listByUser" | "findByIdForUser" | "createOne"
   > = {
     async listByUser(
       options: GenerationHistoryListOptions,
     ): Promise<GenerationHistory[]> {
-      const { userId, limit, cursor } = options;
+      const { userId, limit, cursor, repositoryId } = options;
       const qb = base
         .createQueryBuilder("gh")
         .where("gh.user_id = :userId", { userId })
         .orderBy("gh.created_at", "DESC")
         .addOrderBy("gh.id", "DESC")
         .take(limit);
+
+      if (repositoryId) {
+        qb.andWhere("gh.repository_id = :repositoryId", { repositoryId });
+      }
 
       if (cursor) {
         qb.andWhere("(gh.created_at, gh.id) < (:createdAt, :id)", {
@@ -83,6 +99,12 @@ export const createGenerationHistoryRepository = (
       }
 
       return qb.getMany();
+    },
+    findByIdForUser(
+      id: string,
+      userId: string,
+    ): Promise<GenerationHistory | null> {
+      return base.findOne({ where: { id, userId } });
     },
     async createOne(
       input: CreateGenerationHistoryInput,

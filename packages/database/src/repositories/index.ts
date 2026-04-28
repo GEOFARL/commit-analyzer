@@ -27,6 +27,7 @@ export {
   createGenerationHistoryRepository,
   decodeGenerationHistoryCursor,
   encodeGenerationHistoryCursor,
+  InvalidGenerationHistoryCursorError,
 } from "./generation-history.repository.js";
 export type {
   CreateGenerationHistoryInput,

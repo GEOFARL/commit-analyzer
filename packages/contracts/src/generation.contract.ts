@@ -10,6 +10,14 @@ const c = initContract();
 
 const llmProviderSchema = z.enum(["openai", "anthropic"]);
 
+const generationStatusSchema = z.enum([
+  "pending",
+  "streaming",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
 // Server-side message is debug-only — the web UI maps `code` to localized
 // copy via `generate.diff.validation.*` before rendering.
 const unifiedDiffRefinement = (value: string, ctx: z.RefinementCtx): void => {
@@ -41,20 +49,24 @@ export const generateRequestSchema = z.object({
 });
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
-export const suggestionFrameSchema = z.object({
-  index: z.number().int().nonnegative(),
+const validationResultSchema = z.object({
+  passed: z.boolean(),
+  results: z.array(ruleResultSchema),
+});
+
+const suggestionShape = {
   type: z.string(),
   scope: z.string().nullable(),
   subject: z.string(),
   body: z.string().nullable(),
   footer: z.string().nullable(),
   compliant: z.boolean(),
-  validation: z
-    .object({
-      passed: z.boolean(),
-      results: z.array(ruleResultSchema),
-    })
-    .nullable(),
+  validation: validationResultSchema.nullable(),
+} as const;
+
+export const suggestionFrameSchema = z.object({
+  index: z.number().int().nonnegative(),
+  ...suggestionShape,
 });
 export type SuggestionFrame = z.infer<typeof suggestionFrameSchema>;
 
@@ -75,6 +87,70 @@ export const errorFrameSchema = z.object({
   message: z.string(),
 });
 export type ErrorFrame = z.infer<typeof errorFrameSchema>;
+
+export const historySuggestionSchema = z.object(suggestionShape);
+export type HistorySuggestion = z.infer<typeof historySuggestionSchema>;
+
+export const historyEntrySchema = z.object({
+  id: z.string().uuid(),
+  provider: llmProviderSchema,
+  model: z.string(),
+  status: generationStatusSchema,
+  tokensUsed: z.number().int().nonnegative(),
+  suggestions: z.array(historySuggestionSchema),
+  policyId: z.string().uuid().nullable(),
+  policyName: z.string().nullable(),
+  repositoryId: z.string().uuid().nullable(),
+  repositoryFullName: z.string().nullable(),
+  createdAt: z.string().datetime(),
+});
+export type HistoryEntry = z.infer<typeof historyEntrySchema>;
+
+export const historyListResponseSchema = z.object({
+  items: z.array(historyEntrySchema),
+  nextCursor: z.string().nullable(),
+});
+export type HistoryListResponse = z.infer<typeof historyListResponseSchema>;
+
+const historyRouter = c.router(
+  {
+    list: {
+      method: "GET",
+      path: "/generation/history",
+      query: z.object({
+        limit: z.coerce.number().int().min(1).max(50).default(20),
+        cursor: z.string().optional(),
+        repoId: z.string().uuid().optional(),
+      }),
+      responses: {
+        200: historyListResponseSchema,
+        400: errorEnvelopeSchema,
+        401: errorEnvelopeSchema,
+      },
+      summary: "List the current user's generation history",
+      metadata: {
+        auth: "jwt",
+        rateLimit: "default",
+      } satisfies RouteMetadata,
+    },
+    get: {
+      method: "GET",
+      path: "/generation/history/:id",
+      pathParams: z.object({ id: z.string().uuid() }),
+      responses: {
+        200: historyEntrySchema,
+        401: errorEnvelopeSchema,
+        404: errorEnvelopeSchema,
+      },
+      summary: "Get a single generation history entry by id",
+      metadata: {
+        auth: "jwt",
+        rateLimit: "default",
+      } satisfies RouteMetadata,
+    },
+  },
+  { strictStatusCodes: true },
+);
 
 export const generationContract = c.router(
   {
@@ -99,6 +175,7 @@ export const generationContract = c.router(
         rateLimit: "generate",
       } satisfies RouteMetadata,
     },
+    history: historyRouter,
   },
   { strictStatusCodes: true },
 );

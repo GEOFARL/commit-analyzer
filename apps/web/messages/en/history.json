@@ -1,0 +1,62 @@
+{
+  "title": "Generation history",
+  "subtitle": "Review past commit-message generations. Rule verdicts are re-validated against the policy's current rules.",
+  "empty": {
+    "title": "No generations yet",
+    "description": "Run a generation to see it appear here.",
+    "cta": "Open generator"
+  },
+  "error": {
+    "load": "Failed to load history. Please try again."
+  },
+  "table": {
+    "createdAt": "Created",
+    "provider": "Provider",
+    "model": "Model",
+    "policy": "Policy",
+    "repository": "Repository",
+    "status": "Status",
+    "preview": "Preview",
+    "tokens": "Tokens",
+    "viewDetails": "View details"
+  },
+  "policy": {
+    "none": "No policy",
+    "missing": "Policy removed"
+  },
+  "status": {
+    "pending": "Pending",
+    "streaming": "Streaming",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  "compliance": {
+    "compliant": "Compliant",
+    "nonCompliant": "Non-compliant",
+    "unknown": "Unknown"
+  },
+  "drawer": {
+    "title": "Generation details",
+    "description": "Full suggestions with per-rule results re-validated against the policy's current rules.",
+    "revalidationNote": "Re-validated against the current policy",
+    "metaCreated": "Created",
+    "metaProvider": "Provider",
+    "metaModel": "Model",
+    "metaPolicy": "Policy",
+    "metaTokens": "Tokens",
+    "suggestions": "Suggestions",
+    "rules": "Rule results",
+    "noRules": "Linked policy is missing — rule details unavailable.",
+    "noSuggestions": "No suggestions were stored for this generation.",
+    "close": "Close"
+  },
+  "pagination": {
+    "loadMore": "Load more",
+    "loading": "Loading…",
+    "noMore": "End of history"
+  },
+  "preview": {
+    "more": "+{count} more"
+  }
+}

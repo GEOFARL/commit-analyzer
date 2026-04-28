@@ -9,6 +9,7 @@ import en_dashboard from "../../messages/en/dashboard.json";
 import en_defaultPolicy from "../../messages/en/defaultPolicy.json";
 import en_errors from "../../messages/en/errors.json";
 import en_generate from "../../messages/en/generate.json";
+import en_history from "../../messages/en/history.json";
 import en_landing from "../../messages/en/landing.json";
 import en_llmKeys from "../../messages/en/llmKeys.json";
 import en_login from "../../messages/en/login.json";
@@ -28,6 +29,7 @@ import uk_dashboard from "../../messages/uk/dashboard.json";
 import uk_defaultPolicy from "../../messages/uk/defaultPolicy.json";
 import uk_errors from "../../messages/uk/errors.json";
 import uk_generate from "../../messages/uk/generate.json";
+import uk_history from "../../messages/uk/history.json";
 import uk_landing from "../../messages/uk/landing.json";
 import uk_llmKeys from "../../messages/uk/llmKeys.json";
 import uk_login from "../../messages/uk/login.json";
@@ -52,6 +54,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     defaultPolicy: en_defaultPolicy,
     errors: en_errors,
     generate: en_generate,
+    history: en_history,
     landing: en_landing,
     llmKeys: en_llmKeys,
     login: en_login,
@@ -73,6 +76,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     defaultPolicy: uk_defaultPolicy,
     errors: uk_errors,
     generate: uk_generate,
+    history: uk_history,
     landing: uk_landing,
     llmKeys: uk_llmKeys,
     login: uk_login,
