@@ -14,6 +14,7 @@ import base from "./base.js";
 const elements = [
   { type: "app-route", pattern: "src/app" },
   { type: "ui", pattern: "src/components/ui" },
+  { type: "shared-components", pattern: "src/components/shared" },
   { type: "layout-chrome", pattern: "src/components/layout" },
   { type: "providers", pattern: "src/components/providers" },
   {
@@ -73,6 +74,7 @@ export default [
                   type: [
                     "feature",
                     "ui",
+                    "shared-components",
                     "layout-chrome",
                     "providers",
                     "lib",
@@ -84,7 +86,9 @@ export default [
             {
               from: { type: "feature" },
               allow: {
-                to: { type: ["feature", "ui", "lib", "i18n"] },
+                to: {
+                  type: ["feature", "ui", "shared-components", "lib", "i18n"],
+                },
               },
             },
             {
@@ -96,6 +100,10 @@ export default [
               allow: {
                 to: { type: ["ui", "lib", "i18n", "layout-chrome"] },
               },
+            },
+            {
+              from: { type: "shared-components" },
+              allow: { to: { type: ["ui", "lib", "i18n"] } },
             },
             { from: { type: "ui" }, allow: { to: { type: "lib" } } },
             { from: { type: "i18n" }, allow: { to: { type: "lib" } } },

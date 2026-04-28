@@ -80,6 +80,8 @@ export {
 export { policiesContract } from "./policies.contract.js";
 export type {
   CreatePolicyInput,
+  DefaultPolicyTemplate,
+  DefaultPolicyTemplateResponse,
   PolicyDto,
   PolicyRuleDto,
   PolicyRuleInput,
@@ -94,6 +96,8 @@ export {
   allowedTypesRuleSchema,
   bodyRequiredRuleSchema,
   createPolicySchema,
+  defaultPolicyTemplateResponseSchema,
+  defaultPolicyTemplateSchema,
   footerRequiredRuleSchema,
   maxSubjectLengthRuleSchema,
   policyDtoSchema,

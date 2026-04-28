@@ -54,6 +54,7 @@ type ConnectedRepoFixture = {
 export const MOCK_SEEDED_REPO_ID = "11111111-1111-4111-8111-111111111111";
 export const MOCK_FRESH_GITHUB_REPO_ID = 1001;
 export const MOCK_SEEDED_GITHUB_REPO_ID = 1002;
+export const MOCK_AUTO_POLICY_GITHUB_REPO_ID = 1003;
 
 const GITHUB_REPOS: GithubRepoFixture[] = [
   {
@@ -82,6 +83,20 @@ const GITHUB_REPOS: GithubRepoFixture[] = [
     connected: true,
     pushedAt: "2024-02-01T00:00:00.000Z",
     stargazersCount: 12,
+    archived: false,
+  },
+  {
+    githubRepoId: MOCK_AUTO_POLICY_GITHUB_REPO_ID,
+    owner: "acme",
+    name: "auto-policy-repo",
+    fullName: "acme/auto-policy-repo",
+    private: false,
+    defaultBranch: "main",
+    description: "Used by the default-policy auto-apply E2E.",
+    htmlUrl: "https://github.com/acme/auto-policy-repo",
+    connected: false,
+    pushedAt: "2024-03-15T00:00:00.000Z",
+    stargazersCount: 3,
     archived: false,
   },
 ];
@@ -169,6 +184,12 @@ type MockPolicy = {
 // retry doesn't lose seeded fixtures, and `resetState()` clears it only at
 // startup/teardown.
 const policies = new Map<string, MockPolicy>();
+
+type MockDefaultPolicyTemplate = {
+  enabled: boolean;
+  rules: { ruleType: string; ruleValue: unknown }[];
+};
+let defaultPolicyTemplate: MockDefaultPolicyTemplate | null = null;
 
 const listPoliciesForRepo = (repoId: string): MockPolicy[] =>
   Array.from(policies.values())
@@ -478,6 +499,36 @@ const handleRequest = async (
     return;
   }
 
+  // ── Default policy template ─────────────────────────────────────────────
+  if (pathname === "/settings/default-policy") {
+    if (!isAuthorized(req)) {
+      await drainBody(req);
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    if (req.method === "GET") {
+      sendJson(req, res, 200, { template: defaultPolicyTemplate });
+      return;
+    }
+    if (req.method === "PUT") {
+      const body = (await readJsonBody(req)) as Partial<MockDefaultPolicyTemplate>;
+      const enabled = typeof body.enabled === "boolean" ? body.enabled : false;
+      const rulesInput = Array.isArray(body.rules)
+        ? (body.rules as { ruleType: string; ruleValue: unknown }[])
+        : [];
+      defaultPolicyTemplate = { enabled, rules: rulesInput };
+      sendJson(req, res, 200, { template: defaultPolicyTemplate });
+      return;
+    }
+    if (req.method === "DELETE") {
+      await drainBody(req);
+      defaultPolicyTemplate = null;
+      res.writeHead(204, corsHeaders(req));
+      res.end();
+      return;
+    }
+  }
+
   // ── Repositories ─────────────────────────────────────────────────────────
   if (req.method === "GET" && pathname === "/repos/github") {
     if (!isAuthorized(req)) {
@@ -535,6 +586,22 @@ const handleRequest = async (
       createdAt: new Date().toISOString(),
     };
     connectedRepos.set(connected.id, connected);
+    // Mirrors ApplyDefaultPolicyOnRepoConnected: when the user has a default
+    // template with enabled=true, auto-create + activate a "Default" policy
+    // on the freshly connected repo. UC-F2 chain.
+    if (defaultPolicyTemplate?.enabled) {
+      const now = new Date().toISOString();
+      const created: MockPolicy = {
+        id: randomUUID(),
+        repositoryId: connected.id,
+        name: "Default",
+        isActive: true,
+        rules: defaultPolicyTemplate.rules.map(cloneRuleInput),
+        createdAt: now,
+        updatedAt: now,
+      };
+      policies.set(created.id, created);
+    }
     // Queue a sync — driven once a WS subscriber joins the room, so the banner
     // always observes the full progress → completed sequence regardless of
     // navigation timing between list and analytics pages.
@@ -841,6 +908,7 @@ const handleRequest = async (
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
 const resetState = (): void => {
+  defaultPolicyTemplate = null;
   connectedRepos.clear();
   connectedRepos.set(MOCK_SEEDED_REPO_ID, {
     id: MOCK_SEEDED_REPO_ID,

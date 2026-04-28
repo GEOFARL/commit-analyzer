@@ -42,6 +42,10 @@ export class DefaultPolicyService {
     return parsed;
   }
 
+  async clearDefaultPolicyTemplate(userId: string): Promise<void> {
+    await this.users.setDefaultPolicyTemplate(userId, null);
+  }
+
   private parse(input: unknown): DefaultPolicyTemplate {
     try {
       return defaultPolicyTemplateSchema.parse(input);

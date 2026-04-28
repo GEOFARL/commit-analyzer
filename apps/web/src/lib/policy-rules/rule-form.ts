@@ -29,7 +29,7 @@ const splitList = (raw: string): string[] =>
     .map((s) => s.trim())
     .filter(Boolean);
 
-export const dtoToFormState = (rule: PolicyRuleDto): RuleFormState => {
+export const inputToFormState = (rule: PolicyRuleInput): RuleFormState => {
   switch (rule.ruleType) {
     case "allowedTypes":
       return { ruleType: "allowedTypes", raw: rule.ruleValue.join(", ") };
@@ -58,6 +58,9 @@ export const dtoToFormState = (rule: PolicyRuleDto): RuleFormState => {
       return { ruleType: "footerRequired", value: rule.ruleValue };
   }
 };
+
+export const dtoToFormState = (rule: PolicyRuleDto): RuleFormState =>
+  inputToFormState(rule);
 
 export const defaultFormState = (
   ruleType: PolicyRuleTypeName,
@@ -137,8 +140,4 @@ export const formStateToInput = (state: RuleFormState): FormToInputResult => {
   }
 };
 
-let entryCounter = 0;
-export const nextEntryUid = (): string => {
-  entryCounter += 1;
-  return `rule-${Date.now().toString(36)}-${entryCounter}`;
-};
+export const nextEntryUid = (): string => `rule-${crypto.randomUUID()}`;
