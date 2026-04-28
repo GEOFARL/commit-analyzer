@@ -79,4 +79,15 @@ describe("git helpers", () => {
     const resolved = await readDiffWithFallback();
     expect(resolved).toBeNull();
   });
+
+  it("returns null in a fresh repo with no commits and nothing staged", async () => {
+    init(dir);
+    process.chdir(dir);
+
+    const head = await readHeadDiff();
+    expect(head).toBe("");
+
+    const resolved = await readDiffWithFallback();
+    expect(resolved).toBeNull();
+  });
 });

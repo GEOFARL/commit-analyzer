@@ -63,6 +63,8 @@ export async function readStagedDiff(cwd: string = process.cwd()): Promise<strin
 }
 
 export async function readHeadDiff(cwd: string = process.cwd()): Promise<string> {
+  const head = await runGit(["rev-parse", "--verify", "--quiet", "HEAD"], cwd);
+  if (head.exitCode !== 0) return "";
   const res = await runGit(
     ["diff", "HEAD", "--no-color", "--no-ext-diff"],
     cwd,
