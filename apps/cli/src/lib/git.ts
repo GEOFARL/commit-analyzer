@@ -88,13 +88,8 @@ export async function readDiffWithFallback(cwd: string = process.cwd()): Promise
   return null;
 }
 
-export interface CommitInput {
-  subject: string;
-  body?: string;
-}
-
 export async function commitMessage(
-  input: CommitInput,
+  input: { subject: string; body?: string },
   cwd: string = process.cwd(),
 ): Promise<void> {
   const args = ["commit", "-m", input.subject];

@@ -171,9 +171,9 @@ export async function runGenerate(opts: GenerateOptions, signal: AbortSignal): P
 
   if (opts.commit) {
     const subject = formatHeader(choice);
-    const body = formatCommitBody(choice);
+    const commitBody = formatCommitBody(choice);
     try {
-      await commitMessage({ subject, ...(body ? { body } : {}) });
+      await commitMessage({ subject, ...(commitBody ? { body: commitBody } : {}) });
       process.stderr.write("commit created.\n");
     } catch (err) {
       if (err instanceof GitError) {
