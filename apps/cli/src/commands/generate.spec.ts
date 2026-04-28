@@ -1,10 +1,12 @@
 import { select } from "@inquirer/prompts";
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
+import { ClipboardError, copyToClipboard } from "../lib/clipboard.js";
 import { ConfigError, loadConfig } from "../lib/config.js";
 import {
   GitError,
   assertInsideWorkTree,
+  commitMessage,
   readDiffWithFallback,
 } from "../lib/git.js";
 
@@ -33,6 +35,16 @@ vi.mock("../lib/git.js", () => ({
   },
   assertInsideWorkTree: vi.fn(),
   readDiffWithFallback: vi.fn(),
+  commitMessage: vi.fn(),
+}));
+
+vi.mock("../lib/clipboard.js", () => ({
+  ClipboardError: class ClipboardError extends Error {
+    constructor(message: string, cause: unknown) {
+      super(message, { cause });
+    }
+  },
+  copyToClipboard: vi.fn(),
 }));
 
 vi.mock("@inquirer/prompts", () => ({
@@ -42,6 +54,8 @@ vi.mock("@inquirer/prompts", () => ({
 const loadConfigMock = loadConfig as unknown as Mock;
 const assertInsideWorkTreeMock = assertInsideWorkTree as unknown as Mock;
 const readDiffWithFallbackMock = readDiffWithFallback as unknown as Mock;
+const commitMessageMock = commitMessage as unknown as Mock;
+const copyToClipboardMock = copyToClipboard as unknown as Mock;
 const selectMock = select as unknown as Mock;
 
 const VALID_DIFF = [
@@ -245,6 +259,111 @@ describe("generate command", () => {
 
     expect(await runAndCatchExit({})).toBe(130);
     expect(stderrBuf).toMatch(/aborted/);
+  });
+
+  it("--copy writes the chosen message to the clipboard", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(SUGGESTION);
+    copyToClipboardMock.mockResolvedValue(undefined);
+
+    await runGenerate({ copy: true }, new AbortController().signal);
+
+    expect(copyToClipboardMock).toHaveBeenCalledWith("feat: add a");
+    expect(stderrBuf).toMatch(/copied to clipboard/);
+  });
+
+  it("--copy exit 1 on clipboard failure", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(SUGGESTION);
+    copyToClipboardMock.mockRejectedValue(
+      new ClipboardError("failed to write to clipboard", new Error("xclip missing")),
+    );
+
+    expect(await runAndCatchExit({ copy: true })).toBe(1);
+    expect(stderrBuf).toMatch(/failed to write to clipboard/);
+  });
+
+  it("--commit invokes commitMessage with subject and body", async () => {
+    const RICH = {
+      ...SUGGESTION,
+      body: "explain the change",
+      footer: "Refs: #123",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", RICH), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(RICH);
+    commitMessageMock.mockResolvedValue(undefined);
+
+    await runGenerate({ commit: true }, new AbortController().signal);
+
+    expect(commitMessageMock).toHaveBeenCalledWith({
+      subject: "feat: add a",
+      body: "explain the change\n\nRefs: #123",
+    });
+    expect(stderrBuf).toMatch(/commit created/);
+  });
+
+  it("--commit subject only when body and footer are absent", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(SUGGESTION);
+    commitMessageMock.mockResolvedValue(undefined);
+
+    await runGenerate({ commit: true }, new AbortController().signal);
+
+    expect(commitMessageMock).toHaveBeenCalledWith({ subject: "feat: add a" });
+  });
+
+  it("--commit + --copy run both", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(SUGGESTION);
+    copyToClipboardMock.mockResolvedValue(undefined);
+    commitMessageMock.mockResolvedValue(undefined);
+
+    await runGenerate({ commit: true, copy: true }, new AbortController().signal);
+
+    expect(copyToClipboardMock).toHaveBeenCalledTimes(1);
+    expect(commitMessageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("--commit exit 1 when git commit fails (e.g. pre-commit hook)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(SUGGESTION);
+    commitMessageMock.mockRejectedValue(
+      new GitError("GIT_FAILED", "git commit failed", "pre-commit hook rejected"),
+    );
+
+    expect(await runAndCatchExit({ commit: true })).toBe(1);
+    expect(stderrBuf).toMatch(/commit failed/);
+    expect(stderrBuf).toMatch(/pre-commit hook rejected/);
+  });
+
+  it("does not commit or copy when user picks quit", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      sseResponse([sseFrame("suggestion", SUGGESTION), sseFrame("done", DONE)]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    selectMock.mockResolvedValue(null);
+
+    expect(await runAndCatchExit({ commit: true, copy: true })).toBe(130);
+    expect(commitMessageMock).not.toHaveBeenCalled();
+    expect(copyToClipboardMock).not.toHaveBeenCalled();
   });
 
   it("emits HEAD-fallback note when nothing staged but HEAD diff exists", async () => {
