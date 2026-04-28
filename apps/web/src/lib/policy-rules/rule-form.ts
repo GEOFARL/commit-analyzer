@@ -140,8 +140,4 @@ export const formStateToInput = (state: RuleFormState): FormToInputResult => {
   }
 };
 
-let entryCounter = 0;
-export const nextEntryUid = (): string => {
-  entryCounter += 1;
-  return `rule-${Date.now().toString(36)}-${entryCounter}`;
-};
+export const nextEntryUid = (): string => `rule-${crypto.randomUUID()}`;

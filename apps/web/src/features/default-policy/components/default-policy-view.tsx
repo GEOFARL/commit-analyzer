@@ -60,7 +60,10 @@ export const DefaultPolicyView = ({
   const updateMutation = useUpdateDefaultPolicyMutation(userId);
   const clearMutation = useClearDefaultPolicyMutation(userId);
 
-  const template = query.data?.body.template ?? initialTemplate;
+  // useDefaultPolicyQuery seeds initialData from initialTemplate, so the
+  // query is the single source of truth — falling back to initialTemplate
+  // here would re-introduce the saved template after a successful clear.
+  const template = query.data?.body.template ?? null;
   const seed = template ?? TEMPLATE_DEFAULTS;
 
   const [enabled, setEnabled] = useState(seed.enabled);
@@ -84,6 +87,17 @@ export const DefaultPolicyView = ({
     },
     [],
   );
+
+  // Reseed the form when the server template changes (e.g. cache
+  // invalidation or refetch picks up a remote edit) and the user has no
+  // unsaved local changes. Avoids overwriting in-flight edits.
+  const lastSyncedRef = useRef<string>(JSON.stringify(template));
+  useEffect(() => {
+    const fingerprint = JSON.stringify(template);
+    if (fingerprint === lastSyncedRef.current) return;
+    lastSyncedRef.current = fingerprint;
+    if (!dirty) syncFromTemplate(template);
+  }, [template, dirty, syncFromTemplate]);
 
   useEffect(() => {
     if (!dirty) return;

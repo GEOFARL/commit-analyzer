@@ -1,5 +1,5 @@
 import { policiesContract } from "@commit-analyzer/contracts";
-import { Controller, UseGuards } from "@nestjs/common";
+import { Controller, Inject, UseGuards } from "@nestjs/common";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 
 import { ThrottleTierDecorator } from "../../common/throttler/throttle-tier.decorator.js";
@@ -8,11 +8,17 @@ import { SupabaseAuthGuard } from "../auth/supabase-auth.guard.js";
 
 import { DefaultPolicyService } from "./default-policy.service.js";
 
+// @Inject is explicit because esbuild (used by vitest) drops decorator
+// metadata, breaking constructor-type DI in tests. See generate.controller.ts
+// for the same pattern.
 @Controller()
 @UseGuards(SupabaseAuthGuard)
 @ThrottleTierDecorator("default")
 export class DefaultPolicyController {
-  constructor(private readonly defaults: DefaultPolicyService) {}
+  constructor(
+    @Inject(DefaultPolicyService)
+    private readonly defaults: DefaultPolicyService,
+  ) {}
 
   @TsRestHandler(policiesContract.defaults.get)
   get(@CurrentUser() userId: string): unknown {
@@ -36,6 +42,9 @@ export class DefaultPolicyController {
     );
   }
 
+  // `as never` mirrors PoliciesController.delete: ts-rest's @TsRestHandler
+  // doesn't infer the no-body / 204-empty-body shape produced by `c.noBody()`,
+  // so the cast is the project-wide workaround for DELETE endpoints.
   @TsRestHandler(policiesContract.defaults.clear as never)
   clear(@CurrentUser() userId: string): unknown {
     return tsRestHandler(
