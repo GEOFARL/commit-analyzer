@@ -9,4 +9,12 @@ export default [
       "tsup.config.ts",
     ],
   },
+  {
+    files: ["src/**/*.spec.ts"],
+    rules: {
+      "boundaries/dependencies": "off",
+      "boundaries/no-unknown": "off",
+      "boundaries/no-unknown-files": "off",
+    },
+  },
 ];
