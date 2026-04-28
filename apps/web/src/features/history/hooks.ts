@@ -13,7 +13,7 @@ interface UseHistoryListArgs {
 }
 
 export const useHistoryListQuery = ({ cursor, initial }: UseHistoryListArgs) => {
-  const query = tsr.history.list.useQuery({
+  const query = tsr.generation.history.list.useQuery({
     queryKey: [...historyQueryKeys.list(cursor)],
     queryData: {
       query: {
@@ -29,6 +29,24 @@ export const useHistoryListQuery = ({ cursor, initial }: UseHistoryListArgs) => 
   useEffect(() => {
     if (query.error) {
       console.error("[history] list error", query.error);
+    }
+  }, [query.error]);
+
+  return query;
+};
+
+export const useHistoryEntryQuery = (id: string | null) => {
+  const query = tsr.generation.history.get.useQuery({
+    queryKey: ["history", "detail", id ?? "none"],
+    queryData: { params: { id: id ?? "" } },
+    enabled: id !== null,
+    staleTime: 0,
+    retry: 0,
+  });
+
+  useEffect(() => {
+    if (query.error) {
+      console.error("[history] detail error", query.error);
     }
   }, [query.error]);
 

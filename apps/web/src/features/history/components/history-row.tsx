@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
+import { formatSuggestionHeader } from "@/lib/commit-format";
 
 type Props = {
   entry: HistoryEntry;
@@ -25,9 +26,7 @@ export const HistoryRow = ({ entry, onSelect }: Props) => {
 
   const previewSuggestion = entry.suggestions[0];
   const previewHeader = previewSuggestion
-    ? previewSuggestion.scope
-      ? `${previewSuggestion.type}(${previewSuggestion.scope}): ${previewSuggestion.subject}`
-      : `${previewSuggestion.type}: ${previewSuggestion.subject}`
+    ? formatSuggestionHeader(previewSuggestion)
     : "—";
   const moreCount = Math.max(0, entry.suggestions.length - 1);
 

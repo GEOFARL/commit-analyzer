@@ -7,7 +7,10 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useHistoryListQuery } from "@/features/history/hooks";
+import {
+  useHistoryEntryQuery,
+  useHistoryListQuery,
+} from "@/features/history/hooks";
 import type { HistoryPageData } from "@/features/history/types";
 import { Link, useRouter } from "@/i18n/navigation";
 
@@ -104,9 +107,15 @@ export const HistoryView = ({
     });
   }, []);
 
-  const selected = idParam
+  const cachedSelected = idParam
     ? items.find((entry) => entry.id === idParam) ?? null
     : null;
+  const detailQuery = useHistoryEntryQuery(
+    idParam && !cachedSelected ? idParam : null,
+  );
+  const selected =
+    cachedSelected ??
+    (detailQuery.data?.status === 200 ? detailQuery.data.body : null);
 
   return (
     <div className="flex flex-col gap-6">

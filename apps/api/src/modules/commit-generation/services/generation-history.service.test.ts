@@ -11,9 +11,9 @@ import type {
 import { encodeGenerationHistoryCursor } from "@commit-analyzer/database";
 import { describe, expect, it, vi } from "vitest";
 
-import { ValidatorService } from "../../shared/policy-validation/validator.service.js";
+import { ValidatorService } from "../../../shared/policy-validation/validator.service.js";
 
-import { HistoryService } from "./history.service.js";
+import { GenerationHistoryService } from "./generation-history.service.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -85,14 +85,19 @@ const makeService = ({
 
   const validator = new ValidatorService();
   return {
-    service: new HistoryService(history, policiesRepo, repositories, validator),
+    service: new GenerationHistoryService(
+      history,
+      policiesRepo,
+      repositories,
+      validator,
+    ),
     listByUser,
     repoFindOneBy,
     findWithRules,
   };
 };
 
-describe("HistoryService", () => {
+describe("GenerationHistoryService", () => {
   it("paginates with cursor and reports nextCursor when more rows exist", async () => {
     const rows = [
       row({ id: "a", createdAt: new Date("2026-04-01T00:00:00Z") }),

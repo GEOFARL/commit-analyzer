@@ -3,9 +3,9 @@ import {
   decodeGenerationHistoryCursor,
   encodeGenerationHistoryCursor,
   type GenerationHistory,
+  type GenerationHistoryRepository,
   type Policy,
   type PolicyRepository,
-  type GenerationHistoryRepository,
   type Repository as RepoEntity,
   type RepositoryRepository,
 } from "@commit-analyzer/database";
@@ -16,18 +16,19 @@ import {
   GENERATION_HISTORY_REPOSITORY,
   POLICY_REPOSITORY,
   REPOSITORY_REPOSITORY,
-} from "../../common/database/tokens.js";
-import { ValidatorService } from "../../shared/policy-validation/validator.service.js";
+} from "../../../common/database/tokens.js";
+import { ValidatorService } from "../../../shared/policy-validation/validator.service.js";
+import { toValidatorPolicy } from "../commands/generate-message.mappers.js";
 
-import {
-  formatSuggestionAsCommitMessage,
-  toValidatorPolicy,
-  uniqueIds,
-} from "./history.mappers.js";
-import type { ListHistoryOptions, ListHistoryResult } from "./history.types.js";
+import { uniqueIds } from "./generation-history.mappers.js";
+import type {
+  ListHistoryOptions,
+  ListHistoryResult,
+} from "./generation-history.types.js";
+import { formatSuggestionAsCommitMessage } from "./suggestion-formatter.js";
 
 @Injectable()
-export class HistoryService {
+export class GenerationHistoryService {
   constructor(
     @Inject(GENERATION_HISTORY_REPOSITORY)
     private readonly history: GenerationHistoryRepository,
@@ -39,7 +40,7 @@ export class HistoryService {
   ) {}
 
   async list(options: ListHistoryOptions): Promise<ListHistoryResult> {
-    const { userId, limit, cursor: rawCursor } = options;
+    const { userId, limit, cursor: rawCursor, repositoryId } = options;
     const cursor = rawCursor
       ? decodeGenerationHistoryCursor(rawCursor)
       : undefined;
@@ -48,6 +49,7 @@ export class HistoryService {
       userId,
       limit: limit + 1,
       cursor,
+      repositoryId,
     });
 
     const hasMore = rows.length > limit;
@@ -57,8 +59,29 @@ export class HistoryService {
         ? encodeGenerationHistoryCursor(page[page.length - 1]!)
         : null;
 
-    const repoIds = uniqueIds(page.map((r) => r.repositoryId));
-    const policyIds = uniqueIds(page.map((r) => r.policyId));
+    const { repoMap, policyMap } = await this.hydrate(page);
+
+    return {
+      items: page.map((row) => this.toEntry(row, repoMap, policyMap)),
+      nextCursor,
+    };
+  }
+
+  async findById(userId: string, id: string): Promise<HistoryEntry | null> {
+    const row = await this.history.findByIdForUser(id, userId);
+    if (!row) return null;
+    const { repoMap, policyMap } = await this.hydrate([row]);
+    return this.toEntry(row, repoMap, policyMap);
+  }
+
+  private async hydrate(
+    rows: readonly GenerationHistory[],
+  ): Promise<{
+    repoMap: Map<string, RepoEntity | null>;
+    policyMap: Map<string, Policy | null>;
+  }> {
+    const repoIds = uniqueIds(rows.map((r) => r.repositoryId));
+    const policyIds = uniqueIds(rows.map((r) => r.policyId));
 
     const [repoEntries, policyEntries] = await Promise.all([
       Promise.all(
@@ -73,12 +96,9 @@ export class HistoryService {
       ),
     ]);
 
-    const repoMap = new Map<string, RepoEntity | null>(repoEntries);
-    const policyMap = new Map<string, Policy | null>(policyEntries);
-
     return {
-      items: page.map((row) => this.toEntry(row, repoMap, policyMap)),
-      nextCursor,
+      repoMap: new Map<string, RepoEntity | null>(repoEntries),
+      policyMap: new Map<string, Policy | null>(policyEntries),
     };
   }
 
@@ -87,7 +107,9 @@ export class HistoryService {
     repoMap: Map<string, RepoEntity | null>,
     policyMap: Map<string, Policy | null>,
   ): HistoryEntry {
-    const repo = row.repositoryId ? repoMap.get(row.repositoryId) ?? null : null;
+    const repo = row.repositoryId
+      ? repoMap.get(row.repositoryId) ?? null
+      : null;
     const policy = row.policyId ? policyMap.get(row.policyId) ?? null : null;
     const suggestions = row.suggestions.map((s) =>
       this.enrichSuggestion(s, policy),

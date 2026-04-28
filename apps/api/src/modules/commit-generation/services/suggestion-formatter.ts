@@ -1,7 +1,13 @@
-import type { LlmSuggestion } from "../providers/suggestion.schema.js";
+interface SuggestionLike {
+  type: string;
+  scope?: string | null;
+  subject: string;
+  body?: string | null;
+  footer?: string | null;
+}
 
 export const formatSuggestionAsCommitMessage = (
-  suggestion: LlmSuggestion,
+  suggestion: SuggestionLike,
 ): string => {
   const scope = suggestion.scope?.trim();
   const header = scope

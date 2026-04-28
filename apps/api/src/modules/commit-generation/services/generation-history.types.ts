@@ -4,6 +4,7 @@ export interface ListHistoryOptions {
   userId: string;
   limit: number;
   cursor?: string;
+  repositoryId?: string;
 }
 
 export interface ListHistoryResult {

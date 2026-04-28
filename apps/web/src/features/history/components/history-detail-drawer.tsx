@@ -79,7 +79,7 @@ export const HistoryDetailDrawer = ({ entry, open, onOpenChange }: Props) => {
                 <div className="flex flex-col gap-3">
                   {entry.suggestions.map((suggestion, idx) => (
                     <HistorySuggestionCard
-                      key={idx}
+                      key={`${entry.id}-${idx}`}
                       index={idx}
                       suggestion={suggestion}
                       hasPolicyRules={hasPolicyRules}

@@ -5,6 +5,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
+import { formatSuggestionHeader } from "@/lib/commit-format";
 
 type Props = {
   index: number;
@@ -18,9 +19,7 @@ export const HistorySuggestionCard = ({
   hasPolicyRules,
 }: Props) => {
   const t = useTranslations("history");
-  const header = suggestion.scope
-    ? `${suggestion.type}(${suggestion.scope}): ${suggestion.subject}`
-    : `${suggestion.type}: ${suggestion.subject}`;
+  const header = formatSuggestionHeader(suggestion);
 
   return (
     <article className="flex flex-col gap-3 rounded-xl border bg-card p-4">
@@ -59,24 +58,36 @@ export const HistorySuggestionCard = ({
 
       {hasPolicyRules ? (
         suggestion.validation && suggestion.validation.results.length > 0 ? (
-          <ul className="flex flex-wrap gap-2" aria-label={t("drawer.rules")}>
-            {suggestion.validation.results.map((result, ruleIdx) => (
-              <li key={`${result.ruleType}-${ruleIdx}`}>
-                <Badge
-                  variant={result.passed ? "success" : "destructive"}
-                  className="gap-1"
-                  title={result.message}
-                >
-                  {result.passed ? (
-                    <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-                  ) : (
-                    <XCircle className="h-3 w-3" aria-hidden="true" />
-                  )}
-                  {result.ruleType}
-                </Badge>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-2">
+            <ul
+              className="flex flex-wrap gap-2"
+              aria-label={t("drawer.rules")}
+            >
+              {suggestion.validation.results.map((result, ruleIdx) => (
+                <li key={`${result.ruleType}-${ruleIdx}`}>
+                  <Badge
+                    variant={result.passed ? "success" : "destructive"}
+                    className="gap-1"
+                    title={
+                      result.message
+                        ? `${result.message} — ${t("drawer.revalidationNote")}`
+                        : t("drawer.revalidationNote")
+                    }
+                  >
+                    {result.passed ? (
+                      <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                    ) : (
+                      <XCircle className="h-3 w-3" aria-hidden="true" />
+                    )}
+                    {result.ruleType}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted-foreground">
+              {t("drawer.revalidationNote")}
+            </p>
+          </div>
         ) : null
       ) : (
         <p className="text-xs text-muted-foreground">{t("drawer.noRules")}</p>

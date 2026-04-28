@@ -1,6 +1,6 @@
 {
   "title": "Generation history",
-  "subtitle": "Review past commit-message generations and the policy verdicts at the time.",
+  "subtitle": "Review past commit-message generations. Rule verdicts are re-validated against the policy's current rules.",
   "empty": {
     "title": "No generations yet",
     "description": "Run a generation to see it appear here.",
@@ -38,7 +38,8 @@
   },
   "drawer": {
     "title": "Generation details",
-    "description": "Full suggestions and per-rule validation results.",
+    "description": "Full suggestions with per-rule results re-validated against the policy's current rules.",
+    "revalidationNote": "Re-validated against the current policy",
     "metaCreated": "Created",
     "metaProvider": "Provider",
     "metaModel": "Model",

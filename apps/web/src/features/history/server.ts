@@ -11,7 +11,7 @@ export const getHistoryPageData = async (): Promise<HistoryPageData> => {
   const accessToken = sessionData.session?.access_token ?? null;
 
   const client = createServerTsRestClient(accessToken);
-  const res = await client.history.list({
+  const res = await client.generation.history.list({
     query: { limit: HISTORY_PAGE_SIZE },
   });
 

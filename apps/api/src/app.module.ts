@@ -9,7 +9,6 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { CommitGenerationModule } from "./modules/commit-generation/commit-generation.module.js";
 import { GitAnalysisModule } from "./modules/git-analysis/git-analysis.module.js";
 import { HealthController } from "./modules/health/health.controller.js";
-import { HistoryModule } from "./modules/history/history.module.js";
 import { JobsModule } from "./modules/jobs/jobs.module.js";
 import { PolicyModule } from "./modules/policy/policy.module.js";
 import { ReposModule } from "./modules/repos/repos.module.js";
@@ -29,7 +28,6 @@ import { PolicyValidationModule } from "./shared/policy-validation/policy-valida
     ReposModule,
     PolicyModule,
     CommitGenerationModule,
-    HistoryModule,
     JobsModule,
     WsModule,
   ],
