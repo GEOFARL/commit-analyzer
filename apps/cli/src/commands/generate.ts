@@ -20,9 +20,15 @@ import {
   StreamError,
   TimeoutError,
 } from "../lib/api-errors.js";
+import { ClipboardError, copyToClipboard } from "../lib/clipboard.js";
 import { ConfigError, loadConfig, type CliConfig } from "../lib/config.js";
 import { parseAndStripDiff, renderParsedDiff } from "../lib/diff-strip.js";
-import { GitError, assertInsideWorkTree, readDiffWithFallback } from "../lib/git.js";
+import {
+  GitError,
+  assertInsideWorkTree,
+  commitMessage,
+  readDiffWithFallback,
+} from "../lib/git.js";
 
 const PROVIDERS = llmProviderSchema.options;
 const uuidSchema = z.string().uuid();
@@ -44,6 +50,8 @@ interface GenerateOptions {
   repo?: string;
   policy?: string;
   count?: number;
+  commit?: boolean;
+  copy?: boolean;
 }
 
 export function registerGenerateCommand(program: Command): void {
@@ -55,6 +63,8 @@ export function registerGenerateCommand(program: Command): void {
     .option("--repo <repositoryId>", "connected repository id (uuid)")
     .option("--policy <policyId>", "policy id (uuid) to enforce")
     .option("--count <n>", "number of suggestions (1-5)", (v) => Number.parseInt(v, 10))
+    .option("--commit", "create a git commit with the chosen message")
+    .option("--copy", "copy the chosen message to the clipboard")
     .action(async (opts: GenerateOptions) => {
       const controller = new AbortController();
       const onSigint = (): void => controller.abort();
@@ -144,7 +154,42 @@ export async function runGenerate(opts: GenerateOptions, signal: AbortSignal): P
     throw new GenerateError(130, "aborted");
   }
 
-  process.stdout.write(`${formatFullMessage(choice)}\n`);
+  const fullMessage = formatFullMessage(choice);
+  process.stdout.write(`${fullMessage}\n`);
+
+  if (opts.copy) {
+    try {
+      await copyToClipboard(fullMessage);
+      process.stderr.write("copied to clipboard.\n");
+    } catch (err) {
+      if (err instanceof ClipboardError) {
+        throw new GenerateError(1, err.message);
+      }
+      throw err;
+    }
+  }
+
+  if (opts.commit) {
+    const subject = formatHeader(choice);
+    const body = formatCommitBody(choice);
+    try {
+      await commitMessage({ subject, ...(body ? { body } : {}) });
+      process.stderr.write("commit created.\n");
+    } catch (err) {
+      if (err instanceof GitError) {
+        const detail = err.stderr ? ` (${err.stderr})` : "";
+        throw new GenerateError(1, `commit failed${detail}`);
+      }
+      throw err;
+    }
+  }
+}
+
+function formatCommitBody(s: SuggestionFrame): string {
+  const parts: string[] = [];
+  if (s.body) parts.push(s.body);
+  if (s.footer) parts.push(s.footer);
+  return parts.join("\n\n");
 }
 
 async function assertInsideWorkTreeOrExit(): Promise<void> {

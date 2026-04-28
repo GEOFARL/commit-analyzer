@@ -87,3 +87,23 @@ export async function readDiffWithFallback(cwd: string = process.cwd()): Promise
   if (head.trim().length > 0) return { diff: head, source: "head" };
   return null;
 }
+
+export interface CommitInput {
+  subject: string;
+  body?: string;
+}
+
+export async function commitMessage(
+  input: CommitInput,
+  cwd: string = process.cwd(),
+): Promise<void> {
+  const args = ["commit", "-m", input.subject];
+  if (input.body && input.body.length > 0) {
+    args.push("-m", input.body);
+  }
+  const res = await runGit(args, cwd);
+  if (res.exitCode !== 0) {
+    const stderr = res.stderr.trim() || res.stdout.trim();
+    throw new GitError("GIT_FAILED", "git commit failed", stderr);
+  }
+}

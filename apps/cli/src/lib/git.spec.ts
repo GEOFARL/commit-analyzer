@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   GitError,
   assertInsideWorkTree,
+  commitMessage,
   readDiffWithFallback,
   readHeadDiff,
   readStagedDiff,
@@ -89,5 +90,43 @@ describe("git helpers", () => {
 
     const resolved = await readDiffWithFallback();
     expect(resolved).toBeNull();
+  });
+
+  it("commitMessage records subject + body verbatim", async () => {
+    init(dir);
+    process.chdir(dir);
+    writeFileSync(join(dir, "a.txt"), "hi\n");
+    execSync("git add a.txt", { cwd: dir });
+
+    await commitMessage({ subject: "feat: add a", body: "explains why\n\nRefs: #1" });
+
+    const log = execSync("git log -1 --pretty=%B", { cwd: dir }).toString();
+    expect(log).toContain("feat: add a");
+    expect(log).toContain("explains why");
+    expect(log).toContain("Refs: #1");
+  });
+
+  it("commitMessage is shell-injection safe — backticks and $() are stored literally", async () => {
+    init(dir);
+    process.chdir(dir);
+    writeFileSync(join(dir, "a.txt"), "hi\n");
+    execSync("git add a.txt", { cwd: dir });
+
+    const subject = "fix: handle `rm -rf /` and $(whoami)";
+    const body = "see `cat /etc/passwd` and $(echo pwned)";
+    await commitMessage({ subject, body });
+
+    const log = execSync("git log -1 --pretty=%B", { cwd: dir }).toString();
+    expect(log).toContain("`rm -rf /`");
+    expect(log).toContain("$(whoami)");
+    expect(log).toContain("`cat /etc/passwd`");
+    expect(log).toContain("$(echo pwned)");
+  });
+
+  it("commitMessage throws GitError when commit fails", async () => {
+    init(dir);
+    process.chdir(dir);
+
+    await expect(commitMessage({ subject: "noop" })).rejects.toBeInstanceOf(GitError);
   });
 });
