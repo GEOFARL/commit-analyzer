@@ -35,7 +35,10 @@ export const EmptyState = ({
             {icon}
           </span>
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div
+            aria-hidden="true"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
             {icon}
           </div>
         )

@@ -32,8 +32,8 @@ export const ErrorState = ({
     <div
       role="alert"
       className={cn(
-        "flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between",
-        compact ? "min-h-40 p-4" : "p-4",
+        "flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between",
+        compact && "min-h-40",
         className,
       )}
     >
