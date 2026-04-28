@@ -73,7 +73,7 @@ export async function readHeadDiff(cwd: string = process.cwd()): Promise<string>
   return res.stdout;
 }
 
-export interface ResolvedDiff {
+interface ResolvedDiff {
   diff: string;
   source: "staged" | "head";
 }

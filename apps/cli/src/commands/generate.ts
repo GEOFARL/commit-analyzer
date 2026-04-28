@@ -1,11 +1,14 @@
-import type {
-  GenerateRequest,
-  RuleResultDto,
-  SuggestionFrame,
+import {
+  llmProviderSchema,
+  type GenerateRequest,
+  type LlmProviderName,
+  type RuleResultDto,
+  type SuggestionFrame,
 } from "@commit-analyzer/contracts";
 import { select } from "@inquirer/prompts";
 import type { Command } from "commander";
 import ora, { type Ora } from "ora";
+import { z } from "zod";
 
 import { streamGenerate } from "../lib/api-client.js";
 import {
@@ -21,9 +24,19 @@ import { ConfigError, loadConfig, type CliConfig } from "../lib/config.js";
 import { parseAndStripDiff, renderParsedDiff } from "../lib/diff-strip.js";
 import { GitError, assertInsideWorkTree, readDiffWithFallback } from "../lib/git.js";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PROVIDERS = ["openai", "anthropic"] as const;
-type Provider = (typeof PROVIDERS)[number];
+const PROVIDERS = llmProviderSchema.options;
+const uuidSchema = z.string().uuid();
+const NETWORK_RETRY_BACKOFF_MS = 250;
+
+class GenerateError extends Error {
+  readonly exitCode: number;
+
+  constructor(exitCode: number, message: string) {
+    super(message);
+    this.name = "GenerateError";
+    this.exitCode = exitCode;
+  }
+}
 
 interface GenerateOptions {
   provider?: string;
@@ -56,23 +69,12 @@ export function registerGenerateCommand(program: Command): void {
     });
 }
 
-async function runGenerate(opts: GenerateOptions, signal: AbortSignal): Promise<void> {
-  try {
-    await assertInsideWorkTree();
-  } catch (err) {
-    if (err instanceof GitError && err.code === "NOT_A_REPO") {
-      process.stderr.write("error: not inside a git work tree\n");
-      process.exit(2);
-    }
-    throw err;
-  }
+export async function runGenerate(opts: GenerateOptions, signal: AbortSignal): Promise<void> {
+  await assertInsideWorkTreeOrExit();
 
   const resolved = await readDiffWithFallback();
   if (!resolved) {
-    process.stderr.write(
-      "error: nothing to commit. Stage changes with `git add` and try again.\n",
-    );
-    process.exit(2);
+    throw new GenerateError(2, "nothing to commit. Stage changes with `git add` and try again.");
   }
   if (resolved.source === "head") {
     process.stderr.write("note: no staged changes; using `git diff HEAD`.\n");
@@ -100,32 +102,29 @@ async function runGenerate(opts: GenerateOptions, signal: AbortSignal): Promise<
     ...(count !== undefined ? { count } : {}),
   };
 
-  const spinner: Ora = ora({ text: `generating with ${provider}/${model}…`, stream: process.stderr });
+  const spinner: Ora = ora({
+    text: spinnerText(provider, model, 0),
+    stream: process.stderr,
+  });
   spinner.start();
   let received = 0;
 
-  let result;
-  try {
-    result = await streamGenerate(
-      { apiUrl: cfg.apiUrl, apiKey: cfg.apiKey },
-      body,
-      {
-        signal,
-        onSuggestion: () => {
-          received += 1;
-          spinner.text = `generating with ${provider}/${model}… received ${received}`;
-        },
-      },
-    );
-    spinner.succeed(`done — ${result.suggestions.length} suggestion(s), tokens=${result.done.tokensUsed}`);
-  } catch (err) {
-    spinner.stop();
-    throw err;
-  }
+  const result = await streamWithRetry(
+    cfg,
+    body,
+    signal,
+    () => {
+      received += 1;
+      spinner.text = spinnerText(provider, model, received);
+    },
+    spinner,
+  );
+  spinner.succeed(
+    `done — ${result.suggestions.length} suggestion(s), tokens=${result.done.tokensUsed}`,
+  );
 
   if (result.suggestions.length === 0) {
-    process.stderr.write("error: no suggestions returned.\n");
-    process.exit(5);
+    throw new GenerateError(5, "no suggestions returned.");
   }
 
   printSuggestions(result.suggestions);
@@ -142,53 +141,112 @@ async function runGenerate(opts: GenerateOptions, signal: AbortSignal): Promise<
   });
 
   if (!choice) {
-    process.stderr.write("aborted\n");
-    process.exit(130);
+    throw new GenerateError(130, "aborted");
   }
 
   process.stdout.write(`${formatFullMessage(choice)}\n`);
 }
 
-function resolveProvider(opt: string | undefined, cfg: CliConfig): Provider {
+async function assertInsideWorkTreeOrExit(): Promise<void> {
+  try {
+    await assertInsideWorkTree();
+  } catch (err) {
+    if (err instanceof GitError && err.code === "NOT_A_REPO") {
+      throw new GenerateError(2, "not inside a git work tree");
+    }
+    throw err;
+  }
+}
+
+async function streamWithRetry(
+  cfg: CliConfig,
+  body: GenerateRequest,
+  signal: AbortSignal,
+  onSuggestion: () => void,
+  spinner: Ora,
+): ReturnType<typeof streamGenerate> {
+  try {
+    return await streamGenerate(
+      { apiUrl: cfg.apiUrl, apiKey: cfg.apiKey },
+      body,
+      { signal, onSuggestion },
+    );
+  } catch (err) {
+    if (err instanceof NetworkError && !signal.aborted) {
+      spinner.text = "network error — retrying once…";
+      await new Promise((r) => setTimeout(r, NETWORK_RETRY_BACKOFF_MS));
+      try {
+        return await streamGenerate(
+          { apiUrl: cfg.apiUrl, apiKey: cfg.apiKey },
+          body,
+          { signal, onSuggestion },
+        );
+      } catch (retryErr) {
+        spinner.fail("network error after retry");
+        throw retryErr;
+      }
+    }
+    spinner.fail(spinnerFailLabel(err));
+    throw err;
+  }
+}
+
+function spinnerText(provider: string, model: string, received: number): string {
+  const tail = received > 0 ? ` received ${received}` : "";
+  return `generating with ${provider}/${model}…${tail}`;
+}
+
+function spinnerFailLabel(err: unknown): string {
+  if (err instanceof AuthError) return "auth rejected";
+  if (err instanceof TimeoutError) return "request timed out";
+  if (err instanceof StreamError || err instanceof ProtocolError) return "stream failed";
+  if (err instanceof ApiResponseError) return `api error (${err.status})`;
+  if (err instanceof AbortError) return "aborted";
+  return "generate failed";
+}
+
+function resolveProvider(opt: string | undefined, cfg: CliConfig): LlmProviderName {
   const raw = opt ?? cfg.defaultProvider;
   if (!raw) {
-    process.stderr.write(
-      "error: provider not set. Pass --provider or set defaultProvider in your config.\n",
+    throw new GenerateError(
+      1,
+      "provider not set. Pass --provider or set defaultProvider in your config.",
     );
-    process.exit(1);
   }
-  if (!PROVIDERS.includes(raw as Provider)) {
-    process.stderr.write(`error: invalid provider "${raw}" (expected: ${PROVIDERS.join("|")}).\n`);
-    process.exit(1);
+  const parsed = llmProviderSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new GenerateError(
+      1,
+      `invalid provider "${raw}" (expected: ${PROVIDERS.join("|")}).`,
+    );
   }
-  return raw as Provider;
+  return parsed.data;
 }
 
 function resolveModel(opt: string | undefined, cfg: CliConfig): string {
   const raw = opt ?? cfg.defaultModel;
   if (!raw) {
-    process.stderr.write(
-      "error: model not set. Pass --model or set defaultModel in your config.\n",
+    throw new GenerateError(
+      1,
+      "model not set. Pass --model or set defaultModel in your config.",
     );
-    process.exit(1);
   }
   return raw;
 }
 
 function resolveUuidOption(value: string | undefined, flag: string): string | undefined {
   if (value === undefined) return undefined;
-  if (!UUID_RE.test(value)) {
-    process.stderr.write(`error: ${flag} must be a uuid.\n`);
-    process.exit(1);
+  const parsed = uuidSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new GenerateError(1, `${flag} must be a uuid.`);
   }
-  return value;
+  return parsed.data;
 }
 
 function resolveCount(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
   if (!Number.isInteger(value) || value < 1 || value > 5) {
-    process.stderr.write("error: --count must be an integer between 1 and 5.\n");
-    process.exit(1);
+    throw new GenerateError(1, "--count must be an integer between 1 and 5.");
   }
   return value;
 }
@@ -237,7 +295,11 @@ function formatFullMessage(s: SuggestionFrame): string {
   return parts.join("\n");
 }
 
-function handleError(err: unknown): never {
+export function handleError(err: unknown): never {
+  if (err instanceof GenerateError) {
+    process.stderr.write(`${err.exitCode === 130 ? "" : "error: "}${err.message}\n`);
+    process.exit(err.exitCode);
+  }
   if (err instanceof AbortError || isInquirerCancel(err)) {
     process.stderr.write("aborted\n");
     process.exit(130);
