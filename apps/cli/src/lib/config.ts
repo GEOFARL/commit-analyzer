@@ -114,7 +114,7 @@ async function assertSecureMode(path: string): Promise<void> {
 
 export async function saveConfig(
   config: CliConfig,
-  path = join(homedir(), ".projectrc"),
+  path: string = process.env.PROJECTRC_PATH ?? join(homedir(), ".projectrc"),
 ): Promise<string> {
   const validated = configSchema.parse(config);
   const json = `${JSON.stringify(validated, null, 2)}\n`;

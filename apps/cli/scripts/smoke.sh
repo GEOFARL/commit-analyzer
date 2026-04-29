@@ -5,6 +5,13 @@
 # a deployed API, in a throwaway repo. Captures exit codes and the resulting
 # commit so the run can be pasted into the T-5.8 task doc for sign-off.
 #
+# Operator-driven: step 4 invokes the inquirer suggestion picker. Do not
+# wire this into unattended CI — the prompt has no non-interactive path.
+#
+# The operator's real ~/.projectrc is NEVER touched: PROJECTRC_PATH is
+# exported to a temp file before any CLI invocation, and `configure`'s
+# saveConfig honours that env var (see apps/cli/src/lib/config.ts).
+#
 # Usage:
 #   API_URL=https://api.example.com \
 #   API_KEY=git_xxx \
@@ -52,9 +59,8 @@ if [ ! -f "$CLI_BIN" ]; then
   exit 65
 fi
 
-WORKDIR=${WORKDIR:-$(mktemp -d -t cli-smoke.XXXXXX)}
-PROJECTRC=$(mktemp -t projectrc.XXXXXX)
-chmod 600 "$PROJECTRC"
+WORKDIR=${WORKDIR:-$(mktemp -d "${TMPDIR:-/tmp}/cli-smoke.XXXXXX")}
+PROJECTRC=$(mktemp "${TMPDIR:-/tmp}/projectrc.XXXXXX")
 
 cleanup() {
   local code=$?
@@ -75,34 +81,39 @@ echo "API_URL  = $API_URL"
 echo "PROVIDER = $PROVIDER"
 echo "MODEL    = $MODEL"
 echo "WORKDIR  = $WORKDIR"
-echo "CONFIG   = $PROJECTRC"
+echo "CONFIG   = $PROJECTRC (PROJECTRC_PATH; ~/.projectrc untouched)"
 echo
 
 step "1. configure"
 node "$CLI_BIN" configure --url "$API_URL" --key "$API_KEY"
 configure_rc=$?
-if [ $configure_rc -ne 0 ]; then red "configure failed (exit $configure_rc)"; exit $configure_rc; fi
+if [ "$configure_rc" -ne 0 ]; then red "configure failed (exit $configure_rc)"; exit "$configure_rc"; fi
 green "configure ok (exit $configure_rc)"
 
 step "2. whoami"
 node "$CLI_BIN" whoami
 whoami_rc=$?
-if [ $whoami_rc -ne 0 ]; then red "whoami failed (exit $whoami_rc)"; exit $whoami_rc; fi
+if [ "$whoami_rc" -ne 0 ]; then red "whoami failed (exit $whoami_rc)"; exit "$whoami_rc"; fi
 green "whoami ok (exit $whoami_rc)"
 
 step "3. throwaway repo"
-cd "$WORKDIR"
-git init -q -b main
-git config user.email "smoke@example.com"
-git config user.name  "Smoke Tester"
-printf 'hello\n' > README.md
-git add README.md
-git commit -q -m "init"
-printf 'hello\nworld\n' > README.md
-printf 'pkg = 1\n' > pkg.txt
-git add README.md pkg.txt
-git status --short
+(
+  set -e
+  cd "$WORKDIR"
+  git init -q -b main
+  git config user.email "smoke@example.com"
+  git config user.name  "Smoke Tester"
+  printf 'hello\n' > README.md
+  git add README.md
+  git commit -q -m "init"
+  printf 'hello\nworld\n' > README.md
+  printf 'pkg = 1\n' > pkg.txt
+  git add README.md pkg.txt
+  git status --short
+) || { red "throwaway repo setup failed"; exit 1; }
 echo
+
+cd "$WORKDIR" || { red "cd workdir failed"; exit 1; }
 
 step "4. generate --commit (interactive: pick a suggestion)"
 yellow "the CLI will prompt — choose a suggestion to commit, or 'q' to abort."
@@ -112,9 +123,9 @@ if [ -n "${POLICY_ID:-}" ]; then generate_args+=(--policy "$POLICY_ID"); fi
 node "$CLI_BIN" generate "${generate_args[@]}"
 generate_rc=$?
 echo
-if [ $generate_rc -ne 0 ]; then
+if [ "$generate_rc" -ne 0 ]; then
   red "generate failed (exit $generate_rc)"
-  exit $generate_rc
+  exit "$generate_rc"
 fi
 green "generate ok (exit $generate_rc)"
 
