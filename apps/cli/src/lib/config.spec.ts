@@ -110,6 +110,13 @@ describe("loadConfig", () => {
     expect(await loadConfig()).toEqual(VALID);
   });
 
+  it("loads via PROJECTRC_PATH with an arbitrary extension", async () => {
+    const path = join(dir, "rc.A1bC2d");
+    await fs.writeFile(path, JSON.stringify(VALID), { mode: 0o600 });
+    process.env.PROJECTRC_PATH = path;
+    expect(await loadConfig()).toEqual(VALID);
+  });
+
   it("finds ~/.projectrc via upward walk", async () => {
     const path = join(dir, ".projectrc");
     await fs.writeFile(path, JSON.stringify(VALID), { mode: 0o600 });
