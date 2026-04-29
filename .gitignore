@@ -49,3 +49,6 @@ coverage/
 
 # Vercel
 .vercel
+
+# Lighthouse reports (CI uploads as artifact; locally regenerated on demand)
+lighthouse/
