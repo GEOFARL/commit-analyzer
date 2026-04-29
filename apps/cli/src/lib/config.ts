@@ -35,8 +35,7 @@ type ConfigErrorCode = "MISSING" | "INVALID" | "PERMISSIONS" | "READ";
 export async function loadConfig(): Promise<CliConfig> {
   const envPath = process.env.PROJECTRC_PATH;
   if (envPath) {
-    const loader = cosmiconfig(CONFIG_MODULE_NAME);
-    const found = await loadAt(loader, envPath);
+    const found = await loadJsonFile(envPath);
     return finalize(found, `no config at PROJECTRC_PATH=${envPath}. Run \`git-insight configure\`.`);
   }
 
@@ -78,13 +77,24 @@ async function finalize(
 type Explorer = ReturnType<typeof cosmiconfig>;
 type LoadResult = Awaited<ReturnType<Explorer["load"]>>;
 
-async function loadAt(explorer: Explorer, path: string): Promise<LoadResult | null> {
+async function loadJsonFile(path: string): Promise<LoadResult | null> {
+  let raw: string;
   try {
-    return await explorer.load(path);
+    raw = await fs.readFile(path, "utf8");
   } catch (err) {
     if (isEnoent(err)) return null;
-    throw err;
+    throw new ConfigError("READ", `cannot read config file ${path}`, { cause: err });
   }
+  if (raw.trim() === "") {
+    return { config: {}, filepath: path, isEmpty: true } as LoadResult;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    throw new ConfigError("INVALID", `config at ${path} is not valid JSON`, { cause: err });
+  }
+  return { config: parsed, filepath: path, isEmpty: false } as LoadResult;
 }
 
 function isEnoent(err: unknown): boolean {
@@ -114,7 +124,7 @@ async function assertSecureMode(path: string): Promise<void> {
 
 export async function saveConfig(
   config: CliConfig,
-  path = join(homedir(), ".projectrc"),
+  path: string = process.env.PROJECTRC_PATH ?? join(homedir(), ".projectrc"),
 ): Promise<string> {
   const validated = configSchema.parse(config);
   const json = `${JSON.stringify(validated, null, 2)}\n`;

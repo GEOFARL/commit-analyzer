@@ -35,12 +35,17 @@ describe("config schema", () => {
 
 describe("saveConfig", () => {
   let dir: string;
+  let prevEnv: string | undefined;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "git-insight-cfg-"));
+    prevEnv = process.env.PROJECTRC_PATH;
+    delete process.env.PROJECTRC_PATH;
   });
 
   afterEach(async () => {
+    if (prevEnv === undefined) delete process.env.PROJECTRC_PATH;
+    else process.env.PROJECTRC_PATH = prevEnv;
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -65,6 +70,15 @@ describe("saveConfig", () => {
     const path = join(dir, "config.json");
     await expect(saveConfig({ apiUrl: "x", apiKey: "y" } as never, path)).rejects.toBeDefined();
     await expect(fs.access(path)).rejects.toBeDefined();
+  });
+
+  it("writes to PROJECTRC_PATH when no path is passed", async () => {
+    const path = join(dir, "rc.json");
+    process.env.PROJECTRC_PATH = path;
+    const written = await saveConfig(VALID);
+    expect(written).toBe(path);
+    const parsed = JSON.parse(await fs.readFile(path, "utf8")) as unknown;
+    expect(parsed).toEqual(VALID);
   });
 });
 
@@ -91,6 +105,13 @@ describe("loadConfig", () => {
 
   it("loads via PROJECTRC_PATH", async () => {
     const path = join(dir, "rc.json");
+    await fs.writeFile(path, JSON.stringify(VALID), { mode: 0o600 });
+    process.env.PROJECTRC_PATH = path;
+    expect(await loadConfig()).toEqual(VALID);
+  });
+
+  it("loads via PROJECTRC_PATH with an arbitrary extension", async () => {
+    const path = join(dir, "rc.A1bC2d");
     await fs.writeFile(path, JSON.stringify(VALID), { mode: 0o600 });
     process.env.PROJECTRC_PATH = path;
     expect(await loadConfig()).toEqual(VALID);
