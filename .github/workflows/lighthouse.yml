@@ -6,6 +6,9 @@ on:
     paths:
       - "apps/web/**"
       - "packages/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/actions/setup/**"
       - ".github/workflows/lighthouse.yml"
   workflow_dispatch:
 

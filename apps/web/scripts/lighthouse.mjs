@@ -7,15 +7,15 @@ import { fileURLToPath } from "node:url";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 
+import { STUB_ENV, APP_URL, APP_PORT_NUM } from "./stub-env.mjs";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = resolve(__dirname, "..");
 const REPO_ROOT = resolve(WEB_DIR, "../..");
 const REPORT_DIR = resolve(REPO_ROOT, "lighthouse");
 
-const APP_PORT = Number(process.env.LH_APP_PORT ?? 3100);
-const MOCK_PORT = 54321;
-const APP_URL = `http://localhost:${APP_PORT}`;
 const PERF_THRESHOLD = Number(process.env.LH_PERF_THRESHOLD ?? 0.8);
+const PRESETS = (process.env.LH_PRESETS ?? "desktop,mobile").split(",").map((s) => s.trim()).filter(Boolean);
 
 const SUPABASE_COOKIE_NAME = "sb-127-auth-token";
 const MOCK_ACCESS_TOKEN = "mock-access-token";
@@ -37,27 +37,10 @@ const MOCK_SESSION = {
     updated_at: "2024-01-01T00:00:00Z",
   },
 };
+// Must match MOCK_SEEDED_REPO_ID in apps/web/e2e/mock-server.ts.
 const MOCK_SEEDED_REPO_ID = "11111111-1111-4111-8111-111111111111";
 
 const cookieValue = "base64-" + Buffer.from(JSON.stringify(MOCK_SESSION)).toString("base64url");
-
-const SERVER_ENV = {
-  APP_URL,
-  API_URL: `http://127.0.0.1:${MOCK_PORT}`,
-  WEB_ORIGIN: APP_URL,
-  DATABASE_URL: "postgres://stub:stub@127.0.0.1:5432/stub",
-  REDIS_URL: "redis://127.0.0.1:6379",
-  SUPABASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-  SUPABASE_ANON_KEY: "mock-anon-key",
-  SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key",
-  GITHUB_CLIENT_ID: "mock-github-client-id",
-  GITHUB_CLIENT_SECRET: "mock-github-client-secret",
-  ENCRYPTION_KEY_BASE64: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-  NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key",
-  NEXT_PUBLIC_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
-  NEXT_PUBLIC_APP_URL: APP_URL,
-};
 
 const PAGES = [
   { name: "landing", path: "/en", auth: false },
@@ -125,30 +108,23 @@ async function killProcess(child) {
   });
 }
 
-async function runAudit(page) {
-  const chrome = await chromeLauncher.launch({
-    chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
+async function runAudit(chrome, page, preset) {
+  const url = `${APP_URL}${page.path}`;
+  const result = await lighthouse(url, {
+    port: chrome.port,
+    output: ["json", "html"],
+    onlyCategories: ["performance"],
+    logLevel: "error",
+    preset,
+    extraHeaders: page.auth ? { Cookie: `${SUPABASE_COOKIE_NAME}=${cookieValue}` } : undefined,
   });
-  try {
-    const url = `${APP_URL}${page.path}`;
-    const opts = {
-      port: chrome.port,
-      output: ["json", "html"],
-      onlyCategories: ["performance"],
-      logLevel: "error",
-      preset: "desktop",
-      extraHeaders: page.auth ? { Cookie: `${SUPABASE_COOKIE_NAME}=${cookieValue}` } : undefined,
-    };
-    const result = await lighthouse(url, opts);
-    if (!result) throw new Error(`No result for ${page.name}`);
-    const [jsonReport, htmlReport] = result.report;
-    await writeFile(resolve(REPORT_DIR, `${page.name}.json`), jsonReport);
-    await writeFile(resolve(REPORT_DIR, `${page.name}.html`), htmlReport);
-    const score = result.lhr.categories.performance.score ?? 0;
-    return score;
-  } finally {
-    await chrome.kill();
-  }
+  if (!result) throw new Error(`No result for ${page.name} (${preset})`);
+  const [jsonReport, htmlReport] = result.report;
+  const subdir = resolve(REPORT_DIR, preset);
+  await mkdir(subdir, { recursive: true });
+  await writeFile(resolve(subdir, `${page.name}.json`), jsonReport);
+  await writeFile(resolve(subdir, `${page.name}.html`), htmlReport);
+  return result.lhr.categories.performance.score ?? 0;
 }
 
 async function main() {
@@ -158,53 +134,65 @@ async function main() {
   log("starting mock API server…");
   const mock = spawn("pnpm", ["exec", "tsx", "scripts/start-mock-server.ts"], {
     cwd: WEB_DIR,
-    env: { ...process.env, ...SERVER_ENV },
+    env: { ...process.env, ...STUB_ENV },
     stdio: ["ignore", "pipe", "pipe"],
   });
   pipeOutput(mock, "mock");
   await waitForLine(mock, "mock-server-ready");
-  log(`mock API ready on :${MOCK_PORT}`);
+  log(`mock API ready on :54321`);
 
-  log(`starting Next.js (production) on :${APP_PORT}…`);
-  const next = spawn("pnpm", ["exec", "next", "start", "--port", String(APP_PORT)], {
+  log(`starting Next.js (production) on :${APP_PORT_NUM}…`);
+  const next = spawn("pnpm", ["exec", "next", "start", "--port", String(APP_PORT_NUM)], {
     cwd: WEB_DIR,
-    env: { ...process.env, ...SERVER_ENV, NODE_ENV: "production" },
+    env: { ...process.env, ...STUB_ENV, NODE_ENV: "production" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   pipeOutput(next, "next");
 
+  let chrome = null;
   try {
     await waitForUrl(`${APP_URL}/en`, 60_000);
     log("Next.js ready");
 
+    chrome = await chromeLauncher.launch({
+      chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
+    });
+
     const summary = [];
     let failed = false;
 
-    for (const page of PAGES) {
-      log(`auditing ${page.name} (${page.path})…`);
-      try {
-        const score = await runAudit(page);
-        const passed = score >= PERF_THRESHOLD;
-        if (!passed) failed = true;
-        summary.push({ page: page.name, score, passed });
-        log(`  → ${(score * 100).toFixed(0)} ${passed ? "PASS" : "FAIL"}`);
-      } catch (err) {
-        failed = true;
-        summary.push({ page: page.name, score: 0, passed: false, error: String(err) });
-        log(`  → ERROR ${err}`);
+    for (const preset of PRESETS) {
+      log(`── preset: ${preset} ──`);
+      for (const page of PAGES) {
+        log(`auditing ${page.name} (${page.path}) [${preset}]…`);
+        try {
+          const score = await runAudit(chrome, page, preset);
+          const passed = score >= PERF_THRESHOLD;
+          if (!passed) failed = true;
+          summary.push({ preset, page: page.name, score, passed });
+          log(`  → ${(score * 100).toFixed(0)} ${passed ? "PASS" : "FAIL"}`);
+        } catch (err) {
+          failed = true;
+          summary.push({ preset, page: page.name, score: 0, passed: false, error: String(err) });
+          log(`  → ERROR ${err}`);
+        }
       }
     }
 
-    const summaryText = [
+    const lines = [
       "# Lighthouse perf summary",
       "",
       `Threshold: ${(PERF_THRESHOLD * 100).toFixed(0)}`,
       "",
-      "| Page | Perf | Status |",
-      "| --- | ---: | :---: |",
-      ...summary.map((r) => `| ${r.page} | ${(r.score * 100).toFixed(0)} | ${r.passed ? "✅" : "❌"} |`),
-      "",
-    ].join("\n");
+    ];
+    for (const preset of PRESETS) {
+      lines.push(`## ${preset}`, "", "| Page | Perf | Status |", "| --- | ---: | :---: |");
+      for (const r of summary.filter((x) => x.preset === preset)) {
+        lines.push(`| ${r.page} | ${(r.score * 100).toFixed(0)} | ${r.passed ? "✅" : "❌"} |`);
+      }
+      lines.push("");
+    }
+    const summaryText = lines.join("\n");
     await writeFile(resolve(REPORT_DIR, "summary.md"), summaryText);
     log("\n" + summaryText);
 
@@ -213,6 +201,13 @@ async function main() {
     }
   } finally {
     log("shutting down…");
+    if (chrome) {
+      try {
+        await chrome.kill();
+      } catch {
+        // chrome already exited
+      }
+    }
     await Promise.all([killProcess(next), killProcess(mock)]);
   }
 }
