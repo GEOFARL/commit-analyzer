@@ -1,0 +1,35 @@
+name: Lighthouse perf
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - ".github/actions/setup/**"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse (perf ≥ 80)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter "./packages/*" build
+      - run: pnpm --filter @commit-analyzer/web lh:build
+      - run: pnpm --filter @commit-analyzer/web lh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: lighthouse/
+          retention-days: 30

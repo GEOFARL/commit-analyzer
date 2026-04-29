@@ -1,18 +1,49 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { CSSProperties, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 import type { AnalyticsPageData } from "../types";
 
-import { ActivityHeatmap } from "./activity-heatmap";
 import { ContributorsTable } from "./contributors-table";
 import { FilesChurnTable } from "./files-churn-table";
-import { QualityDistributionChart } from "./quality-distribution-chart";
-import { QualityTrendChart } from "./quality-trend-chart";
 import { SummaryCards } from "./summary-cards";
-import { TimelineChart } from "./timeline-chart";
+
+const ChartSkeleton = () => (
+  <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+    <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+    <div className="h-[260px] w-full animate-pulse rounded bg-muted/40" />
+  </div>
+);
+
+const HeatmapSkeleton = () => (
+  <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+    <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+    <div className="h-[180px] w-full animate-pulse rounded bg-muted/40" />
+  </div>
+);
+
+const TimelineChart = dynamic(
+  () => import("./timeline-chart").then((m) => m.TimelineChart),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+);
+
+const QualityTrendChart = dynamic(
+  () => import("./quality-trend-chart").then((m) => m.QualityTrendChart),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+);
+
+const QualityDistributionChart = dynamic(
+  () => import("./quality-distribution-chart").then((m) => m.QualityDistributionChart),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+);
+
+const ActivityHeatmap = dynamic(
+  () => import("./activity-heatmap").then((m) => m.ActivityHeatmap),
+  { ssr: false, loading: () => <HeatmapSkeleton /> },
+);
 
 type AnalyticsViewProps = AnalyticsPageData;
 
