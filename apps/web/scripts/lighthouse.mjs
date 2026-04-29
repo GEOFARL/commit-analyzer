@@ -16,6 +16,7 @@ const REPORT_DIR = resolve(REPO_ROOT, "lighthouse");
 
 const PERF_THRESHOLD = Number(process.env.LH_PERF_THRESHOLD ?? 0.8);
 const PRESETS = (process.env.LH_PRESETS ?? "desktop,mobile").split(",").map((s) => s.trim()).filter(Boolean);
+const RUNS = Math.max(1, Number(process.env.LH_RUNS ?? (process.env.CI ? 3 : 1)));
 
 const SUPABASE_COOKIE_NAME = "sb-127-auth-token";
 const MOCK_ACCESS_TOKEN = "mock-access-token";
@@ -108,23 +109,40 @@ async function killProcess(child) {
   });
 }
 
-async function runAudit(chrome, page, preset) {
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+async function runAudit(chrome, page, preset, runs) {
   const url = `${APP_URL}${page.path}`;
-  const result = await lighthouse(url, {
-    port: chrome.port,
-    output: ["json", "html"],
-    onlyCategories: ["performance"],
-    logLevel: "error",
-    preset,
-    extraHeaders: page.auth ? { Cookie: `${SUPABASE_COOKIE_NAME}=${cookieValue}` } : undefined,
-  });
-  if (!result) throw new Error(`No result for ${page.name} (${preset})`);
-  const [jsonReport, htmlReport] = result.report;
   const subdir = resolve(REPORT_DIR, preset);
   await mkdir(subdir, { recursive: true });
+
+  const results = [];
+  for (let i = 0; i < runs; i++) {
+    const result = await lighthouse(url, {
+      port: chrome.port,
+      output: ["json", "html"],
+      onlyCategories: ["performance"],
+      logLevel: "error",
+      preset,
+      extraHeaders: page.auth ? { Cookie: `${SUPABASE_COOKIE_NAME}=${cookieValue}` } : undefined,
+    });
+    if (!result) throw new Error(`No result for ${page.name} (${preset}) run ${i + 1}`);
+    results.push(result);
+  }
+
+  const scores = results.map((r) => r.lhr.categories.performance.score ?? 0);
+  const score = median(scores);
+  const pickedIdx = scores
+    .map((s, i) => ({ i, diff: Math.abs(s - score) }))
+    .sort((a, b) => a.diff - b.diff)[0].i;
+  const [jsonReport, htmlReport] = results[pickedIdx].report;
   await writeFile(resolve(subdir, `${page.name}.json`), jsonReport);
   await writeFile(resolve(subdir, `${page.name}.html`), htmlReport);
-  return result.lhr.categories.performance.score ?? 0;
+  return { score, scores };
 }
 
 async function main() {
@@ -162,18 +180,19 @@ async function main() {
     let failed = false;
 
     for (const preset of PRESETS) {
-      log(`── preset: ${preset} ──`);
+      log(`── preset: ${preset} (median of ${RUNS}) ──`);
       for (const page of PAGES) {
         log(`auditing ${page.name} (${page.path}) [${preset}]…`);
         try {
-          const score = await runAudit(chrome, page, preset);
+          const { score, scores } = await runAudit(chrome, page, preset, RUNS);
           const passed = score >= PERF_THRESHOLD;
           if (!passed) failed = true;
-          summary.push({ preset, page: page.name, score, passed });
-          log(`  → ${(score * 100).toFixed(0)} ${passed ? "PASS" : "FAIL"}`);
+          summary.push({ preset, page: page.name, score, scores, passed });
+          const runs = scores.map((s) => (s * 100).toFixed(0)).join(", ");
+          log(`  → median ${(score * 100).toFixed(0)} (runs: ${runs}) ${passed ? "PASS" : "FAIL"}`);
         } catch (err) {
           failed = true;
-          summary.push({ preset, page: page.name, score: 0, passed: false, error: String(err) });
+          summary.push({ preset, page: page.name, score: 0, scores: [], passed: false, error: String(err) });
           log(`  → ERROR ${err}`);
         }
       }
@@ -182,13 +201,14 @@ async function main() {
     const lines = [
       "# Lighthouse perf summary",
       "",
-      `Threshold: ${(PERF_THRESHOLD * 100).toFixed(0)}`,
+      `Threshold: ${(PERF_THRESHOLD * 100).toFixed(0)} · Median of ${RUNS}`,
       "",
     ];
     for (const preset of PRESETS) {
-      lines.push(`## ${preset}`, "", "| Page | Perf | Status |", "| --- | ---: | :---: |");
+      lines.push(`## ${preset}`, "", "| Page | Perf (median) | Runs | Status |", "| --- | ---: | --- | :---: |");
       for (const r of summary.filter((x) => x.preset === preset)) {
-        lines.push(`| ${r.page} | ${(r.score * 100).toFixed(0)} | ${r.passed ? "✅" : "❌"} |`);
+        const runs = r.scores.map((s) => (s * 100).toFixed(0)).join(", ");
+        lines.push(`| ${r.page} | ${(r.score * 100).toFixed(0)} | ${runs} | ${r.passed ? "✅" : "❌"} |`);
       }
       lines.push("");
     }
