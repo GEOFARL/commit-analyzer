@@ -1,10 +1,10 @@
 "use client";
 
-import { AlertCircle, Loader2, RefreshCcw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
 import { cn } from "@/lib/utils";
 
 import { useResyncRepoMutation, type SyncProgressState } from "../hooks";
@@ -51,45 +51,14 @@ export const SyncProgressBanner = ({
     };
 
     return (
-      <div
-        role="alert"
-        className={cn(
-          "flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm sm:flex-row sm:items-center sm:justify-between",
-          className,
-        )}
-      >
-        <div className="flex items-start gap-3">
-          <AlertCircle
-            aria-hidden="true"
-            className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
-          />
-          <div className="flex flex-col">
-            <span className="font-medium text-destructive">
-              {t("failed.title")}
-            </span>
-            {state.errorMessage ? (
-              <span className="text-muted-foreground">
-                {state.errorMessage}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">
-                {t("failed.subtitle")}
-              </span>
-            )}
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={retry}
-          disabled={resync.isPending}
-          className="self-start sm:self-center"
-        >
-          <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" />
-          {resync.isPending ? t("retry.pending") : t("retry.label")}
-        </Button>
-      </div>
+      <ErrorState
+        title={t("failed.title")}
+        description={state.errorMessage ?? t("failed.subtitle")}
+        onRetry={retry}
+        retryDisabled={resync.isPending}
+        retryLabel={resync.isPending ? t("retry.pending") : t("retry.label")}
+        className={className}
+      />
     );
   }
 

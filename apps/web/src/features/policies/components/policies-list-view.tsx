@@ -2,7 +2,6 @@
 
 import type { PolicyDto } from "@commit-analyzer/contracts";
 import {
-  AlertCircle,
   CheckCircle2,
   ChevronRight,
   Loader2,
@@ -16,6 +15,8 @@ import { useCallback, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   useActivatePolicyMutation,
   useCreatePolicyMutation,
@@ -103,25 +104,23 @@ export const PoliciesListView = ({
       </header>
 
       {listQuery.isError ? (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
-        >
-          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>{t("list.error.load")}</span>
-        </div>
+        <ErrorState
+          title={t("list.error.load")}
+          onRetry={() => { void listQuery.refetch(); }}
+          retryDisabled={listQuery.isFetching}
+        />
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-          <ShieldCheck className="h-8 w-8" aria-hidden="true" />
-          <p className="text-sm font-medium text-foreground">
-            {t("list.empty.title")}
-          </p>
-          <p className="max-w-sm text-xs">{t("list.empty.description")}</p>
-          <Button variant="secondary" size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus aria-hidden="true" />
-            {t("list.empty.cta")}
-          </Button>
-        </div>
+        <EmptyState
+          icon={<ShieldCheck className="h-6 w-6" aria-hidden="true" />}
+          title={t("list.empty.title")}
+          description={t("list.empty.description")}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus aria-hidden="true" />
+              {t("list.empty.cta")}
+            </Button>
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((policy) => {

@@ -13,10 +13,13 @@ import {
   YAxis,
 } from "recharts";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+
 import { useQualityDistributionQuery } from "../hooks";
 import type { AnalyticsPageData } from "../types";
 
-import { ChartCard, ChartEmpty, ChartError } from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 type QualityDistributionChartProps = {
   repoId: string;
@@ -56,9 +59,14 @@ export const QualityDistributionChart = ({
       description={t("quality.description")}
     >
       {query.isError ? (
-        <ChartError message={t("error.load")} />
+        <ErrorState
+          size="compact"
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : total === 0 ? (
-        <ChartEmpty message={t("quality.empty")} />
+        <EmptyState size="compact" title={t("quality.empty")} />
       ) : (
         <div
           role="img"

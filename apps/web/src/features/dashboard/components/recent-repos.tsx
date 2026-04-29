@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Link } from "@/i18n/navigation";
 
 type Props = {
@@ -18,23 +19,19 @@ export const RecentRepos = ({ recentRepos, connectedCount }: Props) => {
 
   if (recentRepos.length === 0) {
     return (
-      <Card className="flex flex-col items-start gap-4 border-dashed bg-muted/20 p-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <GitBranch className="h-5 w-5" aria-hidden="true" />
-        </div>
-        <div>
-          <h3 className="text-base font-semibold">{t("empty.title")}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("empty.description")}
-          </p>
-        </div>
-        <Button asChild size="sm">
-          <Link href="/repositories">
-            <Plus aria-hidden="true" />
-            {t("empty.cta")}
-          </Link>
-        </Button>
-      </Card>
+      <EmptyState
+        icon={<GitBranch className="h-6 w-6" aria-hidden="true" />}
+        title={t("empty.title")}
+        description={t("empty.description")}
+        action={
+          <Button asChild size="sm">
+            <Link href="/repositories">
+              <Plus aria-hidden="true" />
+              {t("empty.cta")}
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 

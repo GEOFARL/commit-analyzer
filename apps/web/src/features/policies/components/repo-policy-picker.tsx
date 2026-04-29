@@ -3,6 +3,7 @@ import { ChevronRight, GitBranch, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { PolicyPickerPageData } from "@/features/policies/types";
 import { Link } from "@/i18n/navigation";
 
@@ -11,16 +12,16 @@ export const RepoPolicyPicker = ({ initialRepos }: PolicyPickerPageData) => {
 
   if (initialRepos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-12 text-center text-muted-foreground">
-        <GitBranch className="h-8 w-8" aria-hidden="true" />
-        <p className="text-sm font-medium text-foreground">
-          {t("empty.title")}
-        </p>
-        <p className="max-w-sm text-xs">{t("empty.description")}</p>
-        <Button asChild variant="secondary" size="sm">
-          <Link href="/repositories">{t("empty.cta")}</Link>
-        </Button>
-      </div>
+      <EmptyState
+        icon={<GitBranch className="h-6 w-6" />}
+        title={t("empty.title")}
+        description={t("empty.description")}
+        action={
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/repositories">{t("empty.cta")}</Link>
+          </Button>
+        }
+      />
     );
   }
 

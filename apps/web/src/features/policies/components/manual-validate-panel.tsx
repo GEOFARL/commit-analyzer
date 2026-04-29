@@ -25,6 +25,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
 import { useValidatePolicyMutation } from "@/features/policies/hooks";
 import { cn } from "@/lib/utils";
 
@@ -322,26 +323,12 @@ const StatusHeader = ({
 
   if (status === "error") {
     return (
-      <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-medium">{t("errorTitle")}</span>
-            <span className="text-destructive/80">{t("errorBody")}</span>
-          </div>
-        </div>
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onRetry}
-            className="h-7 px-2.5 text-xs"
-          >
-            {t("retry")}
-          </Button>
-        </div>
-      </div>
+      <ErrorState
+        title={t("errorTitle")}
+        description={t("errorBody")}
+        onRetry={onRetry}
+        retryLabel={t("retry")}
+      />
     );
   }
 

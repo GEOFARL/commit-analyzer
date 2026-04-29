@@ -4,6 +4,8 @@ import type { SuggestionFrame } from "@commit-analyzer/contracts";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { EmptyState } from "@/components/ui/empty-state";
+
 import { SuggestionCard } from "./suggestion-card";
 
 type Props = {
@@ -29,14 +31,12 @@ export const SuggestionList = ({ suggestions, streaming, empty }: Props) => {
     }
     if (empty) {
       return (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center">
-          <Sparkles
-            className="h-5 w-5 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <p className="text-sm font-medium">{t("idleTitle")}</p>
-          <p className="text-xs text-muted-foreground">{t("idleHint")}</p>
-        </div>
+        <EmptyState
+          size="compact"
+          icon={<Sparkles className="h-5 w-5" aria-hidden="true" />}
+          title={t("idleTitle")}
+          description={t("idleHint")}
+        />
       );
     }
     return null;

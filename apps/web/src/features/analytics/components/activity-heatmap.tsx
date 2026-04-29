@@ -4,12 +4,14 @@ import type { HeatmapCell } from "@commit-analyzer/contracts";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
 
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { cn } from "@/lib/utils";
 
 import { useHeatmapQuery } from "../hooks";
 import type { AnalyticsPageData } from "../types";
 
-import { ChartCard, ChartEmpty, ChartError } from "./chart-card";
+import { ChartCard } from "./chart-card";
 
 type ActivityHeatmapProps = {
   repoId: string;
@@ -75,9 +77,14 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
       description={t("heatmap.description")}
     >
       {query.isError ? (
-        <ChartError message={t("error.load")} />
+        <ErrorState
+          size="compact"
+          title={t("error.load")}
+          onRetry={() => { void query.refetch(); }}
+          retryDisabled={query.isFetching}
+        />
       ) : total === 0 ? (
-        <ChartEmpty message={t("heatmap.empty")} />
+        <EmptyState size="compact" title={t("heatmap.empty")} />
       ) : (
         <div className="overflow-x-auto">
           <table
