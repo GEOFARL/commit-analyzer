@@ -59,6 +59,24 @@ export class OpenapiController {
     throw new UnauthorizedException();
   }
 
+  // Scalar loads its bundle from cdn.jsdelivr.net, which the global helmet
+  // CSP (`default-src 'self'`) blocks. Override CSP for the docs HTML route
+  // only — the JSON route inherits the strict default.
+  private allowScalarCdn(res: Response): void {
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: https:",
+        "connect-src 'self' https:",
+        "worker-src 'self' blob:",
+      ].join("; "),
+    );
+  }
+
   @Get("openapi.json")
   openapiJson(@Req() req: Request, @Res() res: Response): void {
     if (!this.authorize(req, res)) return;
@@ -68,6 +86,7 @@ export class OpenapiController {
   @Get()
   ui(@Req() req: Request, @Res() res: Response): void {
     if (!this.authorize(req, res)) return;
+    this.allowScalarCdn(res);
     (this.scalarHandler as (req: Request, res: Response) => void)(req, res);
   }
 }

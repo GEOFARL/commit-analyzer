@@ -76,6 +76,21 @@ describe("OpenapiController (HTTP)", () => {
     expect(res.text.length).toBeGreaterThan(500);
   });
 
+  it("relaxes CSP for the UI so Scalar's CDN bundle can load", async () => {
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs");
+    const csp = res.headers["content-security-policy"];
+    expect(csp).toMatch(/script-src[^;]*https:\/\/cdn\.jsdelivr\.net/u);
+    expect(csp).toMatch(/style-src[^;]*https:\/\/cdn\.jsdelivr\.net/u);
+  });
+
+  it("does not relax CSP on the JSON route", async () => {
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs/openapi.json");
+    const csp = res.headers["content-security-policy"];
+    if (csp) expect(csp).not.toMatch(/cdn\.jsdelivr\.net/u);
+  });
+
   describe("with Basic auth credentials configured", () => {
     beforeEach(() => {
       getServerEnvMock.mockReturnValue({
