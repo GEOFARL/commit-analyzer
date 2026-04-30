@@ -129,21 +129,18 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                         hour,
                         count,
                       });
-                      const showCount = bucket >= 3;
+                      const showCount = bucket >= 4;
                       return (
                         <td
                           key={hour}
                           aria-label={label}
                           title={label}
                           className={cn(
-                            "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none",
-                            bucket >= 3
-                              ? "text-primary-foreground"
-                              : "text-transparent",
+                            "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none text-primary-foreground",
                             BUCKET_BG[bucket],
                           )}
                         >
-                          {showCount ? count : null}
+                          {showCount ? count : " "}
                         </td>
                       );
                     })}

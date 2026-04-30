@@ -20,6 +20,7 @@
     "lh:full": "node scripts/lh-build.mjs && node scripts/lighthouse.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
     "@playwright/test": "^1.59.1",

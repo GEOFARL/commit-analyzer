@@ -499,6 +499,31 @@ const handleRequest = async (
     return;
   }
 
+  // ── Auth-gated GET stubs added for the a11y audit (T-6.6). The settings,
+  // history, and api-keys pages call these on the server during render; if
+  // they 404 the page falls back to the Next error boundary (no <title>, no
+  // lang) and axe reports irrelevant violations against the error UI rather
+  // than the real surface. Bodies are minimal — empty lists / a stub user.
+  const stubGet: Record<string, () => unknown> = {
+    "/me": () => ({
+      id: "11111111-1111-4111-8111-aaaaaaaaaaaa",
+      email: "test@example.com",
+      name: "Test User",
+      avatarUrl: null,
+      createdAt: "2024-01-01T00:00:00.000Z",
+    }),
+    "/api-keys": () => ({ items: [] }),
+    "/generation/history": () => ({ items: [], nextCursor: null }),
+  };
+  if (req.method === "GET" && pathname in stubGet) {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    sendJson(req, res, 200, stubGet[pathname]!());
+    return;
+  }
+
   // ── Default policy template ─────────────────────────────────────────────
   if (pathname === "/settings/default-policy") {
     if (!isAuthorized(req)) {
