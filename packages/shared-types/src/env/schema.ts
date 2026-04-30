@@ -63,6 +63,9 @@ export const serverEnvSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
 
+  OPENAPI_DOCS_USERNAME: optionalString,
+  OPENAPI_DOCS_PASSWORD: optionalString,
+
   ENCRYPTION_KEY_BASE64: base64Key32,
 
   CSP_CONNECT_SRC: z
