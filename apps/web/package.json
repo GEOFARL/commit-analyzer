@@ -20,12 +20,14 @@
     "lh:full": "node scripts/lh-build.mjs && node scripts/lighthouse.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "axe-core": "^4.11.4",
     "chrome-launcher": "^1",
     "eslint": "^9.14.0",
     "eslint-plugin-i18next": "^6.1.3",

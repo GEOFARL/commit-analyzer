@@ -200,7 +200,7 @@ export const DefaultPolicyView = ({
 
       <div
         role="note"
-        className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-primary/80"
+        className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-primary"
       >
         <Info className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
         <p className="text-pretty">{t("helper")}</p>

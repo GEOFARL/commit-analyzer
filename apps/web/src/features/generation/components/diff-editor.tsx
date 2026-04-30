@@ -68,6 +68,7 @@ const baseTheme = EditorView.theme({
   ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--accent) 25%, transparent)" },
   ".cm-content": { caretColor: "var(--foreground)" },
   ".cm-line": { padding: "0 8px" },
+  ".cm-placeholder": { color: "var(--muted-foreground)" },
 });
 
 const lightDiffHighlight = HighlightStyle.define([

@@ -16,10 +16,11 @@ test.describe("stubbed OAuth flow", () => {
     // Intercept the OAuth callback before it reaches the Next.js route handler
     // and redirect straight to /dashboard, bypassing the real PKCE exchange.
     // The mock Supabase server handles the subsequent GET /auth/v1/user call.
+    const appPort = process.env.E2E_APP_PORT ?? "3000";
     await authedPage.route("**/auth/callback**", (route) =>
       route.fulfill({
         status: 302,
-        headers: { Location: "http://localhost:3000/dashboard" },
+        headers: { Location: `http://localhost:${appPort}/dashboard` },
       }),
     );
 

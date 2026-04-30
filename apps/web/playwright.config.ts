@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 import { TEST_SERVER_ENV } from "./e2e/server-env-stub";
 
 const MOCK_PORT = 54321;
+const APP_PORT = process.env.E2E_APP_PORT ?? "3000";
+const APP_URL = `http://localhost:${APP_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -12,7 +14,7 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? "github" : "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: APP_URL,
     trace: "on-first-retry",
   },
   projects: [
@@ -24,15 +26,17 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
+    command: `pnpm dev --port ${APP_PORT}`,
+    url: APP_URL,
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key",
       NEXT_PUBLIC_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      NEXT_PUBLIC_APP_URL: APP_URL,
       ...TEST_SERVER_ENV,
+      APP_URL,
+      WEB_ORIGIN: APP_URL,
     },
   },
 });

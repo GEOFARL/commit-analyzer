@@ -499,6 +499,42 @@ const handleRequest = async (
     return;
   }
 
+  // ── Profile (/me) ───────────────────────────────────────────────────────
+  if (req.method === "GET" && pathname === "/me") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    sendJson(req, res, 200, {
+      id: "11111111-1111-4111-8111-aaaaaaaaaaaa",
+      email: "test@example.com",
+      name: "Test User",
+      avatarUrl: null,
+      createdAt: "2024-01-01T00:00:00.000Z",
+    });
+    return;
+  }
+
+  // ── User-scoped API keys ────────────────────────────────────────────────
+  if (req.method === "GET" && pathname === "/api-keys") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    sendJson(req, res, 200, { items: [] });
+    return;
+  }
+
+  // ── Generation history ──────────────────────────────────────────────────
+  if (req.method === "GET" && pathname === "/generation/history") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    sendJson(req, res, 200, { items: [], nextCursor: null });
+    return;
+  }
+
   // ── Default policy template ─────────────────────────────────────────────
   if (pathname === "/settings/default-policy") {
     if (!isAuthorized(req)) {

@@ -50,7 +50,7 @@ export const MobileSidebar = () => {
         <div className="flex-1 overflow-y-auto py-4">
           <SidebarNav />
         </div>
-        <div className="border-t border-sidebar-border px-5 py-3 text-xs text-sidebar-foreground/50">
+        <div className="border-t border-sidebar-border px-5 py-3 text-xs text-sidebar-foreground/75">
           {tCommon("version")}
         </div>
       </SheetContent>

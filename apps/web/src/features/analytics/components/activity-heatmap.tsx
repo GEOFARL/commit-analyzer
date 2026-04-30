@@ -129,7 +129,7 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                         hour,
                         count,
                       });
-                      const showCount = bucket >= 3;
+                      const showCount = bucket >= 4;
                       return (
                         <td
                           key={hour}
@@ -137,7 +137,7 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                           title={label}
                           className={cn(
                             "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none",
-                            bucket >= 3
+                            showCount
                               ? "text-primary-foreground"
                               : "text-transparent",
                             BUCKET_BG[bucket],
