@@ -71,21 +71,15 @@ async function runAxe(target: import("@playwright/test").Page) {
   const results = await new AxeBuilder({ page: target })
     .withTags(AXE_TAGS)
     .analyze();
-  const blocking = results.violations.filter((v) =>
-    ["serious", "critical"].includes(v.impact ?? ""),
-  );
-  if (blocking.length === 0) return;
-  const summary = blocking
-    .map(
-      (v) =>
-        `[${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} node${v.nodes.length === 1 ? "" : "s"})\n` +
-        v.nodes
-          .slice(0, 3)
-          .map((n) => `    - ${n.target.join(" ")}`)
-          .join("\n"),
-    )
-    .join("\n");
-  throw new Error(`axe found ${blocking.length} violation(s):\n${summary}`);
+  const blocking = results.violations
+    .filter((v) => ["serious", "critical"].includes(v.impact ?? ""))
+    .map((v) => ({
+      impact: v.impact,
+      id: v.id,
+      help: v.help,
+      nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")),
+    }));
+  expect(blocking, "axe serious/critical violations").toEqual([]);
 }
 
 test.describe("axe a11y audit", () => {

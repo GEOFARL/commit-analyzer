@@ -136,14 +136,11 @@ export const ActivityHeatmap = ({ repoId, initial }: ActivityHeatmapProps) => {
                           aria-label={label}
                           title={label}
                           className={cn(
-                            "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none",
-                            showCount
-                              ? "text-primary-foreground"
-                              : "text-transparent",
+                            "aspect-square rounded-sm text-center align-middle text-[9px] font-medium tabular-nums leading-none text-primary-foreground",
                             BUCKET_BG[bucket],
                           )}
                         >
-                          {showCount ? count : null}
+                          {showCount ? count : " "}
                         </td>
                       );
                     })}

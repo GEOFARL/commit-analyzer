@@ -35,6 +35,10 @@ export default defineConfig({
       NEXT_PUBLIC_API_URL: `http://127.0.0.1:${MOCK_PORT}`,
       NEXT_PUBLIC_APP_URL: APP_URL,
       ...TEST_SERVER_ENV,
+      // Override APP_URL/WEB_ORIGIN from TEST_SERVER_ENV so the
+      // generate-proxy origin check (`req.headers.origin === WEB_ORIGIN`)
+      // accepts requests when E2E_APP_PORT shifts the dev server off :3000.
+      // Both vars come from the shared-types env schema (T-0.5).
       APP_URL,
       WEB_ORIGIN: APP_URL,
     },
