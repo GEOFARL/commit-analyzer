@@ -16,7 +16,8 @@ const { OpenapiController } = await import("./openapi.controller.js");
 
 const baseEnv = {
   API_URL: "https://api.example.com",
-  OPENAPI_DOCS_ENABLED: true,
+  OPENAPI_DOCS_USERNAME: undefined as string | undefined,
+  OPENAPI_DOCS_PASSWORD: undefined as string | undefined,
 };
 
 const buildApp = async (): Promise<INestApplication> => {
@@ -27,6 +28,9 @@ const buildApp = async (): Promise<INestApplication> => {
   await app.init();
   return app;
 };
+
+const basic = (user: string, pass: string): string =>
+  `Basic ${Buffer.from(`${user}:${pass}`, "utf8").toString("base64")}`;
 
 describe("OpenapiController (HTTP)", () => {
   let app: INestApplication | undefined;
@@ -72,17 +76,46 @@ describe("OpenapiController (HTTP)", () => {
     expect(res.text.length).toBeGreaterThan(500);
   });
 
-  it("returns 404 from openapi.json when the flag is off", async () => {
-    getServerEnvMock.mockReturnValue({ ...baseEnv, OPENAPI_DOCS_ENABLED: false });
-    app = await buildApp();
-    const res = await request(server()).get("/api/docs/openapi.json");
-    expect(res.status).toBe(404);
-  });
+  describe("with Basic auth credentials configured", () => {
+    beforeEach(() => {
+      getServerEnvMock.mockReturnValue({
+        ...baseEnv,
+        OPENAPI_DOCS_USERNAME: "docs",
+        OPENAPI_DOCS_PASSWORD: "letmein",
+      });
+    });
 
-  it("returns 404 from the UI when the flag is off", async () => {
-    getServerEnvMock.mockReturnValue({ ...baseEnv, OPENAPI_DOCS_ENABLED: false });
-    app = await buildApp();
-    const res = await request(server()).get("/api/docs");
-    expect(res.status).toBe(404);
+    it("returns 401 + WWW-Authenticate when no header is sent", async () => {
+      app = await buildApp();
+      const res = await request(server()).get("/api/docs");
+      expect(res.status).toBe(401);
+      expect(res.headers["www-authenticate"]).toMatch(/^Basic realm=/u);
+    });
+
+    it("returns 401 on bad credentials", async () => {
+      app = await buildApp();
+      const res = await request(server())
+        .get("/api/docs/openapi.json")
+        .set("Authorization", basic("docs", "wrong"));
+      expect(res.status).toBe(401);
+    });
+
+    it("returns 200 on correct credentials for the UI", async () => {
+      app = await buildApp();
+      const res = await request(server())
+        .get("/api/docs")
+        .set("Authorization", basic("docs", "letmein"));
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/text\/html/u);
+    });
+
+    it("returns 200 on correct credentials for openapi.json", async () => {
+      app = await buildApp();
+      const res = await request(server())
+        .get("/api/docs/openapi.json")
+        .set("Authorization", basic("docs", "letmein"));
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toMatch(/application\/json/u);
+    });
   });
 });
