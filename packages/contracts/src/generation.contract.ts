@@ -173,6 +173,7 @@ export const generationContract = c.router(
       metadata: {
         auth: "jwtOrApiKey",
         rateLimit: "generate",
+        streaming: "sse",
       } satisfies RouteMetadata,
     },
     history: historyRouter,

@@ -63,6 +63,11 @@ export const serverEnvSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
 
+  OPENAPI_DOCS_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+
   ENCRYPTION_KEY_BASE64: base64Key32,
 
   CSP_CONNECT_SRC: z
