@@ -1,6 +1,10 @@
 import "reflect-metadata";
 
+import type { Server } from "node:http";
+
+import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const getServerEnvMock = vi.hoisted(() => vi.fn());
@@ -10,91 +14,75 @@ vi.mock("../../common/config.js", () => ({
 
 const { OpenapiController } = await import("./openapi.controller.js");
 
-const createResponseStub = (): {
-  status: ReturnType<typeof vi.fn>;
-  type: ReturnType<typeof vi.fn>;
-  send: ReturnType<typeof vi.fn>;
-  setHeader: ReturnType<typeof vi.fn>;
-  end: ReturnType<typeof vi.fn>;
-  write: ReturnType<typeof vi.fn>;
-} => {
-  const res = {
-    status: vi.fn().mockReturnThis(),
-    type: vi.fn().mockReturnThis(),
-    send: vi.fn().mockReturnThis(),
-    setHeader: vi.fn(),
-    end: vi.fn(),
-    write: vi.fn(),
-  };
-  return res;
-};
-
 const baseEnv = {
   API_URL: "https://api.example.com",
   OPENAPI_DOCS_ENABLED: true,
 };
 
-describe("OpenapiController", () => {
+const buildApp = async (): Promise<INestApplication> => {
+  const moduleRef = await Test.createTestingModule({
+    controllers: [OpenapiController],
+  }).compile();
+  const app = moduleRef.createNestApplication({ logger: false });
+  await app.init();
+  return app;
+};
+
+describe("OpenapiController (HTTP)", () => {
+  let app: INestApplication | undefined;
+  const server = (): Server => app!.getHttpServer() as Server;
+
   beforeEach(() => {
     getServerEnvMock.mockReturnValue({ ...baseEnv });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await app?.close();
+    app = undefined;
     vi.clearAllMocks();
   });
 
-  it("serves the openapi.json document with project metadata", async () => {
-    const moduleRef = await Test.createTestingModule({
-      controllers: [OpenapiController],
-    }).compile();
-    const controller = moduleRef.get(OpenapiController);
-    const res = createResponseStub();
+  it("serves openapi.json with the contracts-derived spec", async () => {
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs/openapi.json");
 
-    controller.openapiJson(res as never);
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\/json/u);
+    const body = res.body as {
+      info: { title: string };
+      openapi: string;
+      paths: Record<string, Record<string, Record<string, unknown>>>;
+      "x-websocket": { namespace: string };
+    };
+    expect(body.info.title).toBe("Commit Analyzer API");
+    expect(body.openapi).toMatch(/^3\./u);
+    expect(Object.keys(body.paths).length).toBeGreaterThan(20);
+    expect(body.paths["/generate"]?.post?.["x-sse"]).toBe(true);
+    expect(body["x-websocket"].namespace).toBe("/sync");
+  });
 
-    expect(res.type).toHaveBeenCalledWith("application/json");
-    expect(res.send).toHaveBeenCalledTimes(1);
-    const sent = res.send.mock.calls[0]?.[0] as
-      | { info: { title: string }; paths: Record<string, unknown> }
-      | undefined;
-    expect(sent?.info.title).toBe("Commit Analyzer API");
-    expect(Object.keys(sent?.paths ?? {}).length).toBeGreaterThan(10);
+  it("serves the Scalar UI as HTML referencing the JSON sub-route", async () => {
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs");
+
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/html/u);
+    expect(res.text).toMatch(/@scalar/u);
+    expect(res.text).toMatch(/Commit Analyzer API/u);
+    expect(res.text.length).toBeGreaterThan(500);
   });
 
   it("returns 404 from openapi.json when the flag is off", async () => {
     getServerEnvMock.mockReturnValue({ ...baseEnv, OPENAPI_DOCS_ENABLED: false });
-    const moduleRef = await Test.createTestingModule({
-      controllers: [OpenapiController],
-    }).compile();
-    const controller = moduleRef.get(OpenapiController);
-
-    expect(() => controller.openapiJson(createResponseStub() as never)).toThrow(
-      /Not Found/u,
-    );
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs/openapi.json");
+    expect(res.status).toBe(404);
   });
 
   it("returns 404 from the UI when the flag is off", async () => {
     getServerEnvMock.mockReturnValue({ ...baseEnv, OPENAPI_DOCS_ENABLED: false });
-    const moduleRef = await Test.createTestingModule({
-      controllers: [OpenapiController],
-    }).compile();
-    const controller = moduleRef.get(OpenapiController);
-
-    expect(() =>
-      controller.ui({} as never, createResponseStub() as never),
-    ).toThrow(/Not Found/u);
-  });
-
-  it("delegates UI rendering to the Scalar handler", async () => {
-    const moduleRef = await Test.createTestingModule({
-      controllers: [OpenapiController],
-    }).compile();
-    const controller = moduleRef.get(OpenapiController);
-    const res = createResponseStub();
-
-    controller.ui({ headers: { accept: "text/html" } } as never, res as never);
-
-    // Scalar writes HTML via res.end / res.write — assert at least one was called.
-    expect(res.end.mock.calls.length + res.send.mock.calls.length).toBeGreaterThan(0);
+    app = await buildApp();
+    const res = await request(server()).get("/api/docs");
+    expect(res.status).toBe(404);
   });
 });

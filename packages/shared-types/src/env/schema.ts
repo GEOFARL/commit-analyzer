@@ -65,7 +65,7 @@ export const serverEnvSchema = z.object({
 
   OPENAPI_DOCS_ENABLED: z
     .enum(["true", "false"])
-    .default("true")
+    .default("false")
     .transform((value) => value === "true"),
 
   ENCRYPTION_KEY_BASE64: base64Key32,
