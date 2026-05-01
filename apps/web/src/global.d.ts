@@ -16,6 +16,7 @@ import type placeholders from "../messages/en/placeholders.json";
 import type policies from "../messages/en/policies.json";
 import type profile from "../messages/en/profile.json";
 import type repositories from "../messages/en/repositories.json";
+import type settings from "../messages/en/settings.json";
 import type sync from "../messages/en/sync.json";
 import type userMenu from "../messages/en/userMenu.json";
 
@@ -40,6 +41,7 @@ type Messages = {
   policies: typeof policies;
   profile: typeof profile;
   repositories: typeof repositories;
+  settings: typeof settings;
   sync: typeof sync;
   userMenu: typeof userMenu;
 };

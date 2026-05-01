@@ -350,6 +350,180 @@ const buildSuggestionFrame = (
   };
 };
 
+// ─── Audit events fixtures ──────────────────────────────────────────────────
+
+type AuditEventFixture = {
+  id: string;
+  eventType: string;
+  payload: Record<string, unknown>;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
+};
+
+// Mutable list — newer events get unshifted to the front by the API-key mint
+// path. The activity page sorts by createdAt desc + id desc, so seed timestamps
+// must be strictly decreasing per array index.
+let auditEvents: AuditEventFixture[] = [];
+
+// Used to assert frontend payload-redaction defense: the activity page must
+// NEVER render this string verbatim, even though the (mock) backend stored it.
+export const REDACT_FIXTURE_TOKEN =
+  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
+const seedAuditEvents = (): void => {
+  const now = Date.now();
+  const minute = 60 * 1000;
+  const events: AuditEventFixture[] = [];
+
+  // Seeded "bad" payload — defense check: backend should never write tokens
+  // here, but if it ever did, the frontend must redact before rendering.
+  events.push({
+    id: "00000000-0000-4000-8000-000000000001",
+    eventType: "auth.login",
+    payload: {
+      provider: "github",
+      access_token: REDACT_FIXTURE_TOKEN,
+    },
+    ip: "203.0.113.10",
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    createdAt: new Date(now - 1 * minute).toISOString(),
+  });
+
+  // One row per remaining v1 event type so the empty-list case isn't reached
+  // and the filter dropdown has matching rows for every selectable value.
+  const seeded: Array<Pick<AuditEventFixture, "eventType" | "payload">> = [
+    { eventType: "auth.logout", payload: {} },
+    {
+      eventType: "apikey.revoked",
+      payload: {
+        api_key_id: "11111111-1111-4111-8111-aaaaaaaaaaaa",
+        key_prefix: "ca_seed1",
+      },
+    },
+    {
+      eventType: "llmkey.upserted",
+      payload: { provider: "anthropic" },
+    },
+    {
+      eventType: "llmkey.deleted",
+      payload: { provider: "openai" },
+    },
+    {
+      eventType: "policy.activated",
+      payload: {
+        repository_id: MOCK_SEEDED_REPO_ID,
+        policy_id: "22222222-2222-4222-8222-222222222222",
+      },
+    },
+    {
+      eventType: "generation.completed",
+      payload: {
+        generation_id: "33333333-3333-4333-8333-333333333333",
+        provider: "anthropic",
+        model: "claude-haiku-4-5",
+        tokens_used: 1234,
+      },
+    },
+    {
+      eventType: "generation.failed",
+      payload: {
+        generation_id: "44444444-4444-4444-8444-444444444444",
+        reason: "rate_limited",
+      },
+    },
+    {
+      eventType: "repo.purged",
+      payload: { repository_id: "old-repo" },
+    },
+  ];
+  seeded.forEach((row, i) => {
+    events.push({
+      id: `00000000-0000-4000-8000-${String(i + 2).padStart(12, "0")}`,
+      eventType: row.eventType,
+      payload: row.payload,
+      ip: "203.0.113.10",
+      userAgent: "Mozilla/5.0",
+      createdAt: new Date(now - (i + 2) * minute).toISOString(),
+    });
+  });
+
+  // Pad with extra `auth.login` rows so the unfiltered list exceeds the 50/page
+  // limit and the cursor-pagination assertion has a real "next page" to load.
+  for (let i = 0; i < 55; i += 1) {
+    events.push({
+      id: `00000000-0000-4000-8000-${String(100 + i).padStart(12, "0")}`,
+      eventType: "auth.login",
+      payload: { provider: "github" },
+      ip: "203.0.113.10",
+      userAgent: "Mozilla/5.0",
+      createdAt: new Date(now - (20 + i) * minute).toISOString(),
+    });
+  }
+
+  auditEvents = events;
+};
+
+const compareAudit = (a: AuditEventFixture, b: AuditEventFixture): number => {
+  if (a.createdAt !== b.createdAt) return b.createdAt.localeCompare(a.createdAt);
+  return b.id.localeCompare(a.id);
+};
+
+const encodeAuditCursor = (e: AuditEventFixture): string =>
+  Buffer.from(`${e.createdAt}|${e.id}`).toString("base64url");
+
+const decodeAuditCursor = (
+  raw: string,
+): { createdAt: string; id: string } | null => {
+  try {
+    const decoded = Buffer.from(raw, "base64url").toString("utf8");
+    const idx = decoded.indexOf("|");
+    if (idx < 0) return null;
+    return { createdAt: decoded.slice(0, idx), id: decoded.slice(idx + 1) };
+  } catch {
+    return null;
+  }
+};
+
+const listAuditEvents = (params: {
+  cursor: string | null;
+  eventType: string | null;
+  limit: number;
+}): { items: AuditEventFixture[]; nextCursor: string | null } => {
+  const all = [...auditEvents].sort(compareAudit);
+  const filtered = params.eventType
+    ? all.filter((e) => e.eventType === params.eventType)
+    : all;
+  const startIdx = (() => {
+    if (!params.cursor) return 0;
+    const decoded = decodeAuditCursor(params.cursor);
+    if (!decoded) return 0;
+    const idx = filtered.findIndex(
+      (e) => e.id === decoded.id && e.createdAt === decoded.createdAt,
+    );
+    return idx < 0 ? filtered.length : idx + 1;
+  })();
+  const slice = filtered.slice(startIdx, startIdx + params.limit);
+  const last = slice[slice.length - 1];
+  const nextCursor =
+    last && startIdx + slice.length < filtered.length
+      ? encodeAuditCursor(last)
+      : null;
+  return { items: slice, nextCursor };
+};
+
+// ─── API-key fixtures ───────────────────────────────────────────────────────
+
+type ApiKeyFixture = {
+  id: string;
+  name: string;
+  prefix: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+};
+
+const apiKeys: ApiKeyFixture[] = [];
+
 // ─── Sync simulation state ──────────────────────────────────────────────────
 
 type PendingSync = { syncJobId: string };
@@ -512,7 +686,7 @@ const handleRequest = async (
       avatarUrl: null,
       createdAt: "2024-01-01T00:00:00.000Z",
     }),
-    "/api-keys": () => ({ items: [] }),
+    "/api-keys": () => ({ items: [...apiKeys] }),
     "/generation/history": () => ({ items: [], nextCursor: null }),
   };
   if (req.method === "GET" && pathname in stubGet) {
@@ -521,6 +695,67 @@ const handleRequest = async (
       return;
     }
     sendJson(req, res, 200, stubGet[pathname]!());
+    return;
+  }
+
+  // ── API keys (mint) ──────────────────────────────────────────────────────
+  if (req.method === "POST" && pathname === "/api-keys") {
+    if (!isAuthorized(req)) {
+      await drainBody(req);
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const body = (await readJsonBody(req)) as { name?: unknown };
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) {
+      sendJson(req, res, 400, { message: "name required" });
+      return;
+    }
+    const id = randomUUID();
+    const prefix = `ca_${id.slice(0, 6)}`;
+    const createdAt = new Date().toISOString();
+    const apiKey: ApiKeyFixture = {
+      id,
+      name,
+      prefix,
+      lastUsedAt: null,
+      createdAt,
+    };
+    apiKeys.unshift(apiKey);
+    auditEvents.unshift({
+      id: randomUUID(),
+      eventType: "apikey.created",
+      payload: { api_key_id: id, name, key_prefix: prefix },
+      ip: "203.0.113.10",
+      userAgent: "Mozilla/5.0",
+      createdAt,
+    });
+    sendJson(req, res, 201, {
+      ...apiKey,
+      key: `ca_test_${id.replace(/-/g, "")}`,
+    });
+    return;
+  }
+
+  // ── Audit events list ────────────────────────────────────────────────────
+  if (req.method === "GET" && pathname === "/audit-events") {
+    if (!isAuthorized(req)) {
+      sendJson(req, res, 401, { message: "unauthorized" });
+      return;
+    }
+    const limitRaw = Number(searchParams.get("limit") ?? "50");
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0 && limitRaw <= 100
+        ? Math.floor(limitRaw)
+        : 50;
+    const eventType = searchParams.get("eventType");
+    const cursor = searchParams.get("cursor");
+    const result = listAuditEvents({
+      cursor: cursor ?? null,
+      eventType: eventType ?? null,
+      limit,
+    });
+    sendJson(req, res, 200, result);
     return;
   }
 
@@ -934,6 +1169,8 @@ const handleRequest = async (
 
 const resetState = (): void => {
   defaultPolicyTemplate = null;
+  apiKeys.length = 0;
+  seedAuditEvents();
   connectedRepos.clear();
   connectedRepos.set(MOCK_SEEDED_REPO_ID, {
     id: MOCK_SEEDED_REPO_ID,
