@@ -19,6 +19,7 @@ import en_placeholders from "../../messages/en/placeholders.json";
 import en_policies from "../../messages/en/policies.json";
 import en_profile from "../../messages/en/profile.json";
 import en_repositories from "../../messages/en/repositories.json";
+import en_settings from "../../messages/en/settings.json";
 import en_sync from "../../messages/en/sync.json";
 import en_userMenu from "../../messages/en/userMenu.json";
 import uk_analytics from "../../messages/uk/analytics.json";
@@ -39,6 +40,7 @@ import uk_placeholders from "../../messages/uk/placeholders.json";
 import uk_policies from "../../messages/uk/policies.json";
 import uk_profile from "../../messages/uk/profile.json";
 import uk_repositories from "../../messages/uk/repositories.json";
+import uk_settings from "../../messages/uk/settings.json";
 import uk_sync from "../../messages/uk/sync.json";
 import uk_userMenu from "../../messages/uk/userMenu.json";
 
@@ -64,6 +66,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     policies: en_policies,
     profile: en_profile,
     repositories: en_repositories,
+    settings: en_settings,
     sync: en_sync,
     userMenu: en_userMenu,
   },
@@ -86,6 +89,7 @@ const messagesByLocale: Record<(typeof routing.locales)[number], Messages> = {
     policies: uk_policies,
     profile: uk_profile,
     repositories: uk_repositories,
+    settings: uk_settings,
     sync: uk_sync,
     userMenu: uk_userMenu,
   },

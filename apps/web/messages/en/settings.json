@@ -1,0 +1,110 @@
+{
+  "nav": {
+    "ariaLabel": "Settings sections",
+    "profile": "Profile",
+    "apiKeys": "API Keys",
+    "llmKeys": "LLM Keys",
+    "defaultPolicy": "Default Policy",
+    "activity": "Activity"
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Audit log of security-relevant events on your account.",
+    "filter": {
+      "label": "Event type",
+      "ariaLabel": "Filter activity by event type",
+      "all": "All events"
+    },
+    "loadMore": "Load more",
+    "loadingMore": "Loading…",
+    "redactedNote": "Sensitive-looking values are masked in the payload preview.",
+    "togglePayload": {
+      "show": "Show payload",
+      "hide": "Hide payload"
+    },
+    "ip": "IP",
+    "userAgent": "User agent",
+    "events": {
+      "auth": {
+        "login": {
+          "label": "Signed in",
+          "description": "Signed in via {provider}.",
+          "fallback": "Signed in."
+        },
+        "logout": {
+          "label": "Signed out",
+          "description": "Signed out of the account.",
+          "fallback": "Signed out of the account."
+        }
+      },
+      "apikey": {
+        "created": {
+          "label": "API key created",
+          "description": "Created CLI key \"{name}\" ({prefix}).",
+          "fallback": "Created a new CLI key."
+        },
+        "revoked": {
+          "label": "API key revoked",
+          "description": "Revoked CLI key {prefix}.",
+          "fallback": "Revoked a CLI key."
+        }
+      },
+      "llmkey": {
+        "upserted": {
+          "label": "LLM key saved",
+          "description": "Saved {provider} provider key.",
+          "fallback": "Saved an LLM provider key."
+        },
+        "deleted": {
+          "label": "LLM key deleted",
+          "description": "Deleted {provider} provider key.",
+          "fallback": "Deleted an LLM provider key."
+        }
+      },
+      "policy": {
+        "activated": {
+          "label": "Policy activated",
+          "description": "Activated a policy on a repository.",
+          "fallback": "Activated a policy on a repository."
+        }
+      },
+      "generation": {
+        "completed": {
+          "label": "Generation completed",
+          "description": "Completed a generation with {provider} ({tokens} tokens).",
+          "fallback": "Completed a generation."
+        },
+        "failed": {
+          "label": "Generation failed",
+          "description": "Generation failed: {reason}.",
+          "fallback": "A generation failed."
+        }
+      },
+      "repo": {
+        "purged": {
+          "label": "Repository purged",
+          "description": "Purged a disconnected repository.",
+          "fallback": "Purged a disconnected repository."
+        }
+      },
+      "unknown": {
+        "label": "Activity",
+        "description": "Recorded a {eventType} event.",
+        "fallback": "Recorded an event."
+      }
+    },
+    "empty": {
+      "title": "No activity yet",
+      "description": "Security-relevant events on your account will appear here as you use the app.",
+      "filtered": {
+        "title": "No matching events",
+        "description": "Try a different event type or clear the filter.",
+        "clear": "Clear filter"
+      }
+    },
+    "error": {
+      "load": "Failed to load activity. Please try again."
+    },
+    "redacted": "[REDACTED]"
+  }
+}

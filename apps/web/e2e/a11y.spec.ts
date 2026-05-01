@@ -63,6 +63,7 @@ const ROUTES: Route[] = [
     path: "/settings/default-policy",
     auth: true,
   },
+  { name: "settings-activity", path: "/settings/activity", auth: true },
 ];
 
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
