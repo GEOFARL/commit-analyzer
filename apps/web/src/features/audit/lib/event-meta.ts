@@ -52,9 +52,9 @@ const KNOWN_EVENT_KEYS = new Set<AuditEventType>([
   "repo.purged",
 ]);
 
-export type AuditI18nKey = AuditEventType | "unknown";
-
-export const eventTypeI18nKey = (eventType: string): AuditI18nKey =>
+export const eventTypeI18nKey = (
+  eventType: string,
+): AuditEventType | "unknown" =>
   KNOWN_EVENT_KEYS.has(eventType as AuditEventType)
     ? (eventType as AuditEventType)
     : "unknown";
