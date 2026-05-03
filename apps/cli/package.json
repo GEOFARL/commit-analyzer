@@ -1,6 +1,26 @@
 {
   "name": "git-insight-cli",
   "version": "0.0.0",
+  "description": "AI-assisted CLI for generating commit messages and PR summaries from local git diffs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GEOFARL/commit-analyzer.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/GEOFARL/commit-analyzer#readme",
+  "bugs": {
+    "url": "https://github.com/GEOFARL/commit-analyzer/issues"
+  },
+  "keywords": [
+    "git",
+    "cli",
+    "commit",
+    "ai",
+    "conventional-commits",
+    "pr",
+    "changelog"
+  ],
   "type": "module",
   "bin": {
     "git-insight": "dist/index.js",
@@ -11,13 +31,13 @@
     "provenance": true
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "prebuild": "pnpm --filter @commit-analyzer/shared-types --filter @commit-analyzer/diff-parser --filter @commit-analyzer/contracts build",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +46,8 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@commit-analyzer/contracts": "workspace:*",
+    "@commit-analyzer/diff-parser": "workspace:*",
     "@commit-analyzer/eslint-config": "workspace:*",
     "@commit-analyzer/typescript-config": "workspace:*",
     "@types/node": "^22.19.17",
@@ -35,8 +57,6 @@
     "vitest": "^2"
   },
   "dependencies": {
-    "@commit-analyzer/contracts": "workspace:*",
-    "@commit-analyzer/diff-parser": "workspace:*",
     "@inquirer/prompts": "^8.4.2",
     "@ts-rest/core": "^3.51.0",
     "clipboardy": "^4",

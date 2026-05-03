@@ -6,6 +6,7 @@ export default defineConfig({
   format: ["esm"],
   target: "node20",
   bundle: true,
+  noExternal: [/^@commit-analyzer\//],
   clean: true,
   sourcemap: true,
   minify: false,
