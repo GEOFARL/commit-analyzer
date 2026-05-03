@@ -1,0 +1,67 @@
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - cli-v*
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-cli-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build CLI (with workspace deps)
+        run: pnpm exec turbo run build --filter=git-insight-cli
+
+      - name: Test
+        run: pnpm --filter git-insight-cli test
+
+      - name: Set version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#cli-v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            echo "Tag '$GITHUB_REF_NAME' did not match cli-v* prefix" >&2
+            exit 1
+          fi
+          pnpm --filter git-insight-cli exec npm version "$VERSION" --no-git-tag-version
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Publish
+        run: pnpm --filter git-insight-cli publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify install on clean container
+        run: |
+          docker run --rm node:20-alpine sh -c "
+            for i in 1 2 3 4 5 6; do
+              npm view git-insight-cli@${VERSION} version >/dev/null 2>&1 && break
+              echo 'waiting for registry to expose ${VERSION}...'
+              sleep 10
+            done
+            npm i -g git-insight-cli@${VERSION}
+            git-insight-cli --version
+          "
