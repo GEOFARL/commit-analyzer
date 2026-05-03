@@ -11,10 +11,12 @@ test.describe("landing page — guest", () => {
     ).toBeVisible();
   });
 
-  test("CTA links to /login", async ({ page }) => {
+  test("CTA submits to /auth/sign-in", async ({ page }) => {
     await page.goto("/");
-    const cta = page.getByRole("link", { name: /continue with github/i });
+    const cta = page.getByRole("button", { name: /continue with github/i });
     await expect(cta).toBeVisible();
-    await expect(cta).toHaveAttribute("href", "/login");
+    const form = cta.locator("xpath=ancestor::form");
+    await expect(form).toHaveAttribute("action", "/auth/sign-in");
+    await expect(form).toHaveAttribute("method", "post");
   });
 });

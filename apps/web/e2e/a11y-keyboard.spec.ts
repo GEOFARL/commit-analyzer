@@ -9,7 +9,7 @@ const REQUIRED_NAV_HREFS = [
 ];
 
 test.describe("keyboard navigation", () => {
-  test("landing → login is reachable by keyboard alone", async ({ page }) => {
+  test("landing CTA is reachable by keyboard alone", async ({ page }) => {
     await page.goto("/");
 
     const main = page.getByRole("main");
@@ -29,15 +29,15 @@ test.describe("keyboard navigation", () => {
       }
     }
     expect(cta, "CTA reachable via Tab from main").not.toBeNull();
-    await page.keyboard.press("Enter");
-    await page.waitForURL(/\/login$/);
-
-    const loginCta = page.getByRole("button", {
-      name: /continue with github/i,
+    await expect(cta!).toBeFocused();
+    const inSubmitForm = await cta!.evaluate((el) => {
+      const form = (el as HTMLElement).closest("form");
+      return (
+        form?.getAttribute("action") === "/auth/sign-in" &&
+        form?.getAttribute("method")?.toLowerCase() === "post"
+      );
     });
-    await expect(loginCta).toBeVisible();
-    await loginCta.focus();
-    await expect(loginCta).toBeFocused();
+    expect(inSubmitForm, "CTA submits to /auth/sign-in").toBe(true);
   });
 
   test("dashboard primary nav anchors are reachable by keyboard", async ({
