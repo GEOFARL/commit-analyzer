@@ -1,10 +1,14 @@
 {
-  "name": "@commit-analyzer/cli",
+  "name": "git-insight-cli",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "bin": {
-    "git-insight": "dist/index.js"
+    "git-insight": "dist/index.js",
+    "git-insight-cli": "dist/index.js"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "files": [
     "dist"
