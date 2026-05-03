@@ -9,8 +9,6 @@ AI-assisted Git platform: analytics dashboard, multi-provider LLM commit message
 
 ## Screenshots
 
-> Drop PNGs into `docs/screenshots/` with the names below — they will render here. Replace any caption you want.
-
 | Page                          | Image                                                    |
 | ----------------------------- | -------------------------------------------------------- |
 | Landing                       | ![Landing](assets/landing.png)                           |
