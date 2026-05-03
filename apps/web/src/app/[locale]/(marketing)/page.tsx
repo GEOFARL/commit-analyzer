@@ -1,11 +1,9 @@
-import { Sparkles } from "lucide-react";
 import { type Locale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AuroraBackground } from "@/components/layout/aurora-background";
 import { LogoMark } from "@/components/layout/logo-mark";
 import { SignInButton } from "@/components/layout/sign-in-button";
-import { Badge } from "@/components/ui/badge";
 
 export default async function LandingPage({
   params,
@@ -27,9 +25,6 @@ export default async function LandingPage({
               {t("appName")}
             </span>
           </div>
-          <Badge variant="default" className="gap-1.5">
-            <Sparkles className="h-3 w-3" aria-hidden="true" /> {t("phaseBadge")}
-          </Badge>
           <h1 className="max-w-3xl text-balance bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-5xl font-semibold tracking-tight text-transparent sm:text-6xl">
             {t("title")}
           </h1>

@@ -2,6 +2,5 @@
   "title": "Ship better commits, faster.",
   "tagline": "AI-assisted commit message generation and repository analytics for teams that care about their history.",
   "cta": "Continue with GitHub",
-  "appName": "Commit Analyzer",
-  "phaseBadge": "Phase 1 · beta"
+  "appName": "Commit Analyzer"
 }
