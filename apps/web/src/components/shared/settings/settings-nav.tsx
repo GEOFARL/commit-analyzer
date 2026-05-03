@@ -60,7 +60,7 @@ export const SettingsNav = () => {
   return (
     <nav
       aria-label={t("ariaLabel")}
-      className="-mx-1 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1"
+      className="-mx-1 flex gap-1 overflow-x-auto rounded-xl border bg-card p-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
     >
       {items.map(({ href, labelKey, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
