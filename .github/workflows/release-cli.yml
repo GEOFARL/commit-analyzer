@@ -32,12 +32,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build CLI (with workspace deps)
-        run: pnpm exec turbo run build --filter=git-insight-cli
-
-      - name: Test
-        run: pnpm --filter git-insight-cli test
-
       - name: Set version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#cli-v}"
@@ -47,6 +41,12 @@ jobs:
           fi
           pnpm --filter git-insight-cli exec npm version "$VERSION" --no-git-tag-version
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Build CLI (with workspace deps)
+        run: pnpm exec turbo run build --filter=git-insight-cli --force
+
+      - name: Test
+        run: pnpm --filter git-insight-cli test
 
       - name: Publish
         run: pnpm --filter git-insight-cli publish --no-git-checks
