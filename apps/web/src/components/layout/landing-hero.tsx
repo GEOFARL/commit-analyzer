@@ -33,9 +33,10 @@ export const LandingHero = () => {
             return;
           }
           gsap.set(
-            "[data-anim='eyebrow'], [data-anim='title-word'], [data-anim='subtitle'], [data-anim='cta-item'], [data-anim='trust'] > *, [data-anim='terminal']",
+            "[data-anim='eyebrow'], [data-anim='title-word'], [data-anim='subtitle'], [data-anim='trust'] > *, [data-anim='terminal']",
             { autoAlpha: 0, y: 16 },
           );
+          gsap.set("[data-anim='cta-item']", { y: 16 });
           const tl = gsap.timeline({
             defaults: { ease: "power3.out", duration: 0.8 },
           });
@@ -62,7 +63,7 @@ export const LandingHero = () => {
             )
             .to(
               "[data-anim='cta-item']",
-              { autoAlpha: 1, y: 0, stagger: 0.1, duration: 0.55 },
+              { y: 0, stagger: 0.1, duration: 0.55 },
               "-=0.3",
             )
             .to(

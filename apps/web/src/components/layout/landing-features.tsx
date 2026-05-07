@@ -139,7 +139,7 @@ export const LandingFeatures = () => {
               />
               <span
                 aria-hidden="true"
-                className="absolute right-5 top-5 font-mono text-xs text-muted-foreground/60"
+                className="absolute right-5 top-5 font-mono text-xs text-muted-foreground"
               >
                 {String(i + 1).padStart(2, "0")}
               </span>

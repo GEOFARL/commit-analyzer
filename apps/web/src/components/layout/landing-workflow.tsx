@@ -119,7 +119,7 @@ export const LandingWorkflow = () => {
                 <span className="inline-flex size-12 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
                   <Icon className="size-5" />
                 </span>
-                <span className="font-mono text-sm text-muted-foreground/70">
+                <span className="font-mono text-sm text-muted-foreground">
                   {t("stepLabel", { n: i + 1 })}
                 </span>
               </div>
