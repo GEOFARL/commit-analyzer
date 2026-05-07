@@ -1,6 +1,101 @@
 {
+  "appName": "Commit Analyzer",
   "title": "Ship better commits, faster.",
   "tagline": "AI-assisted commit message generation and repository analytics for teams that care about their history.",
   "cta": "Continue with GitHub",
-  "appName": "Commit Analyzer"
+  "ctaSecondary": "Install the CLI",
+  "copied": "Copied ✓",
+  "cliCommand": "npm i -g git-insight-cli",
+  "trust": {
+    "openSource": "Open source",
+    "selfHostable": "Self-hostable",
+    "models": "OpenAI · Anthropic"
+  },
+  "terminal": {
+    "title": "git-insight generate",
+    "command": "git-insight",
+    "subcommand": "generate",
+    "flag": "--commit",
+    "prompt": "$",
+    "plus": "+",
+    "arrow": "›",
+    "diff": "modified: src/auth/session.ts",
+    "thinking": "analysing diff with claude-3.5-sonnet…",
+    "result1": "feat(auth): rotate refresh tokens on every session resume",
+    "result2": "fix(auth): prevent stale JWT replay after sign-out",
+    "result3": "refactor(auth): extract session-resume helper from middleware"
+  },
+  "features": {
+    "heading": "Everything your commit history deserves.",
+    "subheading": "One workspace for AI-drafted messages, repository analytics, and team-wide policy enforcement.",
+    "items": {
+      "generate": {
+        "title": "Streamed commit suggestions",
+        "body": "Paste a diff, pick a provider, get three Conventional Commits in under two seconds — PII stripped before any LLM call."
+      },
+      "analytics": {
+        "title": "Repository analytics",
+        "body": "Commit timeline, contribution heatmap, contributor stats, file-change frequency, and Conventional Commits quality trends."
+      },
+      "policies": {
+        "title": "Visual policy engine",
+        "body": "Per-repo rules for types, scopes, length, body, and footer. Optional one-shot regeneration when a suggestion fails policy."
+      },
+      "cli": {
+        "title": "First-class CLI",
+        "body": "git-insight generate --commit --copy. Same ts-rest contracts as the web app, so types never drift."
+      },
+      "providers": {
+        "title": "Bring your own keys",
+        "body": "Encrypted-at-rest LLM keys with verification probe. Swap OpenAI and Anthropic per request, no lock-in."
+      },
+      "security": {
+        "title": "Built secure by default",
+        "body": "Row-level security, AES-256-GCM at rest, strict CSP, rate limiting, GitHub OAuth via Supabase Auth (PKCE)."
+      }
+    }
+  },
+  "workflow": {
+    "heading": "From diff to dashboard in three moves.",
+    "stepLabel": "step {n}",
+    "steps": {
+      "connect": {
+        "title": "Connect a repo",
+        "body": "Sign in with GitHub. Background sync pulls commits via Octokit and scores quality as it goes."
+      },
+      "generate": {
+        "title": "Generate the message",
+        "body": "Paste a diff or pipe one from the CLI. We stream three Conventional Commits in <2 s TTFT."
+      },
+      "ship": {
+        "title": "Ship with confidence",
+        "body": "Validate against your policy, copy the result, and push. Analytics update in the background."
+      }
+    }
+  },
+  "stack": {
+    "heading": "Built on a stack you already trust."
+  },
+  "finalCta": {
+    "heading": "Make every commit message worth reading.",
+    "body": "Free while in development. Sign in with GitHub or install the CLI to start in under a minute.",
+    "primary": "Continue with GitHub",
+    "secondary": "npm i -g git-insight-cli"
+  },
+  "footer": {
+    "tagline": "AI-assisted commit messages and repository analytics.",
+    "product": "Product",
+    "resources": "Resources",
+    "legal": "Legal",
+    "links": {
+      "dashboard": "Dashboard",
+      "cli": "CLI on npm",
+      "apiDocs": "API docs",
+      "github": "GitHub",
+      "readme": "README",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "copyright": "© {year} Commit Analyzer. Built as a diploma project."
+  }
 }
