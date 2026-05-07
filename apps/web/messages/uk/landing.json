@@ -1,6 +1,101 @@
 {
+  "appName": "Commit Analyzer",
   "title": "Якісніші коміти, швидше.",
   "tagline": "Генерація повідомлень коміту за допомогою ШІ та аналітика репозиторіїв для команд, яким важлива історія.",
   "cta": "Увійти через GitHub",
-  "appName": "Commit Analyzer"
+  "ctaSecondary": "Встановити CLI",
+  "copied": "Скопійовано ✓",
+  "cliCommand": "npm i -g git-insight-cli",
+  "trust": {
+    "openSource": "Open source",
+    "selfHostable": "Self-hosted",
+    "models": "OpenAI · Anthropic"
+  },
+  "terminal": {
+    "title": "git-insight generate",
+    "command": "git-insight",
+    "subcommand": "generate",
+    "flag": "--commit",
+    "prompt": "$",
+    "plus": "+",
+    "arrow": "›",
+    "diff": "змінено: src/auth/session.ts",
+    "thinking": "аналізую diff моделлю claude-3.5-sonnet…",
+    "result1": "feat(auth): rotate refresh tokens on every session resume",
+    "result2": "fix(auth): prevent stale JWT replay after sign-out",
+    "result3": "refactor(auth): extract session-resume helper from middleware"
+  },
+  "features": {
+    "heading": "Усе, чого заслуговує ваша історія комітів.",
+    "subheading": "Один простір для повідомлень від ШІ, аналітики репозиторіїв і політик якості для всієї команди.",
+    "items": {
+      "generate": {
+        "title": "Стрімінг повідомлень",
+        "body": "Вставте diff, оберіть провайдера — і отримайте три Conventional Commits менш ніж за дві секунди. PII вирізається до запиту."
+      },
+      "analytics": {
+        "title": "Аналітика репозиторіїв",
+        "body": "Часова шкала комітів, теплова карта внесків, статистика контриб’юторів, частота змін файлів і тренди якості."
+      },
+      "policies": {
+        "title": "Візуальний редактор політик",
+        "body": "Правила для типів, скоупів, довжини, тіла й футера на рівні репо. Опціональна разова регенерація при невідповідності."
+      },
+      "cli": {
+        "title": "CLI як першокласний клієнт",
+        "body": "git-insight generate --commit --copy. Ті самі ts-rest контракти, що й у вебі — типи не розходяться."
+      },
+      "providers": {
+        "title": "Власні ключі LLM",
+        "body": "Шифрування ключів у спокої, перевірка дієздатності. OpenAI та Anthropic — без vendor lock-in."
+      },
+      "security": {
+        "title": "Безпечно за замовчуванням",
+        "body": "Row-level security, AES-256-GCM, строгий CSP, rate limiting, GitHub OAuth через Supabase Auth (PKCE)."
+      }
+    }
+  },
+  "workflow": {
+    "heading": "Від diff до дашборду — три кроки.",
+    "stepLabel": "крок {n}",
+    "steps": {
+      "connect": {
+        "title": "Підключіть репо",
+        "body": "Увійдіть через GitHub. Фоновий синк підтягне коміти через Octokit і оцінить якість на льоту."
+      },
+      "generate": {
+        "title": "Згенеруйте повідомлення",
+        "body": "Вставте diff або передайте його з CLI. Три Conventional Commits — потоком, TTFT менш ніж 2 с."
+      },
+      "ship": {
+        "title": "Запушуйте впевнено",
+        "body": "Перевірте проти політики, скопіюйте — і пушніть. Аналітика оновлюється у фоні."
+      }
+    }
+  },
+  "stack": {
+    "heading": "Стек, якому ви вже довіряєте."
+  },
+  "finalCta": {
+    "heading": "Зробіть кожне повідомлення коміту вартим прочитання.",
+    "body": "Безкоштовно поки в розробці. Увійдіть через GitHub або встановіть CLI — менше хвилини.",
+    "primary": "Увійти через GitHub",
+    "secondary": "npm i -g git-insight-cli"
+  },
+  "footer": {
+    "tagline": "Повідомлення коміту від ШІ й аналітика репозиторіїв.",
+    "product": "Продукт",
+    "resources": "Ресурси",
+    "legal": "Юридичне",
+    "links": {
+      "dashboard": "Дашборд",
+      "cli": "CLI на npm",
+      "apiDocs": "API docs",
+      "github": "GitHub",
+      "readme": "README",
+      "privacy": "Конфіденційність",
+      "terms": "Умови"
+    },
+    "copyright": "© {year} Commit Analyzer. Дипломний проєкт."
+  }
 }
