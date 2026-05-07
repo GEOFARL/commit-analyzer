@@ -106,12 +106,14 @@ export const LandingHero = () => {
         </div>
         <h1 className="text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl lg:text-[4.25rem]">
           {titleWords.map((word, i) => (
-            <span
-              key={`${word}-${i}`}
-              data-anim="title-word"
-              className="mr-[0.25em] inline-block bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-transparent"
-            >
-              {word}
+            <span key={`${word}-${i}`} className="inline-block">
+              <span
+                data-anim="title-word"
+                className="inline-block bg-gradient-to-br from-foreground via-foreground to-primary bg-clip-text text-transparent"
+              >
+                {word}
+              </span>
+              {i < titleWords.length - 1 ? <span> </span> : null}
             </span>
           ))}
         </h1>

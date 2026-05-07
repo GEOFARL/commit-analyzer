@@ -13,7 +13,9 @@ test.describe("landing page — guest", () => {
 
   test("CTA submits to /auth/sign-in", async ({ page }) => {
     await page.goto("/");
-    const cta = page.getByRole("button", { name: /continue with github/i });
+    const cta = page
+      .getByRole("button", { name: /continue with github/i })
+      .first();
     await expect(cta).toBeVisible();
     const form = cta.locator("xpath=ancestor::form");
     await expect(form).toHaveAttribute("action", "/auth/sign-in");
